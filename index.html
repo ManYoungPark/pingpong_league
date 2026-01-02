@@ -2097,7 +2097,7 @@
 
             const tbl = document.createElement("table");
             tbl.className = "rr";
-            tbl.style.setProperty("--cols", String(players.length + 3));
+            tbl.style.setProperty("--cols", String(players.length + 4));
 
             const thead = document.createElement("thead");
             const hr = document.createElement("tr");
@@ -2118,6 +2118,11 @@
             wlTh.className = "sticky";
             wlTh.textContent = "승-패";
             hr.appendChild(wlTh);
+
+            const ptTh = document.createElement("th");
+            ptTh.className = "sticky";
+            ptTh.textContent = "득실";
+            hr.appendChild(ptTh);
 
             const rkTh = document.createElement("th");
             rkTh.className = "sticky";
@@ -2207,6 +2212,30 @@
                 wl.className = "wl";
                 wl.textContent = st ? `${st.win}-${st.lose}` : "0-0";
                 tr.appendChild(wl);
+
+                // 득실 (SD)
+                const pt = document.createElement("td");
+                pt.className = "wl";
+                if (st) {
+                    const diff = st.setsFor - st.setsAgainst;
+                    const sign = diff > 0 ? "+" : "";
+                    pt.textContent = `${sign}${diff}`;
+
+                    if (diff > 0) {
+                        pt.style.color = "#1d4ed8"; // Blue
+                        pt.style.fontWeight = "900";
+                    } else if (diff < 0) {
+                        pt.style.color = "#9ca3af"; // Gray
+                        pt.style.fontWeight = "400";
+                    } else {
+                        pt.style.color = "#6b7280"; // Muted
+                        pt.style.fontWeight = "400";
+                    }
+                } else {
+                    pt.textContent = "-";
+                    pt.style.color = "var(--muted)";
+                }
+                tr.appendChild(pt);
 
                 // 순위
                 const rk = document.createElement("td");
