@@ -536,6 +536,19 @@
             border-radius: 999px;
         }
 
+        /* Clickable Header for Moving Group */
+        .rr th.clickable-head {
+            cursor: pointer;
+            text-decoration: underline;
+            text-decoration-style: dotted;
+            text-underline-offset: 4px;
+        }
+
+        .rr th.clickable-head:hover {
+            background-color: #f1f5f9;
+            color: #1d4ed8;
+        }
+
         /* ✅ 동률 rank 클릭 가능 표시 */
         .rank.clickable {
             cursor: pointer;
@@ -1059,7 +1072,8 @@
             <div class="card-hd">
                 <div class="title">조 테이블 <span class="pill" id="teamInfo">0조</span></div>
                 <!-- <span class="pill">조 카드에 드롭</span> -->
-                <button class="linkbtn" id="openHelpBtn" style="font-size:12px;">💡 도움말: 동률 처리 기준 & 예시</button>
+                <button class="linkbtn" id="openHelpBtn" style="font-size:12px;">💡 도움말: 동률 처리 기준 & 예시 (동률 코드: H2H · SD
+                    · SF · TIE(공동))</button>
             </div>
             <div class="teams" id="teams"></div>
             <div style="padding:12px; text-align:center; border-top:1px solid var(--border);">
@@ -1189,6 +1203,18 @@
                     <li>공동 순위가 발생할 경우, 순위 표에는 <b>“공동 ○위”</b>로 표시한다.</li>
                 </ul>
             </div>
+        </div>
+    </div>
+
+    <!-- ✅ 조 이동 포탈 (New) -->
+    <div class="portal" id="movePortal" aria-hidden="true">
+        <div class="backdrop" id="moveBackdrop"></div>
+        <div class="pop" id="movePop" role="dialog" aria-modal="true">
+            <div class="row">
+                <div class="ttl" id="moveTitle">조 이동</div>
+                <button class="close" type="button" id="moveClose">닫기</button>
+            </div>
+            <div class="grid" id="moveGrid"></div>
         </div>
     </div>
 
@@ -1568,6 +1594,123 @@
 
         rankClose.addEventListener("click", (e) => { e.stopPropagation(); closeRank(); });
         rankBackdrop.addEventListener("click", () => closeRank());
+
+        /* ========= 조 이동 포탈 (New) ========= */
+        const movePortal = document.getElementById("movePortal");
+        const moveBackdrop = document.getElementById("moveBackdrop");
+        const movePop = document.getElementById("movePop");
+        const moveGrid = document.getElementById("moveGrid");
+        const moveClose = document.getElementById("moveClose");
+        const moveTitle = document.getElementById("moveTitle");
+
+        let currentMoveName = null;
+        let currentMoveFromTeamId = null;
+        let currentMoveAnchor = null;
+
+        function isMoveOpen() { return movePortal.classList.contains("open"); }
+        function closeMovePortal() {
+            movePortal.classList.remove("open");
+            movePortal.setAttribute("aria-hidden", "true");
+            currentMoveName = null;
+            currentMoveFromTeamId = null;
+            currentMoveAnchor = null;
+        }
+
+        function cleanPlayerRecords(teamId, name) {
+            if (!teamId || !name) return;
+            // 1. Clean results mapping
+            const resMap = ensureTeamResults(teamId);
+            // key format: "A|||B"
+            for (const k of resMap.keys()) {
+                if (k.includes(name)) {
+                    resMap.delete(k);
+                }
+            }
+            // 2. Clean manual rank
+            const manual = ensureManual(teamId);
+            if (manual.has(name)) {
+                manual.delete(name);
+            }
+        }
+
+        function handleMovePlayer(name, fromTeamId, toTeamId) {
+            if (!name || !fromTeamId) return;
+
+            // Clean old records
+            cleanPlayerRecords(fromTeamId, name);
+
+            // Update State
+            // if toTeamId is null => Pool
+            if (toTeamId) {
+                state.set(name, { where: "team", teamId: toTeamId });
+            } else {
+                state.set(name, { where: "pool" });
+            }
+
+            renderAllTeams(); // Refresh all
+            closeMovePortal();
+        }
+
+        function openMoveGroupPortal(name, currentTeamId, anchorEl) {
+            currentMoveName = name;
+            currentMoveFromTeamId = currentTeamId;
+            currentMoveAnchor = anchorEl;
+
+            moveTitle.textContent = `조 이동 · ${name}`;
+            moveGrid.innerHTML = "";
+
+            // Option 1: Move to Pool (Standby)
+            const btnPool = document.createElement("button");
+            btnPool.type = "button";
+            btnPool.className = "gbtn wide";
+            btnPool.textContent = "대기 명단으로 이동";
+            btnPool.style.marginBottom = "4px";
+            btnPool.addEventListener("click", (e) => {
+                e.stopPropagation();
+                if (confirm(`'${name}' 님의 기록을 삭제하고 대기 명단으로 이동하시겠습니까?`)) {
+                    handleMovePlayer(name, currentTeamId, null);
+                }
+            });
+            moveGrid.appendChild(btnPool);
+
+            // Option 2: Move to other groups
+            if (state.groupsCount && state.groupsCount > 0) {
+                for (let i = 1; i <= state.groupsCount; i++) {
+                    const tid = `team-${i}`;
+
+                    const btn = document.createElement("button");
+                    btn.type = "button";
+                    btn.className = "gbtn";
+                    btn.textContent = `${i}조`;
+
+                    if (tid === currentTeamId) {
+                        btn.disabled = true;
+                        btn.title = "현재 소속된 조입니다.";
+                        btn.textContent += " (현재)";
+                    }
+
+                    btn.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        // Auto-confirm implied by user request ("initialization is fine"), but a safe check is good.
+                        // I'll skip confirm for team-move to make it snappy as per request "just click.. move".
+                        // Wait, user said "initialization would be fine", implying they expect it.
+                        // I will add a small confirm if there are actually scores recorded involved? 
+                        // Let's just do it directly for better UX. Only confirm for "Pool" (remove from tournament) maybe? 
+                        // Actually, let's just do it. Only prompt if destructive? 
+                        // The user said "Init is fine".
+                        handleMovePlayer(name, currentTeamId, tid);
+                    });
+                    moveGrid.appendChild(btn);
+                }
+            }
+
+            movePortal.classList.add("open");
+            movePortal.setAttribute("aria-hidden", "false");
+            requestAnimationFrame(() => placePop(movePop, anchorEl));
+        }
+
+        moveClose.addEventListener("click", (e) => { e.stopPropagation(); closeMovePortal(); });
+        moveBackdrop.addEventListener("click", () => closeMovePortal());
 
         /* ========= 도움말 포탈 ========= */
         const helpPortal = document.getElementById("helpPortal");
@@ -2069,8 +2212,8 @@
 
             const ttl = document.createElement("div");
             ttl.className = "rr-title";
-            ttl.innerHTML = `<div class="ttl">대진표</div>
-                       <div class="sub">동률 코드: H2H · SD · SF · TIE(공동)</div>`;
+            ttl.innerHTML = `<div class="ttl"></div>
+                       <div class="sub"></div>`;
             wrap.appendChild(ttl);
 
             if (players.length === 0) {
@@ -2109,8 +2252,13 @@
 
             players.forEach(p => {
                 const th = document.createElement("th");
-                th.className = "sticky";
+                th.className = "sticky clickable-head";
                 th.textContent = p;
+                th.title = "클릭하여 조 이동";
+                th.onclick = (e) => {
+                    e.stopPropagation();
+                    openMoveGroupPortal(p, teamId, th);
+                };
                 hr.appendChild(th);
             });
 
@@ -2150,8 +2298,13 @@
                 const tr = document.createElement("tr");
 
                 const left = document.createElement("th");
-                left.className = "leftsticky";
+                left.className = "leftsticky clickable-head";
                 left.textContent = rowP;
+                left.title = "클릭하여 조 이동";
+                left.onclick = (e) => {
+                    e.stopPropagation();
+                    openMoveGroupPortal(rowP, teamId, left);
+                };
                 tr.appendChild(left);
 
                 for (let j = 0; j < players.length; j++) {
@@ -2342,7 +2495,7 @@
 
                 const tname = document.createElement("div");
                 tname.className = "tname";
-                tname.innerHTML = `<span>${i}조</span><span class="hint">여기에 드롭해서 편성</span>`;
+                tname.innerHTML = `<span>${i}조</span><span class="hint"></span>`;
 
                 const count = document.createElement("div");
                 count.className = "count";
