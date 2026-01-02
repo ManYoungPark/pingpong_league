@@ -1010,7 +1010,7 @@
     <div class="wrap">
         <div class="right-col">
 
-            <section class="card">
+            <section class="card" id="card-settings">
                 <div class="card-hd">
                     <div class="title">설정</div>
                     <span class="pill">조 개수 / 경기 방식</span>
@@ -1037,7 +1037,7 @@
         </div>
         </section>
 
-        <section class="card">
+        <section class="card" id="card-pool">
             <div class="card-hd">
                 <div class="title" style="display:flex; align-items:center; gap:8px;">
                     이름 목록 <span class="pill" id="poolCount">0명</span>
@@ -1053,7 +1053,7 @@
             <div class="list droptarget" id="pool"></div>
         </section>
 
-        <section class="card">
+        <section class="card" id="card-teams">
             <div class="card-hd">
                 <div class="title">조 테이블 <span class="pill" id="teamInfo">0조</span></div>
                 <!-- <span class="pill">조 카드에 드롭</span> -->
@@ -3476,19 +3476,97 @@
                 return;
             }
 
-            toggleLoading(true, "이미지 생성 중...");
+            // 1. Show Loading Overlay (Cover the mess we are about to make)
+            toggleLoading(true, "이미지 생성 중... (잠시만 기다려주세요)");
+            await new Promise(r => setTimeout(r, 100)); // Render tick
 
-            // Wait a bit for UI to settle/render
-            await new Promise(r => setTimeout(r, 100));
+            // 2. Store Original States & Modify Real DOM (To ensure correct height calculation)
+            // We use a class approach or direct style manipulation. Direct style is safer for restoration without CSS conflicts.
+            const originalStyles = new Map();
+
+            function hide(id) {
+                const el = document.getElementById(id);
+                if (el) {
+                    originalStyles.set(el, { property: 'display', value: el.style.display });
+                    el.style.display = "none";
+                }
+            }
+            function expand(el) {
+                originalStyles.set(el, {
+                    overflow: el.style.overflow,
+                    height: el.style.height,
+                    maxHeight: el.style.maxHeight
+                });
+                el.style.overflow = "visible";
+                el.style.height = "auto";
+                el.style.maxHeight = "none";
+            }
 
             try {
-                const canvas = await html2canvas(area, {
-                    scale: 2,
-                    backgroundColor: "#ffffff",
-                    useCORS: true,
-                    logging: false
+                // Execute Layout Changes on Real DOM
+                hide("card-settings");
+                hide("card-pool");
+                // Note: We DO NOT hide "loadingOverlay" here, because we want the user to see it.
+                // We will hide it inside onclone so it's not in the screenshot.
+
+                // Hide Portals
+                document.querySelectorAll(".portal, .modal-portal").forEach(el => {
+                    originalStyles.set(el, { property: 'display', value: el.style.display });
+                    el.style.display = "none";
                 });
 
+                // Expand Tables
+                document.querySelectorAll(".table-scroll").forEach(el => expand(el));
+
+                // Force layout recalc?
+                // accessing offsetHeight forces reflow
+                document.body.offsetHeight;
+
+                // 3. Capture
+                const canvas = await html2canvas(document.body, {
+                    scale: 2,
+                    backgroundColor: "#ffffff", // Force white background
+                    useCORS: true,
+                    logging: false,
+                    onclone: (clonedDoc) => {
+                        // A. Hide the overlay in the screenshot
+                        const overlay = clonedDoc.getElementById("loadingOverlay");
+                        if (overlay) overlay.style.display = "none";
+
+                        // B. Force Text Color Black (Global & Specific)
+                        clonedDoc.body.style.color = "#000000";
+                        clonedDoc.body.style.backgroundColor = "#ffffff";
+
+                        // C. Replace Selects with Text (Visual correction)
+                        const originSelects = document.body.querySelectorAll("select");
+                        const clonedSelects = clonedDoc.querySelectorAll("select");
+
+                        originSelects.forEach((orig, idx) => {
+                            if (clonedSelects[idx]) {
+                                const val = orig.options[orig.selectedIndex]?.text || " - ";
+                                // Create span
+                                const span = clonedDoc.createElement("span");
+                                span.textContent = val;
+                                span.style.fontWeight = "bold";
+                                span.style.fontSize = "14px";
+                                span.style.color = "#000000"; // Force black
+                                span.style.display = "flex";
+                                span.style.alignItems = "center";
+                                span.style.justifyContent = "center";
+
+                                if (clonedSelects[idx].parentNode) {
+                                    clonedSelects[idx].parentNode.replaceChild(span, clonedSelects[idx]);
+                                }
+                            }
+                        });
+
+                        // Ensure all text is black by brute-forcing some common containers if inheritance fails?
+                        // Usually body style is enough, but some user agent styles might override.
+                        // Let's rely on body.style.color + explicit span colors for now.
+                    }
+                });
+
+                // 4. Download
                 const link = document.createElement("a");
                 link.download = `대진표_결과_${new Date().toISOString().slice(0, 10)}.png`;
                 link.href = canvas.toDataURL("image/png");
@@ -3500,6 +3578,18 @@
                 console.error(err);
                 alert("이미지 저장 실패: " + err.message);
             } finally {
+                // 5. Restore Real DOM
+                originalStyles.forEach((styles, el) => {
+                    if (styles.property) {
+                        el.style[styles.property] = styles.value;
+                    } else {
+                        // Restoring expanded styles
+                        el.style.overflow = styles.overflow;
+                        el.style.height = styles.height;
+                        el.style.maxHeight = styles.maxHeight;
+                    }
+                });
+
                 toggleLoading(false);
             }
         }
