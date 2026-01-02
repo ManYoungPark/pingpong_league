@@ -2782,6 +2782,29 @@
                 }
             }
 
+            function restoreState() {
+                for (const m of MATCHES) {
+                    const toEl = document.getElementById(m.to);
+                    // 아직 승자가 없으면 스킵
+                    if (!toEl || isEmpty(toEl) || isBye(toEl)) continue;
+
+                    const aEl = document.getElementById(m.a);
+                    const bEl = document.getElementById(m.b);
+                    if (!aEl || !bEl) continue;
+
+                    // 승자 이름 확인
+                    const winnerName = extractName(toEl);
+                    const nameA = extractName(aEl);
+                    const nameB = extractName(bEl);
+
+                    if (winnerName && winnerName === nameA) {
+                        applyWinLoseStyles(m.a, m.b, m.to, m.a);
+                    } else if (winnerName && winnerName === nameB) {
+                        applyWinLoseStyles(m.a, m.b, m.to, m.b);
+                    }
+                }
+            }
+
             function initLines() {
                 svg.innerHTML = "";
                 const w = wrapEl.clientWidth;
@@ -2790,6 +2813,9 @@
                 svg.setAttribute("height", h);
                 svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
                 for (const m of MATCHES) drawBracketLine(m.a, m.b, m.to);
+
+                // 선을 다시 그린 후, 승자 상태표시(빨강/회색 선) 복구
+                restoreState();
             }
 
             return { MATCHES, initLines, applyWinLoseStyles, clearStylesTo };
