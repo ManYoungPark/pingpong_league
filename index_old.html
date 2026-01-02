@@ -1,0 +1,3123 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>대덕밸리 대진표</title>
+    <style>
+        :root {
+            --bg: #f4f7f9;
+            --card: #ffffff;
+            --border: #e6e9ee;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --danger: #ef4444;
+            --shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        header {
+            padding: 18px 16px 8px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header h1 {
+            margin: 0 0 8px;
+            font-size: 20px;
+            font-weight: 800;
+        }
+
+        header p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.35;
+        }
+
+        .wrap {
+            max-width: 1400px;
+            margin: 12px auto 24px;
+            padding: 0 16px 24px;
+        }
+
+        .right-col {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .card-hd {
+            padding: 12px 12px 10px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .card-hd .title {
+            font-weight: 800;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pill {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            background: #fafafa;
+            white-space: nowrap;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 12px;
+            align-items: center;
+        }
+
+        .controls .label {
+            font-size: 13px;
+            color: var(--muted);
+            margin-right: 4px;
+        }
+
+        .btn {
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: #fff;
+            border-radius: 10px;
+            padding: 8px 10px;
+            font-size: 13px;
+            font-weight: 700;
+            transition: transform .05s ease, border-color .15s ease, box-shadow .15s ease;
+            user-select: none;
+        }
+
+        .btn:hover {
+            border-color: #cfd6e3;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .btn.primary {
+            border-color: #cfe0ff;
+            background: linear-gradient(180deg, #ffffff, #f3f7ff);
+            color: #1d4ed8;
+        }
+
+        .btn.danger {
+            border-color: #ffd3d3;
+            background: linear-gradient(180deg, #fff, #fff5f5);
+            color: #b91c1c;
+        }
+
+        .select {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 8px 10px;
+            font-size: 13px;
+            font-weight: 700;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        /* drop highlight */
+        .droptarget {
+            border: 2px dashed transparent;
+            border-radius: 12px;
+            transition: border-color .15s ease, background .15s ease;
+        }
+
+        .droptarget.dragover {
+            border-color: #0ea5e9;
+            background: rgba(14, 165, 233, 0.06);
+        }
+
+        /* name list */
+        .list {
+            padding: 10px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+            min-height: 110px;
+        }
+
+        /* teams */
+        .teams {
+            padding: 12px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        @media (max-width: 1100px) {
+            .teams {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .team {
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            background: var(--teamBg, #fff);
+        }
+
+        .team .hd {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.65));
+            backdrop-filter: blur(2px);
+        }
+
+        .team .hd .tname {
+            font-weight: 900;
+            font-size: 14px;
+            color: #0f172a;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .team .hd .hint {
+            font-size: 12px;
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        .team .hd .count {
+            font-size: 12px;
+            color: var(--muted);
+            border: 1px solid var(--border);
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #fff;
+            white-space: nowrap;
+        }
+
+        .team .body {
+            padding: 10px;
+        }
+
+        .team .footer {
+            padding: 10px 12px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            background: rgba(250, 250, 250, 0.85);
+        }
+
+        .small {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .linkbtn {
+            font-size: 12px;
+            font-weight: 800;
+            color: #1d4ed8;
+            border: 1px solid #dbeafe;
+            background: #eff6ff;
+            padding: 6px 8px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        /* chips (이름 + 오른쪽 '선택') */
+        .name-chip {
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: #fff;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            min-height: 46px;
+            padding: 8px 10px;
+            font-size: 13px;
+            font-weight: 800;
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
+            transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease, opacity .12s ease;
+            overflow: hidden;
+        }
+
+        .name-chip:hover {
+            transform: scale(1.04);
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+            border-color: #cfd6e3;
+        }
+
+        .name-chip:active {
+            cursor: grabbing;
+        }
+
+        .dragging {
+            opacity: 0.55;
+        }
+
+        .name-chip .nm {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            text-align: left;
+            font-weight: 900;
+        }
+
+
+
+        /* ✅ fixed 포탈(가려짐 방지) */
+        .portal {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            display: none;
+        }
+
+        .portal.open {
+            display: block;
+        }
+
+        .portal .backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.0);
+        }
+
+        .pop {
+            position: absolute;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18);
+            padding: 10px;
+            min-width: 240px;
+            max-width: calc(100vw - 16px);
+            max-height: calc(100vh - 16px);
+            overflow: auto;
+            -webkit-overflow-scrolling: touch;
+            transform: translateZ(0);
+        }
+
+        .pop .row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .pop .ttl {
+            font-size: 12px;
+            font-weight: 900;
+            color: #0f172a;
+        }
+
+        .pop .close {
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: #fff;
+            border-radius: 10px;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: 900;
+            color: var(--muted);
+        }
+
+        .pop .grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .pop .gbtn {
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: linear-gradient(180deg, #fff, #fbfbff);
+            border-radius: 10px;
+            padding: 10px 0;
+            font-size: 12px;
+            font-weight: 900;
+            color: #1d4ed8;
+            transition: transform .05s ease, box-shadow .15s ease, border-color .15s ease, opacity .15s ease;
+            user-select: none;
+        }
+
+        .pop .gbtn:hover {
+            border-color: #cfe0ff;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+        }
+
+        .pop .gbtn:active {
+            transform: translateY(1px);
+        }
+
+        .pop .gbtn:disabled {
+            opacity: .45;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .pop .wide {
+            grid-column: 1 / -1;
+            color: #0f172a;
+            background: linear-gradient(180deg, #fff, #f8fafc);
+        }
+
+        @media (max-width: 520px) {
+            .pop {
+                min-width: 0;
+            }
+
+            .pop .grid {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+
+            .pop .wide {
+                grid-column: 1 / -1;
+            }
+        }
+
+        /* Round-robin */
+        .rr-wrap {
+            background: rgba(255, 255, 255, 0.75);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 10px;
+        }
+
+        .rr-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 2px 2px 8px;
+        }
+
+        .rr-title .ttl {
+            font-weight: 900;
+            font-size: 13px;
+            color: #0f172a;
+        }
+
+        .rr-title .sub {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .table-scroll {
+            overflow: auto;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: #fff;
+        }
+
+        table.rr {
+            border-collapse: collapse;
+            width: 100%;
+            table-layout: fixed;
+            font-size: 12px;
+        }
+
+        .rr th,
+        .rr td {
+            border: 1px solid var(--border);
+            padding: 4px 6px;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: calc(100% / var(--cols));
+            min-width: 80px;
+        }
+
+        .rr th.sticky {
+            position: sticky;
+            top: 0;
+            background: #f8fafc;
+            z-index: 2;
+            font-weight: 900;
+        }
+
+        .rr th.leftsticky {
+            position: sticky;
+            left: 0;
+            background: #f8fafc;
+            z-index: 1;
+            text-align: left;
+            font-weight: 900;
+        }
+
+        .rr th.corner {
+            position: sticky;
+            left: 0;
+            top: 0;
+            z-index: 3;
+            background: #f1f5f9;
+            text-align: left;
+        }
+
+        .rr td.diag {
+            background: #f1f5f9;
+            color: var(--muted);
+            font-weight: 900;
+        }
+
+        .rr select.score {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 4px 6px;
+            background: #fff;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .rr td.wl {
+            background: #fbfbfc;
+            font-weight: 900;
+        }
+
+        .rr td.rank {
+            background: #fbfbfc;
+            font-weight: 900;
+        }
+
+        .rank .crown {
+            margin-right: 4px;
+        }
+
+        .rank .code {
+            margin-left: 6px;
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 900;
+            border: 1px solid var(--border);
+            background: #fff;
+            padding: 1px 6px;
+            border-radius: 999px;
+        }
+
+        /* ✅ 동률 rank 클릭 가능 표시 */
+        .rank.clickable {
+            cursor: pointer;
+            outline: 2px dashed transparent;
+            transition: outline-color .15s ease, background .15s ease;
+        }
+
+        .rank.clickable:hover {
+            outline-color: #0ea5e9;
+            background: rgba(14, 165, 233, 0.06);
+        }
+
+        .rank .manual {
+            margin-left: 6px;
+            font-size: 11px;
+            color: #1d4ed8;
+            font-weight: 900;
+            border: 1px solid #dbeafe;
+            background: #eff6ff;
+            padding: 1px 6px;
+            border-radius: 999px;
+        }
+
+        /* =========================================
+           Tournament Section Styles
+           ========================================= */
+        #tournament-area {
+            margin-top: 40px;
+            width: 100%;
+            border-top: 2px dashed #e5e7eb;
+            padding-top: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .tm-controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .tm-panel-row {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+            justify-content: center;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        .tm-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .tm-title {
+            font-weight: 1000;
+            color: #111827;
+            font-size: 18px;
+        }
+
+        .tm-wrap {
+            position: relative;
+            width: min(800px, 98vw);
+            height: 600px;
+            background: #fff;
+            border: 1px solid #eee;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            border-radius: 12px;
+            overflow: hidden;
+            display: block;
+        }
+
+        @media (max-width: 520px) {
+            .tm-wrap {
+                height: 540px;
+            }
+        }
+
+        /* Bracket Nodes */
+        .tm-player {
+            position: absolute !important;
+            width: 120px;
+            height: 48px;
+            border: 1px solid #3498db;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 800;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all .15s;
+            z-index: 10;
+            user-select: none;
+            padding: 2px 4px;
+            box-sizing: border-box;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .tm-player small {
+            font-size: 10px;
+            font-weight: 400;
+            color: #64748b;
+            margin-top: 2px;
+            display: block;
+        }
+
+        .tm-player:hover {
+            background: #3498db;
+            color: white;
+            border-color: #2563eb;
+        }
+
+        .tm-player:hover small {
+            color: #e0f2fe;
+        }
+
+        .tm-player.empty {
+            border: 1px dashed #cbd5e1;
+            color: #94a3b8;
+            cursor: default;
+            background: #fff;
+        }
+
+        .tm-player.bye {
+            border: 1px dashed #e5e7eb;
+            color: #cbd5e1;
+            cursor: default;
+            background: #fdfdfd;
+        }
+
+        .tm-winner-box {
+            border: 2px solid #e74c3c;
+            color: #e74c3c;
+            width: 140px;
+            height: 54px;
+            font-size: 14px;
+        }
+
+        /* SVG Lines */
+        .tm-lines {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 1;
+            width: 100%;
+            height: 100%;
+        }
+
+        .tm-lines path {
+            transition: stroke 0.25s, stroke-width 0.25s, opacity 0.25s, stroke-dasharray 0.25s;
+            stroke: #cbd5e0;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            opacity: 1;
+        }
+
+        .tm-lines path.win {
+            stroke: #e74c3c !important;
+            stroke-width: 4 !important;
+            stroke-dasharray: none !important;
+            opacity: 1;
+        }
+
+        .tm-lines path.lose {
+            stroke: #94a3b8 !important;
+            stroke-width: 2 !important;
+            stroke-dasharray: 6 6 !important;
+            opacity: 0.9;
+        }
+
+        .tm-champ-label {
+            position: absolute !important;
+            text-align: center;
+            z-index: 10;
+            width: 140px;
+        }
+
+        .tm-champ-label .label {
+            font-weight: 900;
+            margin-bottom: 6px;
+            font-size: 14px;
+            color: #e74c3c;
+        }
+
+        /* Dashboard Styles */
+        .tm-dashboard {
+            width: 100%;
+            max-width: 900px;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .tm-dash-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .tm-dash-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 800;
+            color: #1f2937;
+        }
+
+        .tm-pill {
+            background-color: #eef2ff;
+            color: #4f46e5;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .tm-muted {
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        .tm-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .tm-card {
+            background: #f9fafb;
+            border: 1px solid #f3f4f6;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .tm-card .row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .tm-card .label {
+            font-weight: 800;
+            font-size: 14px;
+            color: #374151;
+        }
+
+        .tm-card .val {
+            font-weight: 900;
+            font-size: 16px;
+            color: #111827;
+        }
+
+        .tm-card .desc {
+            font-size: 12px;
+            color: #6b7280;
+            line-height: 1.4;
+        }
+
+        .tm-dash-footer {
+            border-top: 1px solid #f3f4f6;
+            padding-top: 12px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #4b5563;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>대덕밸리 대진표</h1>
+        <p>
+            결과를 입력하면 <b>승-패</b>, <b>순위</b>가 자동 계산됩니다.
+            동률이 끝까지 안 풀리면 <b>공동 n위(TIE)</b>로 표시되고, <b>순위 칸을 눌러</b> 사용자가 최종 순위를 확정할 수 있습니다.
+        </p>
+    </header>
+
+    <div class="wrap">
+        <div class="right-col">
+
+            <section class="card">
+                <div class="card-hd">
+                    <div class="title">설정</div>
+                    <span class="pill">조 개수 / 경기 방식</span>
+                </div>
+                <div class="controls">
+                    <span class="label">조 개수:</span>
+                    <button class="btn primary" data-g="2">2조</button>
+                    <button class="btn primary" data-g="3">3조</button>
+                    <button class="btn primary" data-g="4">4조</button>
+                    <button class="btn primary" data-g="5">5조</button>
+                    <button class="btn primary" data-g="6">6조</button>
+
+                    <span class="label" style="margin-left:8px;">경기:</span>
+                    <select class="select" id="matchFormat">
+                        <option value="bo3">3판 2선승</option>
+                        <option value="bo5">5판 3선승</option>
+                    </select>
+
+                    <button type="button" class="btn" onclick="openReset()">🔄 초기화</button>
+                    <button type="button" class="btn primary" id="btn-gen-tournament">🏆 본선 토너먼트 생성</button>
+                    <button type="button" class="btn" id="btn-show-sample">👀 예시 보기</button>
+                </div>
+        </div>
+        </section>
+
+        <section class="card">
+            <div class="card-hd">
+                <div class="title" style="display:flex; align-items:center; gap:8px;">
+                    이름 목록 <span class="pill" id="poolCount">0명</span>
+                    <button type="button" class="btn"
+                        style="padding:4px 8px; font-size:11px; background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;"
+                        onclick="addPlayer()">+ 이름 추가</button>
+                    <button type="button" class="btn"
+                        style="padding:4px 8px; font-size:11px; background:#f0fdf4; color:#15803d; border-color:#bbf7d0;"
+                        onclick="downloadNamesJSON()" title="현재 명단을 names.json으로 다운로드">💾 저장</button>
+                </div>
+                <span class="pill">여기로 드롭하면 회수</span>
+            </div>
+            <div class="list droptarget" id="pool"></div>
+        </section>
+
+        <section class="card">
+            <div class="card-hd">
+                <div class="title">조 테이블 <span class="pill" id="teamInfo">0조</span></div>
+                <span class="pill">조 카드에 드롭</span>
+            </div>
+            <div class="teams" id="teams"></div>
+            <div style="padding:12px; text-align:center; border-top:1px solid var(--border);">
+                <button class="linkbtn" id="openHelpBtn" style="font-size:13px;">💡 도움말: 동률 처리 기준 & 예시</button>
+            </div>
+        </section>
+
+    </div>
+    </div>
+
+    <!-- ✅ 조 선택 포탈 -->
+    <div class="portal" id="assignPortal" aria-hidden="true">
+        <div class="backdrop" id="assignBackdrop"></div>
+        <div class="pop" id="assignPop" role="dialog" aria-modal="true">
+            <div class="row">
+                <div class="ttl" id="assignTitle">조 선택</div>
+                <button class="close" type="button" id="assignClose">닫기</button>
+            </div>
+            <div class="grid" id="assignGrid"></div>
+        </div>
+    </div>
+
+    <!-- ✅ 순위 확정 포탈 -->
+    <div class="portal" id="rankPortal" aria-hidden="true">
+        <div class="backdrop" id="rankBackdrop"></div>
+        <div class="pop" id="rankPop" role="dialog" aria-modal="true">
+            <div class="row">
+                <div class="ttl" id="rankTitle">순위 확정</div>
+                <button class="close" type="button" id="rankClose">닫기</button>
+            </div>
+            <div class="grid" id="rankGrid"></div>
+        </div>
+    </div>
+
+    <!-- ✅ 도움말 포탈 -->
+    <div class="portal" id="helpPortal" aria-hidden="true">
+        <div class="backdrop" id="helpBackdrop"></div>
+        <div class="pop" id="helpPop" role="dialog" aria-modal="true" style="max-width:400px;">
+            <div class="row">
+                <div class="ttl">동률 처리 기준 & 예시</div>
+                <button class="close" type="button" id="helpClose">닫기</button>
+            </div>
+            <div style="padding:10px 14px; font-size:13px; line-height:1.6; color:#333;">
+                <h3 style="margin:0 0 8px; font-size:14px; font-weight:800; color:#111;">1. 동률 처리 기준 (순위 산정 우선순위)</h3>
+                <p style="margin:0 0 8px; color:#555;">리그전(조별 경기)에서 참가자의 순위는 아래 기준을 <b>위에서부터 순차적으로 적용</b>하여 결정한다.</p>
+                <ol style="margin:0 0 20px; padding-left:20px; color:#4b5563;">
+                    <li style="margin-bottom:4px;"><b>승점 (Wins)</b><br />승리 횟수가 많은 참가자를 상위 순위로 한다.</li>
+                    <li style="margin-bottom:4px;"><b>승자승 (Head-to-Head)</b><br />동률자가 <b>2명일 경우에만 적용</b>하며, 두 참가자 간
+                        맞대결에서 승리한 참가자를 상위 순위로 한다.</li>
+                    <li style="margin-bottom:4px;"><b>세트 득실 (Set Difference, SD)</b><br />모든 경기에서의 <b>총 세트 득수에서 총 세트 실수를
+                            뺀 값</b>이 큰 참가자를 상위 순위로 한다.</li>
+                    <li style="margin-bottom:4px;"><b>세트 다득 (Set For, SF)</b><br />세트 득실이 같은 경우, <b>총 세트 득수가 많은 참가자</b>를
+                        상위 순위로 한다.</li>
+                    <li><b>공동 순위 (Tie)</b><br />위 모든 기준이 동일할 경우, 해당 참가자들은 <b>공동 순위</b>로 처리한다.<br />(필요 시 주최 측이 별도의 결정 방식
+                        또는 추가 경기로 순위를 확정할 수 있다.)</li>
+                </ol>
+
+                <h3 style="margin:0 0 8px; font-size:14px; font-weight:800; color:#111;">2. 동률 처리 예시</h3>
+                <div
+                    style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; color:#4b5563; margin-bottom:20px;">
+                    <h4 style="margin:0 0 6px; font-size:13px; font-weight:800;">예시 상황</h4>
+                    <p style="margin:0 0 10px;">A, B, C 세 명의 참가자가 각각 <b>1승 1패</b>로 동률인 경우</p>
+
+                    <h4 style="margin:0 0 6px; font-size:13px; font-weight:800;">경기 결과</h4>
+                    <ul style="margin:0 0 10px; padding-left:20px;">
+                        <li>A vs B : A 승 (2–0)</li>
+                        <li>B vs C : B 승 (2–1)</li>
+                        <li>C vs A : C 승 (2–1)</li>
+                    </ul>
+
+                    <h4 style="margin:0 0 6px; font-size:13px; font-weight:800;">판단 과정</h4>
+                    <ol style="margin:0 0 10px; padding-left:20px;">
+                        <li><b>승점</b>: 세 참가자 모두 1승 1패 → 동률</li>
+                        <li><b>승자승</b>: 세 명이 서로 순환 승리를 기록하여 적용 불가<br />(A는 B에게 승리, B는 C에게 승리, C는 A에게 승리)</li>
+                        <li><b>세트 득실 (SD) 비교</b>
+                            <table
+                                style="width:100%; margin-top:6px; border-collapse:collapse; font-size:12px; background:#fff;">
+                                <tr style="background:#f1f5f9; border-bottom:1px solid #e2e8f0;">
+                                    <th style="padding:4px; border:1px solid #e2e8f0;">참가자</th>
+                                    <th style="padding:4px; border:1px solid #e2e8f0;">세트 득</th>
+                                    <th style="padding:4px; border:1px solid #e2e8f0;">세트 실</th>
+                                    <th style="padding:4px; border:1px solid #e2e8f0;">세트 득실</th>
+                                </tr>
+                                <tr>
+                                    <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">A</td>
+                                    <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">3</td>
+                                    <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">2</td>
+                                    <td
+                                        style="padding:4px; border:1px solid #e2e8f0; text-align:center; font-weight:bold; color:#1d4ed8;">
+                                        +1</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">B</td>
+                                    <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">2</td>
+                                    <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">3</td>
+                                    <td
+                                        style="padding:4px; border:1px solid #e2e8f0; text-align:center; font-weight:bold; color:#ef4444;">
+                                        -1</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">C</td>
+                                    <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">3</td>
+                                    <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">3</td>
+                                    <td
+                                        style="padding:4px; border:1px solid #e2e8f0; text-align:center; font-weight:bold;">
+                                        0</td>
+                                </tr>
+                            </table>
+                        </li>
+                    </ol>
+
+                    <h4 style="margin:0 0 6px; font-size:13px; font-weight:800;">최종 순위</h4>
+                    <ul style="margin:0; padding-left:20px;">
+                        <li><b>1위</b> : A (세트 득실 +1)</li>
+                        <li><b>2위</b> : C (세트 득실 0)</li>
+                        <li><b>3위</b> : B (세트 득실 -1)</li>
+                    </ul>
+                </div>
+
+                <h3 style="margin:0 0 8px; font-size:14px; font-weight:800; color:#111;">3. 참고 사항</h3>
+                <ul style="margin:0; padding-left:20px; color:#4b5563;">
+                    <li style="margin-bottom:4px;"><b>3명 이상 동률일 경우</b>, 승자승 기준은 적용하지 않고 세트 득실부터 비교한다.</li>
+                    <li style="margin-bottom:4px;">모든 세트 득실 및 세트 득수는 <b>해당 조의 모든 경기 결과를 합산</b>하여 계산한다.
+                    </li>
+                    <li>공동 순위가 발생할 경우, 순위 표에는 <b>“공동 ○위”</b>로 표시한다.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOURNAMENT SECTION -->
+    <div id="tournament-area" style="display:none;">
+        <div class="tm-controls">
+            <h2 class="tm-title">🏆 본선 토너먼트</h2>
+        </div>
+
+        <div id="tm-dashboard" class="tm-dashboard" style="margin-bottom: 30px;">
+            <!-- Dashboard content will be injected here -->
+        </div>
+
+        <div class="tm-panel-row">
+            <div class="tm-panel">
+                <div class="tm-title" id="tm-titleUpper">상위 토너먼트</div>
+                <div id="tm-wrap-upper" class="tm-wrap">
+                    <svg id="tm-lines-upper" class="tm-lines"></svg>
+                </div>
+            </div>
+
+            <div class="tm-panel">
+                <div class="tm-title" id="tm-titleLower">하위 토너먼트</div>
+                <div id="tm-wrap-lower" class="tm-wrap">
+                    <svg id="tm-lines-lower" class="tm-lines"></svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ✅ Load Names: LocalStorage -> names.json (Async) -> Default Fallback
+        const STORAGE_KEY = 'my_tournament_names_v1';
+
+        // 1. Fallback Defaults (Network Error / File protocol)
+        const DEFAULT_NAMES = [
+            "박만영", "이정우", "김경태", "박병재", "안성대", "유호성", "조복연", "강희철",
+            "곽은숙", "권영규", "김미경", "김성호", "김세중", "김순동", "김영민", "김형찬",
+            "김홍석", "류계열", "류성문", "박덕례", "박수용", "박혜란", "백낙천", "서상국",
+            "송광용", "김종탁", "오장진", "윤교찬", "이교탁", "이영숙", "임규호", "정경자", "정선철", "정진숙", "조상배", "최매완",
+            "박현신", "홍순관", "홍현숙"
+        ];
+
+        // Initialize with Defaults first
+        let INITIAL_NAMES = [...DEFAULT_NAMES];
+
+        // 2. Try LocalStorage (User's custom list)
+        let hasLocalStorage = false;
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+                const stored = JSON.parse(raw);
+                if (Array.isArray(stored) && stored.length > 0) {
+                    INITIAL_NAMES = stored;
+                    hasLocalStorage = true;
+                }
+            }
+        } catch (e) {
+            console.error("LS load failed", e);
+        }
+
+        INITIAL_NAMES.sort((a, b) => a.localeCompare(b, 'ko'));
+
+        // 3. Try Fetching names.json (Async) - ONLY if LS is empty
+        // If the user has already customized the list (LS exists), we do NOT overwrite it with the file.
+        // This ensures 'Add Player' changes are respected.
+        (async function loadNamesFromJson() {
+            if (hasLocalStorage) return; // Skip if user has data
+
+            try {
+                const response = await fetch('names.json');
+                if (!response.ok) throw new Error("JSON load failed");
+                const jsonNames = await response.json();
+
+                if (Array.isArray(jsonNames) && jsonNames.length > 0) {
+                    INITIAL_NAMES = jsonNames;
+                    INITIAL_NAMES.sort((a, b) => a.localeCompare(b, 'ko'));
+
+                    // Since this is async, we need to refresh the pool UI if it was already rendered
+                    renderPool();
+                    console.log("Loaded names from names.json");
+                }
+            } catch (err) {
+                console.warn("names.json fetch failed (likely local file protocol). Using defaults.", err);
+            }
+        })();
+
+        function saveNames() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_NAMES));
+            } catch (e) { console.error("Save failed", e); }
+        }
+
+        function addPlayer() {
+            const name = prompt("추가할 선수 이름을 입력하세요:");
+            if (!name || !name.trim()) return;
+            const cleanName = name.trim();
+
+            if (INITIAL_NAMES.includes(cleanName)) {
+                alert("이미 존재하는 이름입니다!");
+                return;
+            }
+
+            INITIAL_NAMES.push(cleanName);
+            INITIAL_NAMES.sort((a, b) => a.localeCompare(b, 'ko'));
+            saveNames();
+
+            // Register to state if not exists
+            if (!state.has(cleanName)) {
+                state.set(cleanName, { where: "pool" });
+            }
+
+            renderPool();
+            alert(`'${cleanName}' 선수가 추가되었습니다.`);
+        }
+
+        function downloadNamesJSON() {
+            const dataStr = JSON.stringify(INITIAL_NAMES, null, 2); // Pretty print
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "names.json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        const TEAM_COLORS = ["#fff7ed", "#f0f9ff", "#f0fdf4", "#f5f3ff", "#fdf2f8", "#fefce8"];
+        const SCORE_OPTIONS = {
+            bo3: ["", "2-0", "2-1", "1-2", "0-2"],
+            bo5: ["", "3-0", "3-1", "3-2", "2-3", "1-3", "0-3"]
+        };
+
+        const state = new Map();               // name -> {where:"pool"} or {where:"team", teamId}
+        state.groupsCount = 0;
+
+        const resultsByTeam = new Map();       // teamId -> Map("A|||B" -> {score:"x-y" in key-order})
+
+        // ✅ 사용자가 확정한 순위: teamId -> Map(name -> finalRankNumber)
+        const manualRankByTeam = new Map();
+        function ensureManual(teamId) {
+            if (!manualRankByTeam.has(teamId)) manualRankByTeam.set(teamId, new Map());
+            return manualRankByTeam.get(teamId);
+        }
+
+        const poolEl = document.getElementById("pool");
+        const teamsEl = document.getElementById("teams");
+        const poolCountEl = document.getElementById("poolCount");
+        const teamInfoEl = document.getElementById("teamInfo");
+        const matchFormatEl = document.getElementById("matchFormat");
+        // const resetBtn = document.getElementById("resetBtn"); 
+        // ID removed in HTML, so we mock it to prevent crash if listener exists
+        const resetBtn = { addEventListener: () => { } };
+
+        function openReset() {
+            if (!confirm("모든 데이터를 초기화하시겠습니까? (이전 배정/점수 삭제됨)")) return;
+            initState();
+            renderPool();
+            createTeams(4); // Default 4 groups
+
+            // clear tournament area if open
+            const area = document.getElementById("tournament-area");
+            if (area) area.style.display = "none";
+        }
+
+        function setText(el, txt) { el.textContent = txt; }
+
+        /* ========= 공통: fixed 포탈 위치 잡기 ========= */
+        function placePop(popEl, anchorEl) {
+            const pad = 8;
+            const gap = 8;
+            const r = anchorEl.getBoundingClientRect();
+
+            popEl.style.left = "0px";
+            popEl.style.top = "0px";
+            popEl.style.visibility = "hidden";
+
+            const pw = popEl.offsetWidth;
+            const ph = popEl.offsetHeight;
+
+            let left = r.right - pw;
+            let top = r.bottom + gap;
+
+            left = Math.max(pad, Math.min(left, window.innerWidth - pw - pad));
+
+            const spaceBelow = window.innerHeight - r.bottom;
+            const spaceAbove = r.top;
+            if (spaceBelow < ph + gap && spaceAbove > ph + gap) {
+                top = r.top - ph - gap;
+            }
+            top = Math.max(pad, Math.min(top, window.innerHeight - ph - pad));
+
+            popEl.style.left = `${Math.round(left)}px`;
+            popEl.style.top = `${Math.round(top)}px`;
+            popEl.style.visibility = "visible";
+        }
+
+        /* ========= 조 선택 포탈 ========= */
+        const assignPortal = document.getElementById("assignPortal");
+        const assignBackdrop = document.getElementById("assignBackdrop");
+        const assignPop = document.getElementById("assignPop");
+        const assignGrid = document.getElementById("assignGrid");
+        const assignClose = document.getElementById("assignClose");
+        const assignTitle = document.getElementById("assignTitle");
+        let currentAssignName = null;
+        let currentAssignAnchor = null;
+
+        function isAssignOpen() { return assignPortal.classList.contains("open"); }
+        function closeAssign() {
+            assignPortal.classList.remove("open");
+            assignPortal.setAttribute("aria-hidden", "true");
+            currentAssignName = null;
+            currentAssignAnchor = null;
+        }
+        function openAssign(anchorEl, name) {
+            if (!state.groupsCount || state.groupsCount < 1) return;
+            currentAssignName = name;
+            currentAssignAnchor = anchorEl;
+
+            assignTitle.textContent = `조 선택 · ${name}`;
+            assignGrid.innerHTML = "";
+
+            for (let i = 1; i <= state.groupsCount; i++) {
+                const b = document.createElement("button");
+                b.type = "button";
+                b.className = "gbtn";
+                b.textContent = `${i}조`;
+                b.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    moveToTeam(name, `team-${i}`);
+                    closeAssign();
+                });
+                assignGrid.appendChild(b);
+            }
+            const poolBtn = document.createElement("button");
+            poolBtn.type = "button";
+            poolBtn.className = "gbtn wide";
+            poolBtn.textContent = "풀로 이동";
+            poolBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                moveToPool(name);
+                closeAssign();
+            });
+            assignGrid.appendChild(poolBtn);
+
+            assignPortal.classList.add("open");
+            assignPortal.setAttribute("aria-hidden", "false");
+            requestAnimationFrame(() => placePop(assignPop, anchorEl));
+        }
+
+        assignClose.addEventListener("click", (e) => { e.stopPropagation(); closeAssign(); });
+        assignBackdrop.addEventListener("click", () => closeAssign());
+
+        /* ========= 순위 확정 포탈 ========= */
+        const rankPortal = document.getElementById("rankPortal");
+        const rankBackdrop = document.getElementById("rankBackdrop");
+        const rankPop = document.getElementById("rankPop");
+        const rankGrid = document.getElementById("rankGrid");
+        const rankClose = document.getElementById("rankClose");
+        const rankTitle = document.getElementById("rankTitle");
+
+        let currentRankCtx = null; // {teamId, name, tieMembers, baseRank, anchorEl}
+
+        function isRankOpen() { return rankPortal.classList.contains("open"); }
+        function closeRank() {
+            rankPortal.classList.remove("open");
+            rankPortal.setAttribute("aria-hidden", "true");
+            currentRankCtx = null;
+        }
+
+        function openRankPortal(ctx) {
+            // ctx: {teamId, name, tieMembers, baseRank, anchorEl}
+            currentRankCtx = ctx;
+            const { teamId, name, tieMembers, baseRank, anchorEl } = ctx;
+
+            const manual = ensureManual(teamId);
+
+            rankTitle.textContent = `순위 확정 · ${name} (동률 ${tieMembers.length}명)`;
+            rankGrid.innerHTML = "";
+
+            const usedRanks = new Map(); // rank -> ownerName
+            for (const [nm, rk] of manual.entries()) {
+                if (tieMembers.includes(nm)) usedRanks.set(rk, nm);
+            }
+
+            // 가능한 순위 버튼: baseRank ... baseRank+len-1
+            for (let r = baseRank; r < baseRank + tieMembers.length; r++) {
+                const b = document.createElement("button");
+                b.type = "button";
+                b.className = "gbtn";
+                b.textContent = `${r}위`;
+
+                const owner = usedRanks.get(r);
+                const alreadyMine = (manual.get(name) === r);
+                if (owner && !alreadyMine) {
+                    b.disabled = true;
+                    b.title = `${owner}님이 이미 ${r}위로 확정`;
+                }
+
+                b.addEventListener("click", (e) => {
+                    e.stopPropagation();
+
+                    // 같은 동률 그룹 내에서 중복 방지: 누가 그 rank를 쓰고 있으면 제거
+                    for (const [nm, rk] of manual.entries()) {
+                        if (nm !== name && rk === r && tieMembers.includes(nm)) {
+                            manual.delete(nm);
+                        }
+                    }
+                    manual.set(name, r);
+                    renderAllTeams();
+                    closeRank();
+                });
+
+                rankGrid.appendChild(b);
+            }
+
+            // 확정 해제
+            const clear = document.createElement("button");
+            clear.type = "button";
+            clear.className = "gbtn wide";
+            clear.textContent = "확정 해제(자동으로 되돌리기)";
+            clear.addEventListener("click", (e) => {
+                e.stopPropagation();
+                manual.delete(name);
+                renderAllTeams();
+                closeRank();
+            });
+            rankGrid.appendChild(clear);
+
+            rankPortal.classList.add("open");
+            rankPortal.setAttribute("aria-hidden", "false");
+            requestAnimationFrame(() => placePop(rankPop, anchorEl));
+        }
+
+        rankClose.addEventListener("click", (e) => { e.stopPropagation(); closeRank(); });
+        rankBackdrop.addEventListener("click", () => closeRank());
+
+        /* ========= 도움말 포탈 ========= */
+        const helpPortal = document.getElementById("helpPortal");
+        const helpBackdrop = document.getElementById("helpBackdrop");
+        const helpPop = document.getElementById("helpPop");
+        const helpClose = document.getElementById("helpClose");
+        const openHelpBtn = document.getElementById("openHelpBtn");
+
+        function isHelpOpen() { return helpPortal.classList.contains("open"); }
+        function closeHelp() {
+            helpPortal.classList.remove("open");
+            helpPortal.setAttribute("aria-hidden", "true");
+        }
+        function openHelp() {
+            helpPortal.classList.add("open");
+            helpPortal.setAttribute("aria-hidden", "false");
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            const pw = helpPop.offsetWidth || 300;
+            const ph = helpPop.offsetHeight || 400;
+            helpPop.style.left = Math.max(0, (w - pw) / 2) + "px";
+            helpPop.style.top = Math.max(0, (h - ph) / 2) + "px";
+            helpPop.style.visibility = "visible";
+        }
+
+        helpClose.addEventListener("click", (e) => { e.stopPropagation(); closeHelp(); });
+        helpBackdrop.addEventListener("click", () => closeHelp());
+        openHelpBtn.addEventListener("click", () => openHelp());
+
+        // ESC로 닫기
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") {
+                closeAssign();
+                closeRank();
+            }
+        });
+
+        // 리사이즈/스크롤 시 포탈 위치 보정
+        window.addEventListener("resize", () => {
+            if (isAssignOpen() && currentAssignAnchor) placePop(assignPop, currentAssignAnchor);
+            if (isRankOpen() && currentRankCtx?.anchorEl) placePop(rankPop, currentRankCtx.anchorEl);
+        }, { passive: true });
+        window.addEventListener("scroll", () => {
+            if (isAssignOpen() && currentAssignAnchor) placePop(assignPop, currentAssignAnchor);
+            if (isRankOpen() && currentRankCtx?.anchorEl) placePop(rankPop, currentRankCtx.anchorEl);
+        }, { passive: true, capture: true });
+
+        /* ========= Drag & Drop ========= */
+        function makeDropTarget(el, onDrop) {
+            const onOver = (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                el.classList.add("dragover");
+            };
+            const onLeave = () => el.classList.remove("dragover");
+
+            el.addEventListener("dragenter", onOver);
+            el.addEventListener("dragover", onOver);
+            el.addEventListener("dragleave", onLeave);
+
+            el.addEventListener("drop", (e) => {
+                e.preventDefault();
+                el.classList.remove("dragover");
+                const name = e.dataTransfer.getData("text/plain");
+                if (!name) return;
+                onDrop(name, e);
+            });
+        }
+
+        function initState() {
+            state.clear();
+            for (const n of INITIAL_NAMES) state.set(n, { where: "pool" });
+            resultsByTeam.clear();
+            manualRankByTeam.clear();
+            state.groupsCount = 0;
+            closeAssign();
+            closeRank();
+        }
+
+        function ensureTeamResults(teamId) {
+            if (!resultsByTeam.has(teamId)) resultsByTeam.set(teamId, new Map());
+            return resultsByTeam.get(teamId);
+        }
+
+        function keyPair(a, b) {
+            return (a.localeCompare(b, 'ko') <= 0) ? `${a}|||${b}` : `${b}|||${a}`;
+        }
+
+        function parseScore(score) {
+            if (!score) return null;
+            const m = score.split("-");
+            if (m.length !== 2) return null;
+            const a = Number(m[0]), b = Number(m[1]);
+            if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+            return { a, b };
+        }
+
+        function getTeamMembers(teamId) {
+            const members = [];
+            for (const name of INITIAL_NAMES) {
+                const s = state.get(name);
+                if (s?.where === "team" && s.teamId === teamId) members.push(name);
+            }
+            return members;
+        }
+
+        function createNameChip(name) {
+            const div = document.createElement("div");
+            div.className = "name-chip";
+            div.draggable = true;
+            div.dataset.name = name;
+            // 힌트: 클릭 가능함을 보여주기 위해 title 속성 추가
+            div.title = "클릭하여 조 선택 / 드래그하여 이동";
+
+            const nm = document.createElement("span");
+            nm.className = "nm";
+            nm.textContent = name;
+
+            // ✅ 전체 영역 클릭 시 조 선택
+            div.addEventListener("click", (e) => {
+                e.stopPropagation();
+                if (div.classList.contains("dragging")) return; // 드래그 직후 클릭 방지(보통 브라우저가 막아주지만 안전하게)
+
+                if (isAssignOpen() && currentAssignName === name && currentAssignAnchor === div) {
+                    closeAssign(); return;
+                }
+                closeRank();
+                openAssign(div, name);
+            });
+
+            div.append(nm);
+
+            div.addEventListener("dragstart", (e) => {
+                closeAssign(); closeRank();
+                e.dataTransfer.setData("text/plain", name);
+                e.dataTransfer.effectAllowed = "move";
+                div.classList.add("dragging");
+            });
+            div.addEventListener("dragend", () => div.classList.remove("dragging"));
+
+            return div;
+        }
+
+        function renderPool() {
+            poolEl.innerHTML = "";
+            const inPool = [];
+            for (const name of INITIAL_NAMES) {
+                const s = state.get(name);
+                if (s?.where === "pool") inPool.push(name);
+            }
+            inPool.forEach(n => poolEl.appendChild(createNameChip(n)));
+            setText(poolCountEl, `${inPool.length}명`);
+        }
+
+        function hasAnyPlayedMatch(teamId, players) {
+            if (players.length < 2) return false;
+            const resMap = ensureTeamResults(teamId);
+            for (let i = 0; i < players.length; i++) {
+                for (let j = i + 1; j < players.length; j++) {
+                    const k = keyPair(players[i], players[j]);
+                    const parsed = parseScore(resMap.get(k)?.score || "");
+                    if (parsed) return true;
+                }
+            }
+            return false;
+        }
+
+        /* ========= 자동 순위 계산 (공동 순위 포함) =========
+           규칙:
+           1) 승(승점) 내림차순
+           (동률 그룹)
+           2) 2명 동률이면: 맞대결(H2H) 가능하면 적용
+           3) 동률그룹 세트득실(SD)
+           4) 동률그룹 세트득(SF)
+           5) 그래도 완전 동률이면: 공동(TIE)로 묶음 (가나다는 "표시 순서"만)
+        */
+        function computeRanking(teamId, players) {
+            const resMap = ensureTeamResults(teamId);
+
+            // 기본 통계
+            const base = new Map();
+            players.forEach(p => base.set(p, { name: p, played: 0, win: 0, lose: 0, setsFor: 0, setsAgainst: 0 }));
+
+            for (let i = 0; i < players.length; i++) {
+                for (let j = i + 1; j < players.length; j++) {
+                    const A = players[i], B = players[j];
+                    const k = keyPair(A, B);
+                    const parsed = parseScore(resMap.get(k)?.score || "");
+                    if (!parsed) continue;
+
+                    const aIsFirst = k.startsWith(`${A}|||`);
+                    const aScore = aIsFirst ? parsed.a : parsed.b;
+                    const bScore = aIsFirst ? parsed.b : parsed.a;
+
+                    const sA = base.get(A), sB = base.get(B);
+                    sA.played++; sB.played++;
+                    sA.setsFor += aScore; sA.setsAgainst += bScore;
+                    sB.setsFor += bScore; sB.setsAgainst += aScore;
+
+                    if (aScore > bScore) { sA.win++; sB.lose++; }
+                    else if (aScore < bScore) { sB.win++; sA.lose++; }
+                }
+            }
+
+            const anyPlayed = Array.from(base.values()).some(s => s.played > 0);
+            const statsArr = Array.from(base.values()).map(s => ({ ...s, points: s.win }));
+
+            // 점수 입력 전이면 rank는 null
+            if (!anyPlayed) {
+                const out = new Map();
+                players.forEach(p => {
+                    const s = base.get(p);
+                    out.set(p, {
+                        ...s,
+                        points: s.win,
+                        autoRank: null,
+                        autoReason: null,
+                        tieKey: null,
+                        tieMembers: null,
+                        tieBaseRank: null
+                    });
+                });
+                return { map: out, anyPlayed, tieGroups: [] };
+            }
+
+            function headToHeadWinner(a, b) {
+                const k = keyPair(a, b);
+                const parsed = parseScore(resMap.get(k)?.score || "");
+                if (!parsed) return null;
+                const aIsFirst = k.startsWith(`${a}|||`);
+                const aScore = aIsFirst ? parsed.a : parsed.b;
+                const bScore = aIsFirst ? parsed.b : parsed.a;
+                if (aScore === bScore) return null;
+                return aScore > bScore ? a : b;
+            }
+
+            function innerStats(group) {
+                const inner = new Map();
+                group.forEach(p => inner.set(p, { diff: 0, for: 0 }));
+                for (let i = 0; i < group.length; i++) {
+                    for (let j = i + 1; j < group.length; j++) {
+                        const A = group[i], B = group[j];
+                        const k = keyPair(A, B);
+                        const parsed = parseScore(resMap.get(k)?.score || "");
+                        if (!parsed) continue;
+                        const aIsFirst = k.startsWith(`${A}|||`);
+                        const aScore = aIsFirst ? parsed.a : parsed.b;
+                        const bScore = aIsFirst ? parsed.b : parsed.a;
+                        inner.get(A).diff += (aScore - bScore);
+                        inner.get(B).diff += (bScore - aScore);
+                        inner.get(A).for += aScore;
+                        inner.get(B).for += bScore;
+                    }
+                }
+                return inner;
+            }
+
+            // 승점으로 1차 그룹
+            statsArr.sort((x, y) => (y.points - x.points) || x.name.localeCompare(y.name, 'ko'));
+
+            const blocks = []; // [{members:[...], reasonForLeader:'H2H/SD/SF/TIE/...' } ...] but we keep reason per member later
+            const tieGroups = []; // [{tieKey, members, baseRank}]
+            const reasonMap = new Map(); // name -> code (H2H/SD/SF/TIE)
+            let i = 0;
+
+            while (i < statsArr.length) {
+                const pts = statsArr[i].points;
+                const group = [];
+                while (i < statsArr.length && statsArr[i].points === pts) {
+                    group.push(statsArr[i].name);
+                    i++;
+                }
+
+                if (group.length === 1) {
+                    blocks.push({ members: [group[0]], type: "single" });
+                    continue;
+                }
+
+                // 2명 동률: H2H 우선
+                if (group.length === 2) {
+                    const [a, b] = group;
+                    const w = headToHeadWinner(a, b);
+                    if (w) {
+                        const ordered = (w === a) ? [a, b] : [b, a];
+                        reasonMap.set(ordered[0], "H2H");
+                        blocks.push({ members: [ordered[0]], type: "single" });
+                        blocks.push({ members: [ordered[1]], type: "single" });
+                    } else {
+                        // H2H가 없으면 SD/SF로 보되, 끝까지 같으면 공동(TIE)
+                        const inner = innerStats(group);
+                        const da = inner.get(a).diff, db = inner.get(b).diff;
+                        const fa = inner.get(a).for, fb = inner.get(b).for;
+
+                        if (da !== db) {
+                            const ordered = (da > db) ? [a, b] : [b, a];
+                            reasonMap.set(ordered[0], "SD");
+                            blocks.push({ members: [ordered[0]], type: "single" });
+                            blocks.push({ members: [ordered[1]], type: "single" });
+                        } else if (fa !== fb) {
+                            const ordered = (fa > fb) ? [a, b] : [b, a];
+                            reasonMap.set(ordered[0], "SF");
+                            blocks.push({ members: [ordered[0]], type: "single" });
+                            blocks.push({ members: [ordered[1]], type: "single" });
+                        } else {
+                            // 완전 동률: 공동
+                            const ordered = [...group].sort((x, y) => x.localeCompare(y, 'ko'));
+                            ordered.forEach(n => reasonMap.set(n, "TIE"));
+                            blocks.push({ members: ordered, type: "tie" });
+                        }
+                    }
+                    continue;
+                }
+
+                // 3명 이상 동률: SD/SF로 정렬 후, 완전 동일 묶음은 공동
+                const inner = innerStats(group);
+                const ordered = [...group].sort((a, b) => {
+                    const da = inner.get(a).diff, db = inner.get(b).diff;
+                    if (db !== da) return db - da;
+                    const fa = inner.get(a).for, fb = inner.get(b).for;
+                    if (fb !== fa) return fb - fa;
+                    return a.localeCompare(b, 'ko'); // 표시 순서만
+                });
+
+                // diff/for 동일한 구간을 tie-block으로 묶기
+                let k = 0;
+                while (k < ordered.length) {
+                    const head = ordered[k];
+                    const headDiff = inner.get(head).diff;
+                    const headFor = inner.get(head).for;
+
+                    const chunk = [head];
+                    k++;
+                    while (k < ordered.length) {
+                        const cur = ordered[k];
+                        if (inner.get(cur).diff === headDiff && inner.get(cur).for === headFor) {
+                            chunk.push(cur);
+                            k++;
+                        } else break;
+                    }
+
+                    if (chunk.length === 1) {
+                        // 이 사람은 SD/SF로 위로 간 것: reason은 상황에 따라 SD/SF 중 하나로 표시 (간단히 SD 우선, 없으면 SF)
+                        // (엄밀히는 비교 상대에 따라 다르지만, UI에서는 "동률그룹 기준으로 올라감" 정도면 충분)
+                        // headDiff 기준으로 다른 사람보다 유리하면 SD, 아니면 SF
+                        if (!reasonMap.has(chunk[0])) reasonMap.set(chunk[0], "SD");
+                        blocks.push({ members: chunk, type: "single" });
+                    } else if (chunk.length === 2) {
+                        // 2명만 남은 동률 chunk라면 H2H 한 번 더 시도
+                        const [a, b] = chunk;
+                        const w = headToHeadWinner(a, b);
+                        if (w) {
+                            const ord2 = (w === a) ? [a, b] : [b, a];
+                            reasonMap.set(ord2[0], "H2H");
+                            blocks.push({ members: [ord2[0]], type: "single" });
+                            blocks.push({ members: [ord2[1]], type: "single" });
+                        } else {
+                            const ord2 = [...chunk].sort((x, y) => x.localeCompare(y, 'ko'));
+                            ord2.forEach(n => reasonMap.set(n, "TIE"));
+                            blocks.push({ members: ord2, type: "tie" });
+                        }
+                    } else {
+                        // 3명 이상 완전 동률: 공동
+                        const ordN = [...chunk].sort((x, y) => x.localeCompare(y, 'ko'));
+                        ordN.forEach(n => reasonMap.set(n, "TIE"));
+                        blocks.push({ members: ordN, type: "tie" });
+                    }
+                }
+            }
+
+            // blocks -> rank 부여(competition ranking)
+            const out = new Map();
+            let rank = 1;
+
+            for (const b of blocks) {
+                if (b.members.length === 1) {
+                    const nm = b.members[0];
+                    const s = base.get(nm);
+                    out.set(nm, {
+                        ...s,
+                        points: s.win,
+                        autoRank: rank,
+                        autoReason: reasonMap.get(nm) || null,
+                        tieKey: null,
+                        tieMembers: null,
+                        tieBaseRank: null
+                    });
+                    rank += 1;
+                } else {
+                    // tie block
+                    const baseRank = rank;
+                    const members = b.members;
+                    const tieKey = `${teamId}|pts=${base.get(members[0]).win}|r=${baseRank}|d?`; // 유니크만 되면 OK
+                    tieGroups.push({ tieKey, members, baseRank });
+
+                    for (const nm of members) {
+                        const s = base.get(nm);
+                        out.set(nm, {
+                            ...s,
+                            points: s.win,
+                            autoRank: baseRank,        // 공동 표시의 기준 rank
+                            autoReason: "TIE",
+                            tieKey,
+                            tieMembers: members,
+                            tieBaseRank: baseRank
+                        });
+                    }
+                    rank += members.length;
+                }
+            }
+
+            return { map: out, anyPlayed, tieGroups };
+        }
+
+        // ✅ manualRank를 반영한 "최종 표시"
+        function resolveFinalRanks(teamId, autoPack) {
+            const manual = ensureManual(teamId);
+            const final = new Map(); // name -> {finalRank, finalLabel, isManual, isTieClickable, tieMembers, baseRank}
+            const anyPlayed = autoPack.anyPlayed;
+
+            // 점수 입력 전이면 그냥 빈칸
+            if (!anyPlayed) {
+                for (const [nm, st] of autoPack.map.entries()) {
+                    final.set(nm, {
+                        finalRank: null,
+                        finalLabel: "",
+                        isManual: false,
+                        isTieClickable: false,
+                        tieMembers: null,
+                        baseRank: null
+                    });
+                }
+                return final;
+            }
+
+            // tie group별로 "전원 수동 확정됐는지" 확인
+            const tieInfoByKey = new Map(); // tieKey -> {members, baseRank, allAssigned:boolean}
+            for (const tg of autoPack.tieGroups) {
+                const assignedCount = tg.members.filter(nm => manual.has(nm)).length;
+                tieInfoByKey.set(tg.tieKey, {
+                    members: tg.members,
+                    baseRank: tg.baseRank,
+                    allAssigned: (assignedCount === tg.members.length)
+                });
+            }
+
+            for (const [nm, st] of autoPack.map.entries()) {
+                // 동률 그룹이면 클릭 가능
+                const isTie = !!st.tieKey;
+                const ti = isTie ? tieInfoByKey.get(st.tieKey) : null;
+
+                if (isTie) {
+                    // 수동 확정이 있으면 그 값 사용(부분 확정도 표시 가능)
+                    if (manual.has(nm)) {
+                        const r = manual.get(nm);
+                        final.set(nm, {
+                            finalRank: r,
+                            finalLabel: `${r}위`,
+                            isManual: true,
+                            isTieClickable: true,
+                            tieMembers: ti.members,
+                            baseRank: ti.baseRank
+                        });
+                    } else {
+                        // 전원 확정이면, 남은 사람은 없게 되는 게 정상(운영상). 그래도 안전하게 공동 표시 유지.
+                        const label = `공동 ${st.autoRank}위`;
+                        final.set(nm, {
+                            finalRank: ti.allAssigned ? st.autoRank : st.autoRank,
+                            finalLabel: label,
+                            isManual: false,
+                            isTieClickable: true,
+                            tieMembers: ti.members,
+                            baseRank: ti.baseRank
+                        });
+                    }
+                } else {
+                    // 일반 케이스
+                    const r = st.autoRank;
+                    final.set(nm, {
+                        finalRank: r,
+                        finalLabel: (r ? `${r}위` : ""),
+                        isManual: false,
+                        isTieClickable: false,
+                        tieMembers: null,
+                        baseRank: null
+                    });
+                }
+            }
+
+            return final;
+        }
+
+        /* ========= 렌더 ========= */
+        function renderRoundRobin(teamBox, teamId, players) {
+            const host = teamBox.querySelector(".rr-host");
+            host.innerHTML = "";
+
+            const wrap = document.createElement("div");
+            wrap.className = "rr-wrap";
+
+            const ttl = document.createElement("div");
+            ttl.className = "rr-title";
+            ttl.innerHTML = `<div class="ttl">대진표</div>
+                       <div class="sub">동률 코드: H2H · SD · SF · TIE(공동)</div>`;
+            wrap.appendChild(ttl);
+
+            if (players.length === 0) {
+                const empty = document.createElement("div");
+                empty.style.color = "var(--muted)";
+                empty.style.fontSize = "12px";
+                empty.style.fontWeight = "800";
+                empty.style.padding = "10px 2px 2px";
+                empty.textContent = "선수가 없습니다. 이름을 드롭하거나 ‘선택’으로 편성하세요.";
+                wrap.appendChild(empty);
+                host.appendChild(wrap);
+                return;
+            }
+
+            const resMap = ensureTeamResults(teamId);
+            const options = SCORE_OPTIONS[matchFormatEl.value];
+
+            const autoPack = computeRanking(teamId, players);
+            const finalPack = resolveFinalRanks(teamId, autoPack);
+            const anyPlayed = autoPack.anyPlayed;
+
+            const scroll = document.createElement("div");
+            scroll.className = "table-scroll";
+
+            const tbl = document.createElement("table");
+            tbl.className = "rr";
+            tbl.style.setProperty("--cols", String(players.length + 3));
+
+            const thead = document.createElement("thead");
+            const hr = document.createElement("tr");
+
+            const corner = document.createElement("th");
+            corner.className = "corner sticky";
+            corner.textContent = "선수";
+            hr.appendChild(corner);
+
+            players.forEach(p => {
+                const th = document.createElement("th");
+                th.className = "sticky";
+                th.textContent = p;
+                hr.appendChild(th);
+            });
+
+            const wlTh = document.createElement("th");
+            wlTh.className = "sticky";
+            wlTh.textContent = "승-패";
+            hr.appendChild(wlTh);
+
+            const rkTh = document.createElement("th");
+            rkTh.className = "sticky";
+            rkTh.textContent = "순위";
+            hr.appendChild(rkTh);
+
+            thead.appendChild(hr);
+            tbl.appendChild(thead);
+
+            const tbody = document.createElement("tbody");
+
+            // ✅ 1등 크라운: "최종 rank=1"인 사람이 단독으로 있을 때만
+            let crownOwner = null;
+            if (anyPlayed) {
+                const r1 = [];
+                for (const p of players) {
+                    const f = finalPack.get(p);
+                    if (f?.finalRank === 1 && f.finalLabel === "1위") r1.push(p);
+                }
+                if (r1.length === 1) crownOwner = r1[0];
+            }
+
+            for (let i = 0; i < players.length; i++) {
+                const rowP = players[i];
+                const tr = document.createElement("tr");
+
+                const left = document.createElement("th");
+                left.className = "leftsticky";
+                left.textContent = rowP;
+                tr.appendChild(left);
+
+                for (let j = 0; j < players.length; j++) {
+                    const colP = players[j];
+                    const td = document.createElement("td");
+
+                    // ✅ i!=j는 전부 입력 가능(select)
+                    if (i === j) {
+                        td.className = "diag";
+                        td.textContent = "—";
+                    } else {
+                        const sel = document.createElement("select");
+                        sel.className = "score";
+                        const k = keyPair(rowP, colP);
+
+                        options.forEach(v => {
+                            const opt = document.createElement("option");
+                            opt.value = v;
+                            opt.textContent = v;
+                            sel.appendChild(opt);
+                        });
+
+                        const current = resMap.get(k)?.score || "";
+                        let show = "";
+                        if (current) {
+                            const parsed = parseScore(current);
+                            if (parsed) {
+                                const rowIsFirst = k.startsWith(`${rowP}|||`);
+                                show = rowIsFirst ? `${parsed.a}-${parsed.b}` : `${parsed.b}-${parsed.a}`;
+                            }
+                        }
+                        sel.value = show;
+
+                        sel.addEventListener("change", () => {
+                            const val = sel.value;
+                            if (!val) {
+                                resMap.delete(k);
+                            } else {
+                                const parsed = parseScore(val);
+                                if (parsed) {
+                                    const rowIsFirst = k.startsWith(`${rowP}|||`);
+                                    const store = rowIsFirst ? `${parsed.a}-${parsed.b}` : `${parsed.b}-${parsed.a}`;
+                                    resMap.set(k, { score: store });
+                                }
+                            }
+                            renderAllTeams();
+                        });
+
+                        td.appendChild(sel);
+                    }
+
+                    tr.appendChild(td);
+                }
+
+                // 승-패
+                const st = autoPack.map.get(rowP);
+                const wl = document.createElement("td");
+                wl.className = "wl";
+                wl.textContent = st ? `${st.win}-${st.lose}` : "0-0";
+                tr.appendChild(wl);
+
+                // 순위
+                const rk = document.createElement("td");
+                rk.className = "rank";
+
+                if (!anyPlayed) {
+                    rk.textContent = "";
+                } else {
+                    const f = finalPack.get(rowP);
+                    const auto = autoPack.map.get(rowP);
+
+                    // 표시 라벨
+                    let label = f?.finalLabel || "";
+                    let code = "";
+
+                    // 공동 표시면 TIE 붙임
+                    if (auto?.autoReason === "TIE" && !f?.isManual) {
+                        code = "TIE";
+                    } else if (auto?.autoReason && auto.autoReason !== "TIE") {
+                        // H2H/SD/SF는 단독일 때만 의미있게
+                        code = auto.autoReason;
+                    }
+
+                    // 크라운
+                    const crown = (crownOwner === rowP) ? `<span class="crown">👑</span>` : "";
+
+                    // manual 뱃지
+                    const man = f?.isManual ? `<span class="manual" title="사용자 확정">MAN</span>` : "";
+
+                    // code 뱃지
+                    const codeTag = code ? `<span class="code" title="${code === 'TIE' ? '동률이 끝까지 안 풀려 공동 순위' : '타이브레이커로 결정'}">${code}</span>` : "";
+
+                    rk.innerHTML = `${crown}${label}${codeTag}${man}`;
+
+                    // ✅ 동률(TIE)이면 클릭해서 확정 가능
+                    const isTieClickable = (auto?.autoReason === "TIE") && !!auto?.tieMembers?.length;
+                    if (isTieClickable) {
+                        rk.classList.add("clickable");
+                        rk.title = "동률입니다. 눌러서 최종 순위를 확정하세요.";
+                        rk.addEventListener("click", (e) => {
+                            e.stopPropagation();
+                            closeAssign();
+
+                            openRankPortal({
+                                teamId,
+                                name: rowP,
+                                tieMembers: auto.tieMembers,
+                                baseRank: auto.tieBaseRank,
+                                anchorEl: rk
+                            });
+                        });
+                    }
+                }
+
+                tr.appendChild(rk);
+                tbody.appendChild(tr);
+            }
+
+            tbl.appendChild(tbody);
+            scroll.appendChild(tbl);
+            wrap.appendChild(scroll);
+            host.appendChild(wrap);
+        }
+
+        function renderAllTeams() {
+            renderPool();
+            const teamBoxes = teamsEl.querySelectorAll("[data-team-id]");
+            teamBoxes.forEach(teamBox => {
+                const teamId = teamBox.dataset.teamId;
+                const members = getTeamMembers(teamId);
+                teamBox.querySelector(".count").textContent = `${members.length}명`;
+                renderRoundRobin(teamBox, teamId, members);
+            });
+        }
+
+        function moveToTeam(name, teamId) {
+            if (!state.has(name)) return;
+            state.set(name, { where: "team", teamId });
+            renderAllTeams();
+        }
+        function moveToPool(name) {
+            if (!state.has(name)) return;
+            state.set(name, { where: "pool" });
+            renderAllTeams();
+        }
+
+        function createTeams(groupCount) {
+            teamsEl.innerHTML = "";
+            teamInfoEl.textContent = `${groupCount}조`;
+            state.groupsCount = groupCount;
+            closeAssign();
+            closeRank();
+
+            for (let i = 1; i <= groupCount; i++) {
+                const teamId = `team-${i}`;
+
+                const box = document.createElement("div");
+                box.className = "team droptarget";
+                box.dataset.teamId = teamId;
+                box.style.setProperty("--teamBg", TEAM_COLORS[(i - 1) % TEAM_COLORS.length]);
+
+                const hd = document.createElement("div");
+                hd.className = "hd";
+
+                const tname = document.createElement("div");
+                tname.className = "tname";
+                tname.innerHTML = `<span>${i}조</span><span class="hint">여기에 드롭해서 편성</span>`;
+
+                const count = document.createElement("div");
+                count.className = "count";
+                count.textContent = "0명";
+
+                hd.append(tname, count);
+
+                const body = document.createElement("div");
+                body.className = "body";
+                const rrHost = document.createElement("div");
+                rrHost.className = "rr-host";
+                body.appendChild(rrHost);
+
+                const footer = document.createElement("div");
+                footer.className = "footer";
+
+                const clearBtn = document.createElement("button");
+                clearBtn.className = "linkbtn";
+                clearBtn.textContent = "이 조 비우기";
+                clearBtn.addEventListener("click", () => {
+                    for (const nm of INITIAL_NAMES) {
+                        const s = state.get(nm);
+                        if (s?.where === "team" && s.teamId === teamId) {
+                            state.set(nm, { where: "pool" });
+                        }
+                    }
+                    // ✅ 수동 확정도 함께 초기화(해당 조)
+                    manualRankByTeam.delete(teamId);
+
+                    renderAllTeams();
+                });
+
+                footer.append(clearBtn);
+
+                box.append(hd, body, footer);
+
+                makeDropTarget(box, (nm, evt) => {
+                    const nearest = evt.target.closest(".team");
+                    if (!nearest) return;
+                    moveToTeam(nm, nearest.dataset.teamId);
+                });
+
+                teamsEl.appendChild(box);
+            }
+
+            renderAllTeams();
+        }
+
+        // pool 회수 drop
+        makeDropTarget(poolEl, (nm) => moveToPool(nm));
+
+        document.querySelectorAll("button[data-g]").forEach(btn => {
+            btn.addEventListener("click", () => createTeams(Number(btn.dataset.g)));
+        });
+        matchFormatEl.addEventListener("change", () => renderAllTeams());
+
+        resetBtn.addEventListener("click", () => {
+            initState();
+            createTeams(0);
+            renderAllTeams();
+        });
+
+        /* =========================================================
+           TOURNAMENT GENERATION LOGIC (Integrated)
+           ========================================================= */
+
+        // 0) Common Utils
+        function roundHalfUp(x) { return Math.round(x); }
+        function nextPow2(n) { let p = 1; while (p < n) p *= 2; return p; }
+
+        const SEED_POSITIONS = {
+            2: [1, 2],
+            4: [1, 4, 2, 3],
+            8: [1, 8, 4, 5, 3, 6, 2, 7],
+            16: [1, 16, 8, 9, 5, 12, 4, 13, 3, 14, 6, 11, 7, 10, 2, 15],
+            32: [1, 32, 16, 17, 9, 24, 8, 25, 5, 28, 12, 21, 13, 20, 4, 29, 3, 30, 14, 19, 11, 22, 6, 27, 7, 26, 10, 23, 15, 18, 2, 31]
+        };
+
+        function splitUpperLower(groupRanks) {
+            const upperEntries = [];
+            const lowerEntries = [];
+            for (const arr of groupRanks) {
+                const n = arr.length;
+                const upperCount = roundHalfUp(n / 2);
+                for (let i = 0; i < upperCount; i++) upperEntries.push(arr[i]);
+                for (let i = upperCount; i < n; i++) lowerEntries.push(arr[i]);
+            }
+            return { upperEntries, lowerEntries };
+        }
+
+        function normalizeTournamentRanks(entries) {
+            const map = new Map();
+            for (const e of entries) {
+                if (!map.has(e.group)) map.set(e.group, []);
+                map.get(e.group).push(e);
+            }
+            const out = [];
+            for (const [g, list] of map.entries()) {
+                list.forEach((e, idx) => out.push({ ...e, internalRank: idx + 1 }));
+            }
+            return out;
+        }
+
+        function makeSeedList(entries, groupCount) {
+            const normalized = normalizeTournamentRanks(entries);
+
+            const byRank = new Map();
+            for (const q of normalized) {
+                if (!byRank.has(q.internalRank)) byRank.set(q.internalRank, []);
+                byRank.get(q.internalRank).push(q);
+            }
+
+            const ranks = Array.from(byRank.keys()).sort((a, b) => a - b);
+            const seedList = [];
+
+            for (const r of ranks) {
+                const arr = byRank.get(r);
+                // 1st place group order: 1, 2, 3 ...
+                // 2nd place group order: N, N-1 ... to avoid same group meeting early if possible
+                const groupOrder = (r % 2 === 1)
+                    ? Array.from({ length: groupCount }, (_, i) => i + 1)
+                    : Array.from({ length: groupCount }, (_, i) => groupCount - i);
+
+                const byGroup = new Map(arr.map(x => [x.group, x]));
+                for (const g of groupOrder) {
+                    if (byGroup.has(g)) seedList.push(byGroup.get(g));
+                }
+            }
+
+            // Fallback for any missing items (rare)
+            // Just add remaining
+            // (Skipped for now, assuming standard full structure)
+
+            return seedList.map((x, i) => ({ ...x, seed: i + 1 }));
+        }
+
+        function decideBracket(Q) {
+            const B = nextPow2(Q);
+            return { B, byes: B - Q };
+        }
+
+        function seedToSlots(seedList, B) {
+            const pos = SEED_POSITIONS[B];
+            if (!pos) {
+                // If bracket size too big/small not in list, fallback or error. 
+                // For this demo, let's support up to 32. 
+                console.error("Not supported bracket size:", B);
+                return { slots: [] };
+            }
+            const seedMap = new Map(seedList.map(s => [s.seed, s]));
+            const slots = pos.map(seedNum => seedMap.get(seedNum) || null);
+            return { slots };
+        }
+
+        function sameGroup(p1, p2) {
+            if (!p1 || !p2) return false;
+            return p1.group === p2.group;
+        }
+
+        // Try to avoid same group match in Round 1
+        function avoidSameGroupRound1(matches) {
+            for (let i = 0; i < matches.length; i++) {
+                const m = matches[i];
+                if (!sameGroup(m.p1, m.p2)) continue;
+
+                let fixed = false;
+                for (let j = 0; j < matches.length; j++) {
+                    if (i === j) continue;
+                    const n = matches[j];
+                    if (!m.p1 || !m.p2 || !n.p1 || !n.p2) continue;
+
+                    // candidates to swap
+                    const candidates = [["p2", "p2"], ["p2", "p1"], ["p1", "p2"], ["p1", "p1"]];
+                    for (const [aKey, bKey] of candidates) {
+                        const mA = m[aKey];
+                        const nB = n[bKey];
+
+                        const newM1 = (aKey === "p1") ? nB : m.p1;
+                        const newM2 = (aKey === "p2") ? nB : m.p2;
+                        const newN1 = (bKey === "p1") ? mA : n.p1;
+                        const newN2 = (bKey === "p2") ? mA : n.p2;
+
+                        if (sameGroup(newM1, newM2)) continue;
+                        if (sameGroup(newN1, newN2)) continue;
+
+                        m[aKey] = nB;
+                        n[bKey] = mA;
+                        fixed = true;
+                        break;
+                    }
+                    if (fixed) break;
+                }
+            }
+            return matches;
+        }
+
+        function generateTournament(entries, groupCount) {
+            const seeds = makeSeedList(entries, groupCount);
+            const Q = seeds.length;
+
+            if (Q === 0) return { Q, B: 0, seeds: [], slots: [] };
+            if (Q === 1) return { Q, B: 1, seeds, slots: [seeds[0]] };
+
+            const { B } = decideBracket(Q);
+            const { slots } = seedToSlots(seeds, B);
+
+            const matches = [];
+            for (let i = 0; i < slots.length; i += 2) matches.push({ p1: slots[i], p2: slots[i + 1] });
+
+            // Enabled by default
+            const avoid = true;
+            if (avoid) avoidSameGroupRound1(matches);
+
+            return { Q, B, seeds, slots };
+        }
+
+        /* 
+           Data Bridge: Collect Real Ranks from state
+        */
+        function collectRealGroupRanks() {
+            const groupCount = state.groupsCount;
+            const groupRanks = [];
+
+            for (let g = 1; g <= groupCount; g++) {
+                // FIXED: Must match createTeams ID format: "team-N"
+                const teamId = `team-${g}`;
+                const players = getTeamMembers(teamId);
+                const autoPack = computeRanking(teamId, players);
+                const finalPack = resolveFinalRanks(teamId, autoPack);
+
+                // Build sortable list
+                const list = [];
+                for (const p of players) {
+                    const f = finalPack.get(p);
+                    // If manually ranked, use manual. If auto, use autoRank.
+                    // Prioritize: manual > auto
+                    let rk = 999;
+                    if (f.finalRank !== null) {
+                        rk = f.finalRank;
+                    } else if (f.autoRank !== null) {
+                        rk = f.autoRank;
+                    }
+
+                    // Display text (e.g. "1조 1위")
+                    const labelText = `${g}조 ${rk}위`;
+
+                    list.push({
+                        name: p,
+                        rank: rk,
+                        group: g,
+                        label: labelText, // used for display
+                        rankInGroup: rk   // used for sorting
+                    });
+                }
+
+                // Sort by rank ascending
+                list.sort((a, b) => a.rank - b.rank);
+                groupRanks.push(list);
+            }
+            return groupRanks;
+        }
+
+        /* 
+           Dashboard Renderer
+        */
+        function drawTournamentDashboard(groupRanks) {
+            const el = document.getElementById("tm-dashboard");
+            if (!el) return;
+
+            const groupCount = groupRanks.length;
+
+            // Generate HTML for Cards
+            let cardsHtml = "";
+            let totalUpper = 0;
+            let totalLower = 0;
+
+            groupRanks.forEach((grp, idx) => {
+                const n = grp.length;
+                const gNum = idx + 1;
+                const up = roundHalfUp(n / 2);
+                const low = n - up;
+
+                totalUpper += up;
+                totalLower += low;
+
+                cardsHtml += `
+                    <div class="tm-card">
+                        <div class="row">
+                            <span class="label">${gNum}조</span>
+                            <span class="val">${n}명</span>
+                        </div>
+                        <div class="desc">
+                            상위 ${up}명 진출<br>
+                            하위 ${low}명 진출
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Decide Sizing Logic (Prediction)
+            const upB = nextPow2(totalUpper);
+            const lowB = nextPow2(totalLower);
+
+            el.innerHTML = `
+                <div class="tm-dash-header">
+                    <h3>토너먼트 구성 요약</h3>
+                    <span class="tm-pill">${groupCount}개 조</span>
+                    <span class="tm-pill">규칙: 상위=round(n/2)</span>
+                    <label style="margin-left:auto; display:flex; align-items:center; gap:4px; font-size:13px; font-weight:700;">
+                        <input type="checkbox" checked disabled> 1라운드 같은 조 회피
+                    </label>
+                </div>
+                <div class="tm-cards">
+                    ${cardsHtml}
+                </div>
+                <div class="tm-dash-footer" style="flex-wrap:wrap; gap:10px;">
+                    <div>
+                        상위 진출 ${totalUpper}명 ➔ ${upB}강 / 
+                        하위 진출 ${totalLower}명 ➔ ${lowB}강 진행
+                    </div>
+                    <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+                        <button class="btn" style="background:#0f9d58; color:#fff; border-color:#0b8043;" onclick="exportToGoogleSheet()">📤 서버에 결과저장</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        /* 
+           UI & Engine 
+        */
+        function isBye(el) {
+            if (!el) return false;
+            if (el.classList.contains("bye")) return true;
+            return (el.textContent || "").trim() === "BYE";
+        }
+        function isEmpty(el) {
+            if (!el) return true;
+            if (el.classList.contains("empty") && !el.classList.contains("bye")) return true;
+            const t = (el.textContent || "").trim();
+            return (t === "" || t === "?");
+        }
+        function hasPlayer(el) {
+            if (!el) return false;
+            if (isBye(el)) return false;
+            if (isEmpty(el)) return false;
+            // Check inner text ignoring small tag
+            const t = el.innerText.replace(/\n.+/, "").trim();
+            return t !== "" && t !== "?" && t !== "BYE";
+        }
+
+        function setNodeText(id, text, subText) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            // Use HTML to include rank info if available
+            if (subText) {
+                el.innerHTML = `${text}<small>${subText}</small>`;
+            } else {
+                el.innerHTML = text; // Fallback or BYE
+            }
+            el.classList.remove("empty");
+            el.classList.remove("bye");
+        }
+        function setNodeEmpty(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.innerHTML = "?";
+            el.classList.add("empty");
+            el.classList.remove("bye");
+        }
+
+        function createTournamentLineEngine({ wrapEl, svg, prefix, direction, rounds, nodeId }) {
+            const MATCHES = [];
+            for (let r = 1; r <= rounds; r++) {
+                const count = Math.pow(2, rounds - r + 1);
+                if (r === rounds) {
+                    MATCHES.push({ a: nodeId(r, 1), b: nodeId(r, 2), to: `${prefix}-winner` });
+                } else {
+                    for (let i = 1; i <= count; i += 2) {
+                        MATCHES.push({ a: nodeId(r, i), b: nodeId(r, i + 1), to: nodeId(r + 1, Math.ceil(i / 2)) });
+                    }
+                }
+            }
+
+            function mkPath(d, from, to, seg) {
+                const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                p.setAttribute("d", d);
+                p.dataset.from = from;
+                p.dataset.to = to;
+                p.dataset.seg = seg;
+                return p;
+            }
+
+            function drawBracketLine(fromId1, fromId2, toId) {
+                const fromEl1 = document.getElementById(fromId1);
+                const fromEl2 = document.getElementById(fromId2);
+                const toEl = document.getElementById(toId);
+                if (!fromEl1 || !fromEl2 || !toEl) return;
+
+                const wrapRect = wrapEl.getBoundingClientRect();
+                const r1 = fromEl1.getBoundingClientRect();
+                const r2 = fromEl2.getBoundingClientRect();
+                const rt = toEl.getBoundingClientRect();
+
+                const x1 = (direction === 1 ? r1.right : r1.left) - wrapRect.left;
+                const y1 = (r1.top + r1.height / 2) - wrapRect.top;
+
+                const x2 = (direction === 1 ? r2.right : r2.left) - wrapRect.left;
+                const y2 = (r2.top + r2.height / 2) - wrapRect.top;
+
+                const xt = (direction === 1 ? rt.left : rt.right) - wrapRect.left;
+                const yt = (rt.top + rt.height / 2) - wrapRect.top;
+
+                const topY = Math.min(y1, y2);
+                const botY = Math.max(y1, y2);
+                const joinY = Math.max(topY, Math.min(yt, botY));
+
+                let joinX;
+                if (direction === 1) {
+                    const maxX = Math.max(x1, x2);
+                    joinX = Math.min(xt - 24, maxX + 40);
+                } else {
+                    const minX = Math.min(x1, x2);
+                    joinX = Math.max(xt + 24, minX - 40);
+                }
+
+                svg.appendChild(mkPath(`M ${x1} ${y1} H ${joinX}`, fromId1, toId, 'in'));
+                svg.appendChild(mkPath(`M ${x2} ${y2} H ${joinX}`, fromId2, toId, 'in'));
+                svg.appendChild(mkPath(`M ${joinX} ${topY} V ${joinY}`, `${fromId1}&${fromId2}`, toId, 'vTop'));
+                svg.appendChild(mkPath(`M ${joinX} ${joinY} V ${botY}`, `${fromId1}&${fromId2}`, toId, 'vBot'));
+                svg.appendChild(mkPath(`M ${joinX} ${joinY} H ${xt}`, `${fromId1}&${fromId2}`, toId, 'hOut'));
+            }
+
+            function clearStylesTo(toId) {
+                svg.querySelectorAll(`path[data-to="${toId}"]`)
+                    .forEach(p => p.classList.remove("win", "lose"));
+            }
+
+            function centerYOf(id) {
+                const el = document.getElementById(id);
+                const wrapRect = wrapEl.getBoundingClientRect();
+                const r = el.getBoundingClientRect();
+                return (r.top + r.height / 2) - wrapRect.top;
+            }
+
+            function applyWinLoseStyles(a, b, to, winnerFrom) {
+                const loserFrom = (winnerFrom === a) ? b : a;
+
+                clearStylesTo(to);
+
+                const winIn = svg.querySelector(`path[data-seg="in"][data-from="${winnerFrom}"][data-to="${to}"]`);
+                const loseIn = svg.querySelector(`path[data-seg="in"][data-from="${loserFrom}"][data-to="${to}"]`);
+                if (winIn) winIn.classList.add("win");
+                if (loseIn) loseIn.classList.add("lose");
+
+                const winnerIsTop = centerYOf(winnerFrom) < centerYOf(loserFrom);
+
+                const vTop = svg.querySelector(`path[data-seg="vTop"][data-to="${to}"]`);
+                const vBot = svg.querySelector(`path[data-seg="vBot"][data-to="${to}"]`);
+                const hOut = svg.querySelector(`path[data-seg="hOut"][data-to="${to}"]`);
+
+                if (hOut) hOut.classList.add("win");
+                if (winnerIsTop) {
+                    if (vTop) vTop.classList.add("win");
+                    if (vBot) vBot.classList.add("lose");
+                } else {
+                    if (vBot) vBot.classList.add("win");
+                    if (vTop) vTop.classList.add("lose");
+                }
+            }
+
+            function initLines() {
+                svg.innerHTML = "";
+                const w = wrapEl.clientWidth;
+                const h = wrapEl.clientHeight;
+                svg.setAttribute("width", w);
+                svg.setAttribute("height", h);
+                svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+                for (const m of MATCHES) drawBracketLine(m.a, m.b, m.to);
+            }
+
+            return { MATCHES, initLines, applyWinLoseStyles, clearStylesTo };
+        }
+
+        /* Interaction Logic */
+        function clearDownstream({ startId, engine }) {
+            for (const m of engine.MATCHES) {
+                if (m.a === startId || m.b === startId) {
+                    setNodeEmpty(m.to);
+                    engine.clearStylesTo(m.to);
+                    clearDownstream({ startId: m.to, engine });
+                }
+            }
+        }
+
+        function extractName(el) {
+            // Safer extraction: Get the first text node (User Name)
+            // ignoring <small> tag
+            if (!el) return "";
+            // Find first text node
+            for (let i = 0; i < el.childNodes.length; i++) {
+                if (el.childNodes[i].nodeType === Node.TEXT_NODE) {
+                    return el.childNodes[i].textContent.trim();
+                }
+            }
+            // fallback
+            return el.innerText.split('\n')[0].trim();
+        }
+
+        function extractRankLabel(el) {
+            const s = el.querySelector("small");
+            return s ? s.innerText : "";
+        }
+
+        function advanceWinner({ a, b, to, clickedId, engine }) {
+            const clickedEl = document.getElementById(clickedId);
+            if (!clickedEl || !hasPlayer(clickedEl)) return;
+
+            const targetEl = document.getElementById(to);
+            if (!targetEl) return;
+
+            const newValue = extractName(clickedEl);
+            const newRank = extractRankLabel(clickedEl);
+
+            const oldValue = extractName(targetEl);
+
+            if (oldValue !== "?" && oldValue !== "" && oldValue !== "BYE" && oldValue !== newValue) {
+                clearDownstream({ startId: to, engine });
+            }
+
+            setNodeText(to, newValue, newRank);
+            engine.applyWinLoseStyles(a, b, to, clickedId);
+        }
+
+        function autoAdvanceByes({ engine }) {
+            let progressed = true;
+            while (progressed) {
+                progressed = false;
+
+                for (const m of engine.MATCHES) {
+                    const aEl = document.getElementById(m.a);
+                    const bEl = document.getElementById(m.b);
+                    const toEl = document.getElementById(m.to);
+                    if (!aEl || !bEl || !toEl) continue;
+
+                    const toIsEmpty = isEmpty(toEl) || isBye(toEl);
+                    if (!toIsEmpty) continue;
+
+                    const aHas = hasPlayer(aEl);
+                    const bHas = hasPlayer(bEl);
+
+                    const aIsByeFlag = isBye(aEl);
+                    const bIsByeFlag = isBye(bEl);
+
+                    if (aHas && bIsByeFlag) {
+                        const nm = extractName(aEl);
+                        const rk = extractRankLabel(aEl);
+                        setNodeText(m.to, nm, rk);
+                        engine.applyWinLoseStyles(m.a, m.b, m.to, m.a);
+                        progressed = true;
+                        continue;
+                    }
+                    if (bHas && aIsByeFlag) {
+                        const nm = extractName(bEl);
+                        const rk = extractRankLabel(bEl);
+                        setNodeText(m.to, nm, rk);
+                        engine.applyWinLoseStyles(m.a, m.b, m.to, m.b);
+                        progressed = true;
+                        continue;
+                    }
+                }
+            }
+        }
+
+        function createBracketUI({ wrapId, svgId, prefix, direction, B, slots, titleElId, titleText }) {
+            const wrapEl = document.getElementById(wrapId);
+            const svg = document.getElementById(svgId);
+            const titleEl = document.getElementById(titleElId);
+
+            wrapEl.querySelectorAll(".tm-player, .tm-champ-label").forEach(el => el.remove());
+            svg.innerHTML = "";
+
+            if (B < 2) {
+                titleEl.textContent = titleText + " (생성 불가)";
+                return;
+            }
+
+            titleEl.textContent = `${titleText} (${B}강, BYE ${slots.filter(x => x === null).length}개)`;
+
+            // ✅ Dynamic Height: Prevent overlap (B=16 needs ~960px)
+            const minH = Math.max(600, B * 60 + 60);
+            wrapEl.style.height = `${minH}px`;
+
+            const W = wrapEl.clientWidth;
+            const H = wrapEl.clientHeight;
+            const boxW = 120, boxH = 48; // Increased H
+            const champW = 140;
+
+            const rounds = Math.log2(B);
+            const padX = 20;
+            const champX = W - padX - champW;
+            const step = (champX - padX) / rounds;
+
+            const padY = 20;
+            const usableH = H - padY * 2;
+
+            const nodeId = (r, i) => `${prefix}-r${r}-${i}`;
+
+            for (let r = 1; r <= rounds; r++) {
+                const count = B / Math.pow(2, r - 1);
+                const spacing = usableH / count;
+                const xLTR = padX + (r - 1) * step;
+
+                for (let i = 1; i <= count; i++) {
+                    const y = padY + (i - 0.5) * spacing - boxH / 2;
+
+                    const div = document.createElement("div");
+                    div.className = "tm-player empty";
+                    div.id = nodeId(r, i);
+                    div.textContent = "?";
+
+                    const x = (direction === 1)
+                        ? xLTR
+                        : (W - xLTR - boxW);
+
+                    div.style.left = `${x}px`;
+                    div.style.top = `${y}px`;
+
+                    if (r < rounds) {
+                        const isOdd = (i % 2 === 1);
+                        div.dataset.a = nodeId(r, isOdd ? i : i - 1);
+                        div.dataset.b = nodeId(r, isOdd ? i + 1 : i);
+                        div.dataset.to = nodeId(r + 1, Math.ceil(i / 2));
+                    } else {
+                        div.dataset.a = nodeId(rounds, 1);
+                        div.dataset.b = nodeId(rounds, 2);
+                        div.dataset.to = `${prefix}-winner`;
+                    }
+
+                    wrapEl.appendChild(div);
+                }
+            }
+
+            const champ = document.createElement("div");
+            champ.className = "tm-champ-label";
+            champ.style.top = `${(H / 2) - 55}px`;
+            champ.style.left = (direction === 1) ? `${champX}px` : `${padX}px`;
+            champ.innerHTML = `
+                <div class="label">CHAMPION</div>
+                <div id="${prefix}-winner" class="tm-player empty tm-winner-box" style="position:static; cursor:pointer;">?</div>
+            `;
+            wrapEl.appendChild(champ);
+
+            const winnerEl = document.getElementById(`${prefix}-winner`);
+            winnerEl.dataset.a = nodeId(rounds, 1);
+            winnerEl.dataset.b = nodeId(rounds, 2);
+            winnerEl.dataset.to = `${prefix}-winner`;
+
+            for (let i = 1; i <= B; i++) {
+                const el = document.getElementById(nodeId(1, i));
+                const p = slots[i - 1];
+                if (!p) {
+                    el.textContent = "BYE";
+                    el.classList.add("bye");
+                    el.classList.add("empty");
+                    continue;
+                }
+                // ! Display Name + Rank Label
+                el.innerHTML = `${p.name}<small>${p.label}</small>`;
+                el.classList.remove("empty");
+                el.classList.remove("bye");
+            }
+
+            const engine = createTournamentLineEngine({ wrapEl, svg, prefix, direction, rounds, nodeId });
+            autoAdvanceByes({ engine });
+
+            wrapEl.addEventListener("click", (e) => {
+                const box = e.target.closest(".tm-player");
+                if (!box || !wrapEl.contains(box)) return;
+
+                const a = box.dataset.a;
+                const b = box.dataset.b;
+                const to = box.dataset.to;
+
+                if (box.id === `${prefix}-winner`) {
+                    const fa = document.getElementById(a);
+                    const fb = document.getElementById(b);
+                    if (!fa || !fb) return;
+
+                    const aHas = hasPlayer(fa);
+                    const bHas = hasPlayer(fb);
+                    if (!aHas && !bHas) return;
+
+                    const current = extractName(box);
+
+                    if (aHas && !bHas) {
+                        advanceWinner({ a, b, to, clickedId: a, engine });
+                    } else if (!aHas && bHas) {
+                        advanceWinner({ a, b, to, clickedId: b, engine });
+                    } else {
+                        const aName = extractName(fa);
+                        const bName = extractName(fb);
+                        const pickId = (current === aName) ? b : a;
+                        advanceWinner({ a, b, to, clickedId: pickId, engine });
+                    }
+
+                    autoAdvanceByes({ engine });
+                    return;
+                }
+
+                if (isEmpty(box) || isBye(box)) return;
+                if (!a || !b || !to) return;
+
+                advanceWinner({ a, b, to, clickedId: box.id, engine });
+                autoAdvanceByes({ engine });
+            }, { passive: true });
+
+            window.addEventListener("resize", () => engine.initLines());
+            engine.initLines();
+        }
+
+        /* 
+           Main Execution: Generate Tournament from actual state
+        */
+        function runTournamentGeneration() {
+            const groupRanks = collectRealGroupRanks();
+
+            // Check total players
+            let totalPlayers = 0;
+            for (const g of groupRanks) totalPlayers += g.length;
+
+            if (totalPlayers === 0) {
+                alert("조에 배정된 선수가 없습니다! \n[이름 카드]를 클릭하거나 드래그하여 조에 배정한 뒤 다시 시도해주세요.");
+                return;
+            }
+
+            const groupCount = groupRanks.length;
+
+            // ✅ Validation: Check if all ranks are decided and unique
+            const invalidGroups = [];
+            for (let i = 0; i < groupCount; i++) {
+                const grp = groupRanks[i];
+                const gNum = i + 1;
+
+                // 1. Check for unranked players (rank 999)
+                const unranked = grp.filter(p => p.rank === 999);
+                if (unranked.length > 0) {
+                    invalidGroups.push(`${gNum}조 (경기 결과 없음)`);
+                    continue;
+                }
+
+                // 2. Check for duplicates (Ties)
+                const ranks = grp.map(p => p.rank);
+                const uniqueRanks = new Set(ranks);
+                if (uniqueRanks.size !== ranks.length) {
+                    invalidGroups.push(`${gNum}조 (동률 존재)`);
+                }
+            }
+
+            if (invalidGroups.length > 0) {
+                alert(`모든 조의 결과를 확인해주세요.\n(아직 순위가 결정되지 않았거나 동률인 조가 있습니다.)\n\n문제가 있는 조:\n${invalidGroups.join(", ")}`);
+                return;
+            }
+
+            // Basic Split: n/2
+            const { upperEntries, lowerEntries } = splitUpperLower(groupRanks);
+
+            // Draw Dashboard
+            drawTournamentDashboard(groupRanks);
+
+            // Generate
+            const upper = generateTournament(upperEntries, groupCount);
+            const lower = generateTournament(lowerEntries, groupCount);
+
+            // Show UI first to ensure layout is calculated
+            const area = document.getElementById("tournament-area");
+            area.style.display = "flex";
+
+            // Wait for layout to apply before measuring dimensions
+            // Increased to 200ms to ensure container is fully rendered
+            setTimeout(() => {
+                createBracketUI({
+                    wrapId: "tm-wrap-upper",
+                    svgId: "tm-lines-upper",
+                    prefix: "U",
+                    direction: 1,
+                    B: upper.B,
+                    slots: upper.slots,
+                    titleElId: "tm-titleUpper",
+                    titleText: "상위 토너먼트"
+                });
+
+                createBracketUI({
+                    wrapId: "tm-wrap-lower",
+                    svgId: "tm-lines-lower",
+                    prefix: "L",
+                    direction: -1,
+                    B: lower.B,
+                    slots: lower.slots,
+                    titleElId: "tm-titleLower",
+                    titleText: "하위 토너먼트"
+                });
+
+                // Scroll to tournament area
+                area.scrollIntoView({ behavior: 'smooth' });
+            }, 200);
+        }
+
+        // Expose button logic
+        document.getElementById("btn-gen-tournament").addEventListener("click", runTournamentGeneration);
+
+        /* 
+           Sample Tournament Logic 
+        */
+        function runSampleTournament() {
+            // Mock Data: 4 Groups, 5 Players each
+            const groupCount = 4;
+            const groupRanks = [];
+            for (let g = 1; g <= groupCount; g++) {
+                const list = [];
+                for (let r = 1; r <= 5; r++) {
+                    list.push({
+                        name: `선수 ${g}-${r}`,
+                        rank: r,
+                        group: g,
+                        label: `${g}조 ${r}위`,
+                        rankInGroup: r
+                    });
+                }
+                groupRanks.push(list);
+            }
+
+            // Draw Dashboard
+            drawTournamentDashboard(groupRanks);
+
+            const { upperEntries, lowerEntries } = splitUpperLower(groupRanks);
+            const upper = generateTournament(upperEntries, groupCount);
+            const lower = generateTournament(lowerEntries, groupCount);
+
+            const area = document.getElementById("tournament-area");
+            area.style.display = "flex";
+
+            setTimeout(() => {
+                createBracketUI({
+                    wrapId: "tm-wrap-upper",
+                    svgId: "tm-lines-upper",
+                    prefix: "U",
+                    direction: 1,
+                    B: upper.B,
+                    slots: upper.slots,
+                    titleElId: "tm-titleUpper",
+                    titleText: "상위 토너먼트 (예시)"
+                });
+
+                createBracketUI({
+                    wrapId: "tm-wrap-lower",
+                    svgId: "tm-lines-lower",
+                    prefix: "L",
+                    direction: -1,
+                    B: lower.B,
+                    slots: lower.slots,
+                    titleElId: "tm-titleLower",
+                    titleText: "하위 토너먼트 (예시)"
+                });
+                area.scrollIntoView({ behavior: 'smooth' });
+            }, 50);
+        }
+        document.getElementById("btn-show-sample").addEventListener("click", runSampleTournament);
+
+        // init
+        initState();
+        renderPool();
+        createTeams(4);
+
+        async function exportToGoogleSheet() {
+            // Hardcoded Default URL
+            const url = "https://script.google.com/macros/s/AKfycbybkNRimOGBcCYH7HAbiT6lhlqtT9SzVZ0QjDxkD6By1ePgtv5XS8-eGSIIRocNpdJn/exec";
+
+            // 1. Calculate Points
+            const today = new Date().toISOString().split('T')[0];
+            const pointMap = new Map(); // name -> {points, type, details[]}
+
+            // (1) Attendance (+2)
+            // state.entries has names? No, state is Map<name, {where}>.
+            let entries = [];
+            state.forEach((val, key) => {
+                if (val.where === 'team') entries.push(key);
+            });
+
+            entries.forEach(name => {
+                pointMap.set(name, { points: 2, type: "참가", details: ["참가(+2)"] });
+            });
+
+            // (2) Tournament Results
+            function addPoint(id, bonus, label) {
+                const el = document.getElementById(id);
+                if (!el || !hasPlayer(el)) return;
+                const name = extractName(el);
+                if (!pointMap.has(name)) {
+                    pointMap.set(name, { points: 2, type: "참가", details: ["참가(+2)"] });
+                }
+                const p = pointMap.get(name);
+                p.points += bonus;
+                p.details.push(`${label}(+${bonus})`);
+
+                if (label.includes("우승")) p.type = label;
+                else if (label.includes("준우승") && !p.type.includes("우승")) p.type = label;
+            }
+
+            // Shared logic to find rankers for both Point Calculation AND Warning Message
+            function analyzeBracket(prefix) {
+                let maxR = 0;
+                for (let r = 1; r <= 6; r++) if (document.getElementById(`${prefix}-r${r}-1`)) maxR = r;
+                if (maxR === 0) return { winner: '미정', runnerUp: '미정', semiFinalists: [] };
+
+                // Winner
+                const winEl = document.getElementById(`${prefix}-winner`);
+                const winner = (winEl && hasPlayer(winEl)) ? extractName(winEl) : '미정';
+
+                // Runner Up
+                let runnerUp = '미정';
+                const f1 = document.getElementById(`${prefix}-r${maxR}-1`);
+                const f2 = document.getElementById(`${prefix}-r${maxR}-2`);
+                const finalists = [];
+                if (f1 && hasPlayer(f1)) finalists.push(extractName(f1));
+                if (f2 && hasPlayer(f2)) finalists.push(extractName(f2));
+
+                if (winner !== '미정') {
+                    const found = finalists.find(n => n !== winner);
+                    if (found) runnerUp = found;
+                }
+
+                // Semi-Finalists (Joint 3rd)
+                const semiFinalists = [];
+                if (maxR > 1) {
+                    const semiR = maxR - 1;
+                    for (let k = 1; k <= 4; k++) {
+                        const sEl = document.getElementById(`${prefix}-r${semiR}-${k}`);
+                        if (sEl && hasPlayer(sEl)) {
+                            const name = extractName(sEl);
+                            // Exclude if they advanced to finals
+                            if (!finalists.includes(name)) {
+                                semiFinalists.push(name);
+                            }
+                        }
+                    }
+                }
+                return { winner, runnerUp, semiFinalists };
+            }
+
+            // Let's make a new helper: addPointByName
+            function addPointByName(name, bonus, label) {
+                if (!name || name === '미정') return;
+                if (!pointMap.has(name)) pointMap.set(name, { points: 2, type: "참가", details: ["참가(+2)"] });
+                const p = pointMap.get(name);
+                p.points += bonus;
+                p.details.push(`${label}(+${bonus})`);
+                if (label.includes("우승")) p.type = label;
+                else if (label.includes("준우승") && !p.type.includes("우승")) p.type = label;
+            }
+
+            // Apply Points
+            // Note: DOM IDs use 'U' and 'L' prefixes
+            const upper = analyzeBracket('U');
+            if (upper.winner !== '미정') {
+                addPointByName(upper.winner, 5, "상위 우승");
+                addPointByName(upper.runnerUp, 4, "상위 준우승");
+                upper.semiFinalists.forEach(name => addPointByName(name, 3, "상위 4강"));
+            }
+
+            const lower = analyzeBracket('L');
+            if (lower.winner !== '미정') {
+                addPointByName(lower.winner, 4, "하위 우승");
+                addPointByName(lower.runnerUp, 3, "하위 준우승");
+                // Lower semi? 0 pts.
+            }
+
+            // 2. Prepare Payload
+            const results = [];
+            pointMap.forEach((val, name) => {
+                results.push({
+                    name: name,
+                    type: val.type,
+                    points: val.points,
+                    detail: val.details.join(", ")
+                });
+            });
+
+            if (results.length === 0) {
+                alert("전송할 데이터가 없습니다. (참가자가 없거나 토너먼트 미생성)");
+                return;
+            }
+
+            const confirmMsg = `[전송 데이터 확인]\n\n` +
+                `🏆 상위 우승: ${upper.winner}\n` +
+                `🥈 상위 준우승: ${upper.runnerUp}\n` +
+                `🥉 상위 3위(4강): ${upper.semiFinalists.join(', ') || '없음'}\n\n` +
+                `🏆 하위 우승: ${lower.winner}\n` +
+                `🥈 하위 준우승: ${lower.runnerUp}\n\n` +
+                `총 ${results.length}명의 기록을 구글 시트로 전송하시겠습니까?`;
+
+            if (!confirm(confirmMsg)) return;
+
+            // 3. Send
+            try {
+                const payload = {
+                    date: today,
+                    results: results
+                };
+
+                await fetch(url, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "text/plain" },
+                    body: JSON.stringify(payload)
+                });
+
+                alert("✅ 기록이 전송되었습니다! (구글 시트 확인)");
+
+            } catch (e) {
+                console.error(e);
+                alert("전송 중 오류 발생: " + e.message);
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,926 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>조별 → 상/하위 토너먼트 (자동 생성 + SVG 대진표 주입)</title>
+    <style>
+        body {
+            background: #f4f7f9;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            margin: 0;
+            padding: 16px 12px 28px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #111827;
+        }
+
+        h1 {
+            margin: 0 0 12px;
+            font-size: 22px;
+        }
+
+        .controls {
+            width: min(2100px, 98vw);
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
+            padding: 12px;
+            margin-bottom: 14px;
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin: 8px 0;
+        }
+
+        label {
+            font-weight: 900;
+            font-size: 13px;
+        }
+
+        select,
+        input[type="number"] {
+            padding: 8px 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            background: #fff;
+        }
+
+        input[type="number"] {
+            width: 90px;
+        }
+
+        input[type="checkbox"] {
+            transform: scale(1.1);
+        }
+
+        button {
+            padding: 10px 12px;
+            border: 0;
+            border-radius: 12px;
+            font-weight: 900;
+            cursor: pointer;
+            background: #2563eb;
+            color: #fff;
+        }
+
+        button.secondary {
+            background: #111827;
+        }
+
+        .pill {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 900;
+            background: #eef2ff;
+            color: #3730a3;
+            border: 1px solid #e0e7ff;
+        }
+
+        .muted {
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        .inputs {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(140px, 1fr));
+            gap: 10px;
+            width: 100%;
+            margin-top: 6px;
+        }
+
+        @media (max-width: 980px) {
+            .inputs {
+                grid-template-columns: repeat(2, minmax(160px, 1fr));
+            }
+        }
+
+        @media (max-width: 520px) {
+            .inputs {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .gi {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 10px;
+            background: #fafafa;
+        }
+
+        .rowWrap {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+            width: min(2100px, 98vw);
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .panel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .title {
+            font-weight: 1000;
+            color: #111827;
+        }
+
+        .wrap {
+            position: relative;
+            width: min(1000px, 98vw);
+            height: 600px;
+            background: #fff;
+            border: 1px solid #eee;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        @media (max-width: 520px) {
+            .wrap {
+                height: 540px;
+            }
+        }
+
+        .player {
+            position: absolute;
+            width: 120px;
+            height: 34px;
+            border: 1px solid #3498db;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 900;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all .15s;
+            z-index: 2;
+            user-select: none;
+            padding: 0 6px;
+            box-sizing: border-box;
+            text-align: center;
+            line-height: 1.1;
+        }
+
+        .player:hover {
+            background: #3498db;
+            color: white;
+        }
+
+        .player.empty {
+            border: 1px dashed #cbd5e1;
+            color: #94a3b8;
+            cursor: default;
+            background: #fff;
+        }
+
+        .player.bye {
+            border: 1px dashed #e5e7eb;
+            color: #cbd5e1;
+            cursor: default;
+            background: #fff;
+        }
+
+        .winner-box {
+            border: 2px solid #e74c3c;
+            color: #e74c3c;
+            width: 140px;
+            height: 44px;
+            font-size: 14px;
+        }
+
+        .lines {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .lines path {
+            transition: stroke 0.25s, stroke-width 0.25s, opacity 0.25s, stroke-dasharray 0.25s;
+            stroke: #cbd5e0;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            opacity: 1;
+        }
+
+        .lines path.win {
+            stroke: #e74c3c !important;
+            stroke-width: 4 !important;
+            stroke-dasharray: none !important;
+            opacity: 1;
+        }
+
+        .lines path.lose {
+            stroke: #94a3b8 !important;
+            stroke-width: 2 !important;
+            stroke-dasharray: 6 6 !important;
+            opacity: 0.9;
+        }
+
+        .champion-label {
+            position: absolute;
+            text-align: center;
+            z-index: 2;
+            width: 140px;
+        }
+
+        .champion-label .label {
+            font-weight: 1000;
+            margin-bottom: 6px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🏓 조별 리그 → 상/하위 토너먼트 (자동 생성 + 대진표 주입)</h1>
+
+    <div class="controls">
+        <div class="row">
+            <label>조 개수</label>
+            <select id="groupCount">
+                <option value="2">2개조</option>
+                <option value="3">3개조</option>
+                <option value="4" selected>4개조</option>
+                <option value="5">5개조</option>
+            </select>
+            <span class="pill">표시: 1조,2조...</span>
+
+            <label style="margin-left:8px;">규칙</label>
+            <span class="pill">상위=round(n/2), 하위=n-상위</span>
+            <span class="muted">예: 5명→상3/하2, 4명→상2/하2</span>
+        </div>
+
+        <div class="row">
+            <label>1라운드 같은 조 회피(상/하 모두)</label>
+            <input id="avoidSameGroup" type="checkbox" checked>
+            <span class="muted">(가능할 때만 swap, 무리하면 그대로)</span>
+
+            <button id="run" style="margin-left:auto;">상/하위 대진 생성</button>
+            <button id="sample" class="secondary">예시</button>
+        </div>
+
+        <div id="groupInputs" class="inputs"></div>
+
+        <div class="row">
+            <span class="muted" id="summary"></span>
+        </div>
+    </div>
+
+    <div class="rowWrap">
+        <div class="panel">
+            <div class="title" id="titleUpper">상위 토너먼트</div>
+            <div id="wrap-upper" class="wrap">
+                <svg id="lines-upper" class="lines"></svg>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="title" id="titleLower">하위 토너먼트</div>
+            <div id="wrap-lower" class="wrap">
+                <svg id="lines-lower" class="lines"></svg>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* =========================================================
+           0) 공통 유틸
+        ========================================================= */
+        function roundHalfUp(x) { return Math.round(x); }
+        function nextPow2(n) { let p = 1; while (p < n) p *= 2; return p; }
+
+        const SEED_POSITIONS = {
+            2: [1, 2],
+            4: [1, 4, 2, 3],
+            8: [1, 8, 4, 5, 3, 6, 2, 7],
+            16: [1, 16, 8, 9, 5, 12, 4, 13, 3, 14, 6, 11, 7, 10, 2, 15],
+            32: [1, 32, 16, 17, 9, 24, 8, 25, 5, 28, 12, 21, 13, 20, 4, 29, 3, 30, 14, 19, 11, 22, 6, 27, 7, 26, 10, 23, 15, 18, 2, 31]
+        };
+
+        function buildGroupRanks(groupSizes) {
+            return groupSizes.map((n, idx) => {
+                const g = idx + 1;
+                return Array.from({ length: n }, (_, i) => ({
+                    group: g,
+                    rankInGroup: i + 1,
+                    label: `${g}조${i + 1}등`
+                }));
+            });
+        }
+
+        function splitUpperLower(groupRanks) {
+            const upperEntries = [];
+            const lowerEntries = [];
+            for (const arr of groupRanks) {
+                const n = arr.length;
+                const upperCount = roundHalfUp(n / 2);
+                for (let i = 0; i < upperCount; i++) upperEntries.push(arr[i]);
+                for (let i = upperCount; i < n; i++) lowerEntries.push(arr[i]);
+            }
+            return { upperEntries, lowerEntries };
+        }
+
+        function normalizeTournamentRanks(entries) {
+            const map = new Map();
+            for (const e of entries) {
+                if (!map.has(e.group)) map.set(e.group, []);
+                map.get(e.group).push(e);
+            }
+            const out = [];
+            for (const [g, list] of map.entries()) {
+                list.forEach((e, idx) => out.push({ ...e, internalRank: idx + 1 }));
+            }
+            return out;
+        }
+
+        function makeSeedList(entries, groupCount) {
+            const normalized = normalizeTournamentRanks(entries);
+
+            const byRank = new Map();
+            for (const q of normalized) {
+                if (!byRank.has(q.internalRank)) byRank.set(q.internalRank, []);
+                byRank.get(q.internalRank).push(q);
+            }
+
+            const ranks = Array.from(byRank.keys()).sort((a, b) => a - b);
+            const seedList = [];
+
+            for (const r of ranks) {
+                const arr = byRank.get(r);
+                const groupOrder = (r % 2 === 1)
+                    ? Array.from({ length: groupCount }, (_, i) => i + 1)
+                    : Array.from({ length: groupCount }, (_, i) => groupCount - i);
+
+                const byGroup = new Map(arr.map(x => [x.group, x]));
+                for (const g of groupOrder) {
+                    if (byGroup.has(g)) seedList.push(byGroup.get(g));
+                }
+            }
+
+            return seedList.map((x, i) => ({ ...x, seed: i + 1 }));
+        }
+
+        function decideBracket(Q) {
+            const B = nextPow2(Q);
+            return { B, byes: B - Q };
+        }
+
+        function seedToSlots(seedList, B) {
+            const pos = SEED_POSITIONS[B];
+            if (!pos) throw new Error(`지원하지 않는 브라켓 크기: ${B}`);
+            const seedMap = new Map(seedList.map(s => [s.seed, s]));
+            const slots = pos.map(seedNum => seedMap.get(seedNum) || null);
+            return { slots };
+        }
+
+        function sameGroup(p1, p2) {
+            if (!p1 || !p2) return false;
+            return p1.group === p2.group;
+        }
+
+        function avoidSameGroupRound1(matches) {
+            for (let i = 0; i < matches.length; i++) {
+                const m = matches[i];
+                if (!sameGroup(m.p1, m.p2)) continue;
+
+                let fixed = false;
+                for (let j = 0; j < matches.length; j++) {
+                    if (i === j) continue;
+                    const n = matches[j];
+                    if (!m.p1 || !m.p2 || !n.p1 || !n.p2) continue;
+
+                    const candidates = [["p2", "p2"], ["p2", "p1"], ["p1", "p2"], ["p1", "p1"]];
+                    for (const [aKey, bKey] of candidates) {
+                        const mA = m[aKey];
+                        const nB = n[bKey];
+
+                        const newM1 = (aKey === "p1") ? nB : m.p1;
+                        const newM2 = (aKey === "p2") ? nB : m.p2;
+                        const newN1 = (bKey === "p1") ? mA : n.p1;
+                        const newN2 = (bKey === "p2") ? mA : n.p2;
+
+                        if (sameGroup(newM1, newM2)) continue;
+                        if (sameGroup(newN1, newN2)) continue;
+
+                        m[aKey] = nB;
+                        n[bKey] = mA;
+                        fixed = true;
+                        break;
+                    }
+                    if (fixed) break;
+                }
+            }
+            return matches;
+        }
+
+        function generateTournament(entries, groupCount, options) {
+            const seeds = makeSeedList(entries, groupCount);
+            const Q = seeds.length;
+
+            if (Q === 0) return { Q, B: 0, seeds: [], slots: [] };
+            if (Q === 1) return { Q, B: 1, seeds, slots: [seeds[0]] };
+
+            const { B } = decideBracket(Q);
+            const { slots } = seedToSlots(seeds, B);
+
+            // 매치 배열(같은조회피용)만 만들어 두고 실제 UI는 slots로 표시
+            const matches = [];
+            for (let i = 0; i < slots.length; i += 2) matches.push({ p1: slots[i], p2: slots[i + 1] });
+            if (options.avoidSameGroup) avoidSameGroupRound1(matches);
+
+            return { Q, B, seeds, slots };
+        }
+
+        /* =========================================================
+           4) EMPTY/BYE 분리
+        ========================================================= */
+        function isBye(el) {
+            if (!el) return false;
+            if (el.classList.contains("bye")) return true;
+            return (el.textContent || "").trim() === "BYE";
+        }
+        function isEmpty(el) {
+            if (!el) return true;
+            if (el.classList.contains("empty") && !el.classList.contains("bye")) return true;
+            const t = (el.textContent || "").trim();
+            return (t === "" || t === "?");
+        }
+        function hasPlayer(el) {
+            if (!el) return false;
+            if (isBye(el)) return false;
+            if (isEmpty(el)) return false;
+            const t = (el.textContent || "").trim();
+            return t !== "" && t !== "?" && t !== "BYE";
+        }
+
+        /* =========================================================
+           5) UI 생성 + 엔진
+        ========================================================= */
+        function createBracketUI({ wrapId, svgId, prefix, direction, B, slots, titleElId, titleText }) {
+            const wrapEl = document.getElementById(wrapId);
+            const svg = document.getElementById(svgId);
+            const titleEl = document.getElementById(titleElId);
+
+            wrapEl.querySelectorAll(".player, .champion-label").forEach(el => el.remove());
+            svg.innerHTML = "";
+
+            if (B < 2) {
+                titleEl.textContent = titleText + " (생성 불가)";
+                return;
+            }
+
+            titleEl.textContent = `${titleText} (${B}강, BYE ${slots.filter(x => x === null).length}개)`;
+
+            const W = wrapEl.clientWidth;
+            const H = wrapEl.clientHeight;
+            const boxW = 120, boxH = 34;
+            const champW = 140;
+
+            const rounds = Math.log2(B);
+            const padX = 20;
+            const champX = W - padX - champW;
+            const step = (champX - padX) / rounds;
+
+            const padY = 20;
+            const usableH = H - padY * 2;
+
+            const nodeId = (r, i) => `${prefix}-r${r}-${i}`;
+
+            // 노드 생성 (모든 라운드 기본 ?)
+            for (let r = 1; r <= rounds; r++) {
+                const count = B / Math.pow(2, r - 1);
+                const spacing = usableH / count;
+                const xLTR = padX + (r - 1) * step;
+
+                for (let i = 1; i <= count; i++) {
+                    const y = padY + (i - 0.5) * spacing - boxH / 2;
+
+                    const div = document.createElement("div");
+                    div.className = "player empty";
+                    div.id = nodeId(r, i);
+                    div.textContent = "?";
+
+                    const x = (direction === 1)
+                        ? xLTR
+                        : (W - xLTR - boxW);
+
+                    div.style.left = `${x}px`;
+                    div.style.top = `${y}px`;
+
+                    // ✅ 승급 data 설정
+                    if (r < rounds) {
+                        const isOdd = (i % 2 === 1);
+                        div.dataset.a = nodeId(r, isOdd ? i : i - 1);
+                        div.dataset.b = nodeId(r, isOdd ? i + 1 : i);
+                        div.dataset.to = nodeId(r + 1, Math.ceil(i / 2));
+                    } else {
+                        // ✅ 결승(마지막 라운드: 2칸)도 winner로 가도록
+                        div.dataset.a = nodeId(rounds, 1);
+                        div.dataset.b = nodeId(rounds, 2);
+                        div.dataset.to = `${prefix}-winner`;
+                    }
+
+                    wrapEl.appendChild(div);
+                }
+            }
+
+            // 우승 박스 (✅ 클릭 가능하도록 player 유지)
+            const champ = document.createElement("div");
+            champ.className = "champion-label";
+            champ.style.top = `${(H / 2) - 55}px`;
+            champ.style.left = (direction === 1) ? `${champX}px` : `${padX}px`;
+            champ.innerHTML = `
+    <div class="label">CHAMPION</div>
+    <div id="${prefix}-winner" class="player empty winner-box" style="position:static; cursor:pointer;">?</div>
+  `;
+            wrapEl.appendChild(champ);
+
+            // winner 박스에도 data를 달아둠(토글 선택용)
+            const winnerEl = document.getElementById(`${prefix}-winner`);
+            winnerEl.dataset.a = nodeId(rounds, 1);
+            winnerEl.dataset.b = nodeId(rounds, 2);
+            winnerEl.dataset.to = `${prefix}-winner`;
+
+            // R1만 참가자/BYE 주입
+            for (let i = 1; i <= B; i++) {
+                const el = document.getElementById(nodeId(1, i));
+                const p = slots[i - 1];
+                if (!p) {
+                    el.textContent = "BYE";
+                    el.classList.add("bye");
+                    el.classList.add("empty");
+                    continue;
+                }
+                el.textContent = p.label;
+                el.classList.remove("empty");
+                el.classList.remove("bye");
+            }
+
+            const engine = createTournamentLineEngine({ wrapEl, svg, prefix, direction, rounds, nodeId });
+
+            // BYE 자동
+            autoAdvanceByes({ engine });
+
+            // 클릭 이벤트 (✅ winner 박스도 처리)
+            wrapEl.addEventListener("click", (e) => {
+                const box = e.target.closest(".player");
+                if (!box || !wrapEl.contains(box)) return;
+
+                const a = box.dataset.a;
+                const b = box.dataset.b;
+                const to = box.dataset.to;
+
+                // 1) 챔피언 박스를 눌렀을 때: 결승 두 칸 중에서 자동 선택/토글
+                if (box.id === `${prefix}-winner`) {
+                    const fa = document.getElementById(a);
+                    const fb = document.getElementById(b);
+                    if (!fa || !fb) return;
+
+                    const aHas = hasPlayer(fa);
+                    const bHas = hasPlayer(fb);
+                    if (!aHas && !bHas) return; // 결승이 비어있으면 못 정함
+
+                    const current = (box.textContent || "").trim();
+
+                    // 하나만 채워져 있으면 그걸로
+                    if (aHas && !bHas) {
+                        advanceWinner({ a, b, to, clickedId: a, engine });
+                    } else if (!aHas && bHas) {
+                        advanceWinner({ a, b, to, clickedId: b, engine });
+                    } else {
+                        // 둘 다 있으면 토글: 현재가 A면 B, 아니면 A
+                        const aName = fa.textContent.trim();
+                        const bName = fb.textContent.trim();
+                        const pickId = (current === aName) ? b : a;
+                        advanceWinner({ a, b, to, clickedId: pickId, engine });
+                    }
+
+                    autoAdvanceByes({ engine });
+                    return;
+                }
+
+                // 2) 일반 박스: empty/BYE면 클릭 금지
+                if (isEmpty(box) || isBye(box)) return;
+                if (!a || !b || !to) return;
+
+                advanceWinner({ a, b, to, clickedId: box.id, engine });
+                autoAdvanceByes({ engine });
+            }, { passive: true });
+
+            window.addEventListener("resize", () => engine.initLines());
+            engine.initLines();
+        }
+
+        /* ---------- 라인 엔진 ---------- */
+        function createTournamentLineEngine({ wrapEl, svg, prefix, direction, rounds, nodeId }) {
+            const MATCHES = [];
+            for (let r = 1; r <= rounds; r++) {
+                const count = Math.pow(2, rounds - r + 1);
+                if (r === rounds) {
+                    MATCHES.push({ a: nodeId(r, 1), b: nodeId(r, 2), to: `${prefix}-winner` });
+                } else {
+                    for (let i = 1; i <= count; i += 2) {
+                        MATCHES.push({ a: nodeId(r, i), b: nodeId(r, i + 1), to: nodeId(r + 1, Math.ceil(i / 2)) });
+                    }
+                }
+            }
+
+            function mkPath(d, from, to, seg) {
+                const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                p.setAttribute("d", d);
+                p.dataset.from = from;
+                p.dataset.to = to;
+                p.dataset.seg = seg;
+                return p;
+            }
+
+            function drawBracketLine(fromId1, fromId2, toId) {
+                const fromEl1 = document.getElementById(fromId1);
+                const fromEl2 = document.getElementById(fromId2);
+                const toEl = document.getElementById(toId);
+                if (!fromEl1 || !fromEl2 || !toEl) return;
+
+                const wrapRect = wrapEl.getBoundingClientRect();
+                const r1 = fromEl1.getBoundingClientRect();
+                const r2 = fromEl2.getBoundingClientRect();
+                const rt = toEl.getBoundingClientRect();
+
+                const x1 = (direction === 1 ? r1.right : r1.left) - wrapRect.left;
+                const y1 = (r1.top + r1.height / 2) - wrapRect.top;
+
+                const x2 = (direction === 1 ? r2.right : r2.left) - wrapRect.left;
+                const y2 = (r2.top + r2.height / 2) - wrapRect.top;
+
+                const xt = (direction === 1 ? rt.left : rt.right) - wrapRect.left;
+                const yt = (rt.top + rt.height / 2) - wrapRect.top;
+
+                const topY = Math.min(y1, y2);
+                const botY = Math.max(y1, y2);
+                const joinY = Math.max(topY, Math.min(yt, botY));
+
+                let joinX;
+                if (direction === 1) {
+                    const maxX = Math.max(x1, x2);
+                    joinX = Math.min(xt - 24, maxX + 40);
+                } else {
+                    const minX = Math.min(x1, x2);
+                    joinX = Math.max(xt + 24, minX - 40);
+                }
+
+                svg.appendChild(mkPath(`M ${x1} ${y1} H ${joinX}`, fromId1, toId, 'in'));
+                svg.appendChild(mkPath(`M ${x2} ${y2} H ${joinX}`, fromId2, toId, 'in'));
+                svg.appendChild(mkPath(`M ${joinX} ${topY} V ${joinY}`, `${fromId1}&${fromId2}`, toId, 'vTop'));
+                svg.appendChild(mkPath(`M ${joinX} ${joinY} V ${botY}`, `${fromId1}&${fromId2}`, toId, 'vBot'));
+                svg.appendChild(mkPath(`M ${joinX} ${joinY} H ${xt}`, `${fromId1}&${fromId2}`, toId, 'hOut'));
+            }
+
+            function clearStylesTo(toId) {
+                svg.querySelectorAll(`path[data-to="${toId}"]`)
+                    .forEach(p => p.classList.remove("win", "lose"));
+            }
+
+            function centerYOf(id) {
+                const el = document.getElementById(id);
+                const wrapRect = wrapEl.getBoundingClientRect();
+                const r = el.getBoundingClientRect();
+                return (r.top + r.height / 2) - wrapRect.top;
+            }
+
+            function applyWinLoseStyles(a, b, to, winnerFrom) {
+                const loserFrom = (winnerFrom === a) ? b : a;
+
+                clearStylesTo(to);
+
+                const winIn = svg.querySelector(`path[data-seg="in"][data-from="${winnerFrom}"][data-to="${to}"]`);
+                const loseIn = svg.querySelector(`path[data-seg="in"][data-from="${loserFrom}"][data-to="${to}"]`);
+                if (winIn) winIn.classList.add("win");
+                if (loseIn) loseIn.classList.add("lose");
+
+                const winnerIsTop = centerYOf(winnerFrom) < centerYOf(loserFrom);
+
+                const vTop = svg.querySelector(`path[data-seg="vTop"][data-to="${to}"]`);
+                const vBot = svg.querySelector(`path[data-seg="vBot"][data-to="${to}"]`);
+                const hOut = svg.querySelector(`path[data-seg="hOut"][data-to="${to}"]`);
+
+                if (hOut) hOut.classList.add("win");
+                if (winnerIsTop) {
+                    if (vTop) vTop.classList.add("win");
+                    if (vBot) vBot.classList.add("lose");
+                } else {
+                    if (vBot) vBot.classList.add("win");
+                    if (vTop) vTop.classList.add("lose");
+                }
+            }
+
+            function initLines() {
+                svg.innerHTML = "";
+                const w = wrapEl.clientWidth;
+                const h = wrapEl.clientHeight;
+                svg.setAttribute("width", w);
+                svg.setAttribute("height", h);
+                svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+                for (const m of MATCHES) drawBracketLine(m.a, m.b, m.to);
+            }
+
+            return { MATCHES, initLines, applyWinLoseStyles, clearStylesTo };
+        }
+
+        /* ---------- 승급/롤백/ BYE 자동 ---------- */
+        function setNodeText(id, text) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = text;
+            el.classList.remove("empty");
+            el.classList.remove("bye");
+        }
+        function setNodeEmpty(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = "?";
+            el.classList.add("empty");
+            el.classList.remove("bye");
+        }
+
+        function clearDownstream({ startId, engine }) {
+            for (const m of engine.MATCHES) {
+                if (m.a === startId || m.b === startId) {
+                    setNodeEmpty(m.to);
+                    engine.clearStylesTo(m.to);
+                    clearDownstream({ startId: m.to, engine });
+                }
+            }
+        }
+
+        function advanceWinner({ a, b, to, clickedId, engine }) {
+            const clickedEl = document.getElementById(clickedId);
+            if (!clickedEl || !hasPlayer(clickedEl)) return;
+
+            const targetEl = document.getElementById(to);
+            if (!targetEl) return;
+
+            const newValue = clickedEl.textContent.trim();
+            const oldValue = (targetEl.textContent || "").trim();
+
+            if (oldValue !== "?" && oldValue !== "" && oldValue !== "BYE" && oldValue !== newValue) {
+                clearDownstream({ startId: to, engine });
+            }
+
+            setNodeText(to, newValue);
+            engine.applyWinLoseStyles(a, b, to, clickedId);
+        }
+
+        function autoAdvanceByes({ engine }) {
+            let progressed = true;
+            while (progressed) {
+                progressed = false;
+
+                for (const m of engine.MATCHES) {
+                    const aEl = document.getElementById(m.a);
+                    const bEl = document.getElementById(m.b);
+                    const toEl = document.getElementById(m.to);
+                    if (!aEl || !bEl || !toEl) continue;
+
+                    const toIsEmpty = isEmpty(toEl) || isBye(toEl);
+                    if (!toIsEmpty) continue;
+
+                    const aHas = hasPlayer(aEl);
+                    const bHas = hasPlayer(bEl);
+
+                    const aIsByeFlag = isBye(aEl);
+                    const bIsByeFlag = isBye(bEl);
+
+                    if (aHas && bIsByeFlag) {
+                        setNodeText(m.to, aEl.textContent.trim());
+                        engine.applyWinLoseStyles(m.a, m.b, m.to, m.a);
+                        progressed = true;
+                        continue;
+                    }
+                    if (bHas && aIsByeFlag) {
+                        setNodeText(m.to, bEl.textContent.trim());
+                        engine.applyWinLoseStyles(m.a, m.b, m.to, m.b);
+                        progressed = true;
+                        continue;
+                    }
+                }
+            }
+        }
+
+        /* =========================================================
+           6) UI: 조 개수/인원 입력 → 상/하위 생성 → UI 주입
+        ========================================================= */
+        const groupCountEl = document.getElementById("groupCount");
+        const inputsEl = document.getElementById("groupInputs");
+        const summaryEl = document.getElementById("summary");
+
+        function buildGroupInputs(groupCount) {
+            inputsEl.innerHTML = "";
+            for (let g = 1; g <= groupCount; g++) {
+                const div = document.createElement("div");
+                div.className = "gi";
+                div.innerHTML = `
+      <div class="row" style="margin:0">
+        <label>${g}조 인원</label>
+        <input type="number" min="2" max="12" value="5" id="g${g}">
+      </div>
+      <div class="muted">상위: round(n/2) / 하위: n-상위</div>
+    `;
+                inputsEl.appendChild(div);
+            }
+        }
+
+        function getGroupSizes() {
+            const gc = parseInt(groupCountEl.value, 10);
+            const arr = [];
+            for (let g = 1; g <= gc; g++) {
+                arr.push(parseInt(document.getElementById(`g${g}`).value, 10));
+            }
+            return arr;
+        }
+
+        function runAll() {
+            const groupSizes = getGroupSizes();
+            const groupCount = groupSizes.length;
+            const avoidSameGroup = document.getElementById("avoidSameGroup").checked;
+
+            const groupRanks = buildGroupRanks(groupSizes);
+            const { upperEntries, lowerEntries } = splitUpperLower(groupRanks);
+
+            const upper = generateTournament(upperEntries, groupCount, { avoidSameGroup });
+            const lower = generateTournament(lowerEntries, groupCount, { avoidSameGroup });
+
+            summaryEl.textContent =
+                `상위 진출 ${upperEntries.length}명 → ${upper.B || 0}강, 하위 진출 ${lowerEntries.length}명 → ${lower.B || 0}강`;
+
+            createBracketUI({
+                wrapId: "wrap-upper",
+                svgId: "lines-upper",
+                prefix: "U",
+                direction: 1,
+                B: upper.B,
+                slots: upper.slots,
+                titleElId: "titleUpper",
+                titleText: "상위 토너먼트"
+            });
+
+            createBracketUI({
+                wrapId: "wrap-lower",
+                svgId: "lines-lower",
+                prefix: "L",
+                direction: -1,
+                B: lower.B,
+                slots: lower.slots,
+                titleElId: "titleLower",
+                titleText: "하위 토너먼트"
+            });
+        }
+
+        document.getElementById("run").addEventListener("click", runAll);
+
+        document.getElementById("sample").addEventListener("click", () => {
+            const gc = parseInt(groupCountEl.value, 10);
+            const presets = {
+                2: [5, 4],
+                3: [5, 5, 4],
+                4: [5, 5, 5, 4],
+                5: [5, 5, 5, 4, 4]
+            };
+            const p = presets[gc] || Array.from({ length: gc }, () => 5);
+            for (let g = 1; g <= gc; g++) {
+                const el = document.getElementById(`g${g}`);
+                if (el) el.value = p[g - 1] ?? 5;
+            }
+            runAll();
+        });
+
+        groupCountEl.addEventListener("change", () => {
+            buildGroupInputs(parseInt(groupCountEl.value, 10));
+            runAll();
+        });
+
+        buildGroupInputs(parseInt(groupCountEl.value, 10));
+        runAll();
+    </script>
+</body>
+
+</html>

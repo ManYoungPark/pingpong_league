@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>구글 시트 저장 테스트 (탁구 리그)</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      padding: 20px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+      background: #f0f9ff;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #bfdbfe;
+    }
+
+    .input-group label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 5px;
+      color: #1e3a8a;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 12px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      color: white;
+      transition: opacity 0.2s;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .btn-attend {
+      background: #3b82f6;
+    }
+
+    /* Blue */
+    .btn-high-win {
+      background: #eab308;
+      color: black;
+    }
+
+    /* Gold */
+    .btn-low-win {
+      background: #22c55e;
+    }
+
+    /* Green */
+
+    pre {
+      background: #1e293b;
+      color: #cbd5e1;
+      padding: 15px;
+      border-radius: 8px;
+      overflow: auto;
+      min-height: 150px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>📊 구글 시트 저장 테스트</h2>
+
+  <div class="input-group">
+    <label for="gasUrl">Google Apps Script (Web App) URL:</label>
+    <input type="text" id="gasUrl"
+      value="https://script.google.com/macros/s/AKfycbybkNRimOGBcCYH7HAbiT6lhlqtT9SzVZ0QjDxkD6By1ePgtv5XS8-eGSIIRocNpdJn/exec" />
+  </div>
+
+
+  <p>아래 버튼을 누르면 가상의 결과가 전송됩니다.</p>
+
+  <div class="btn-row">
+    <button id="btnAttend" class="btn-attend">1. 참가 점수 (+2점)</button>
+    <button id="btnHighWin" class="btn-high-win">2. 상위 우승 (+5점)</button>
+    <button id="btnLowWin" class="btn-low-win">3. 하위 우승 (+4점)</button>
+  </div>
+
+  <div>
+    <strong>📡 전송 로그</strong>
+    <pre id="log">대기 중...</pre>
+  </div>
+
+  <script>
+    // ⚙️ 테스트용 가상 데이터
+    const PLAYER_NAME = "박만영 (테스트)";
+
+    function log(msg, data = null) {
+      const el = document.getElementById("log");
+      const time = new Date().toLocaleTimeString();
+      let text = `[${time}] ${msg}`;
+      if (data) text += "\n" + JSON.stringify(data, null, 2);
+      el.innerText = text + "\n\n" + el.innerText;
+    }
+
+    async function sendData(type, points, detail) {
+      const url = document.getElementById("gasUrl").value.trim();
+      if (!url) {
+        alert("먼저 Apps Script URL을 입력해주세요!");
+        return;
+      }
+
+      // 1. 보낼 데이터 구성 (Implementation Plan 스키마 준수)
+      const payload = {
+        date: new Date().toISOString().split('T')[0], // "2024-01-01"
+        results: [
+          {
+            name: PLAYER_NAME,
+            type: type,   // "참가", "상위 우승" 등
+            points: points, // 숫자
+            detail: detail // 상세 내용
+          }
+        ]
+      };
+
+      log("📤 데이터 전송 중...", payload);
+
+      try {
+        // 2. Fetch 전송 (Google Apps Script Web App은 no-cors 추천)
+        // 'no-cors' 모드는 응답 내용을 읽을 수 없지만(Opaque), 브라우저 에러 없이 전송 성공 여부는 알 수 있음.
+        // 하지만 GAS가 text/plain + CORS 헤더를 잘 주면 normal mode도 가능함.
+        // 여기서는 안전하게 text/plain으로 보냄.
+
+        const response = await fetch(url, {
+          method: "POST",
+          mode: "no-cors",
+          headers: {
+            "Content-Type": "text/plain"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        // no-cors는 response.ok 접근 불가, status 0
+        log("✅ 전송 완료! (구글 시트를 확인하세요)");
+
+      } catch (err) {
+        log("❌ 전송 실패: " + err.message);
+      }
+    }
+
+    // ✨ 이벤트 리스너
+    document.getElementById("btnAttend").onclick = () => {
+      sendData("참가", 2, "정기모임 참가");
+    };
+
+    document.getElementById("btnHighWin").onclick = () => {
+      sendData("상위 우승", 5, "상위리그 결승 승리");
+    };
+
+    document.getElementById("btnLowWin").onclick = () => {
+      sendData("하위 우승", 4, "하위리그 결승 승리");
+    };
+  </script>
+</body>
+
+</html>
