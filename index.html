@@ -2308,10 +2308,11 @@
                         blocks.push({ members: [ordered[0]], type: "single" });
                         blocks.push({ members: [ordered[1]], type: "single" });
                     } else {
-                        // H2H가 없으면 SD/SF로 보되, 끝까지 같으면 공동(TIE)
-                        const inner = innerStats(group);
-                        const da = inner.get(a).diff, db = inner.get(b).diff;
-                        const fa = inner.get(a).for, fb = inner.get(b).for;
+                        // H2H가 없으면 전체 득실(SD)/득점(SF) 사용
+                        const sA = base.get(a), sB = base.get(b);
+                        const da = sA.setsFor - sA.setsAgainst;
+                        const db = sB.setsFor - sB.setsAgainst;
+                        const fa = sA.setsFor, fb = sB.setsFor;
 
                         if (da !== db) {
                             const ordered = (da > db) ? [a, b] : [b, a];
@@ -2333,37 +2334,42 @@
                     continue;
                 }
 
-                // 3명 이상 동률: SD/SF로 정렬 후, 완전 동일 묶음은 공동
-                const inner = innerStats(group);
+                // 3명 이상 동률: 전체 SD/SF로 정렬
                 const ordered = [...group].sort((a, b) => {
-                    const da = inner.get(a).diff, db = inner.get(b).diff;
-                    if (db !== da) return db - da;
-                    const fa = inner.get(a).for, fb = inner.get(b).for;
-                    if (fb !== fa) return fb - fa;
-                    return a.localeCompare(b, 'ko'); // 표시 순서만
+                    const sA = base.get(a), sB = base.get(b);
+                    const da = sA.setsFor - sA.setsAgainst;
+                    const db = sB.setsFor - sB.setsAgainst;
+                    if (db !== da) return db - da; // Desc
+
+                    const fa = sA.setsFor, fb = sB.setsFor;
+                    if (fb !== fa) return fb - fa; // Desc
+
+                    return a.localeCompare(b, 'ko'); // Asc
                 });
 
                 // diff/for 동일한 구간을 tie-block으로 묶기
                 let k = 0;
                 while (k < ordered.length) {
                     const head = ordered[k];
-                    const headDiff = inner.get(head).diff;
-                    const headFor = inner.get(head).for;
+                    const sHead = base.get(head);
+                    const headDiff = sHead.setsFor - sHead.setsAgainst;
+                    const headFor = sHead.setsFor;
 
                     const chunk = [head];
                     k++;
                     while (k < ordered.length) {
                         const cur = ordered[k];
-                        if (inner.get(cur).diff === headDiff && inner.get(cur).for === headFor) {
+                        const sCur = base.get(cur);
+                        const curDiff = sCur.setsFor - sCur.setsAgainst;
+                        const curFor = sCur.setsFor;
+
+                        if (curDiff === headDiff && curFor === headFor) {
                             chunk.push(cur);
                             k++;
                         } else break;
                     }
 
                     if (chunk.length === 1) {
-                        // 이 사람은 SD/SF로 위로 간 것: reason은 상황에 따라 SD/SF 중 하나로 표시 (간단히 SD 우선, 없으면 SF)
-                        // (엄밀히는 비교 상대에 따라 다르지만, UI에서는 "동률그룹 기준으로 올라감" 정도면 충분)
-                        // headDiff 기준으로 다른 사람보다 유리하면 SD, 아니면 SF
                         if (!reasonMap.has(chunk[0])) reasonMap.set(chunk[0], "SD");
                         blocks.push({ members: chunk, type: "single" });
                     } else if (chunk.length === 2) {
@@ -3638,7 +3644,11 @@
                 const ranks = grp.map(p => p.rank);
                 const uniqueRanks = new Set(ranks);
                 if (uniqueRanks.size !== ranks.length) {
-                    invalidGroups.push(`${gNum}조 (동률 존재)`);
+                    // Find duplicate ranks
+                    const counts = {};
+                    ranks.forEach(r => counts[r] = (counts[r] || 0) + 1);
+                    const dups = Object.keys(counts).filter(r => counts[r] > 1);
+                    invalidGroups.push(`${gNum}조 (동률: ${dups.map(r => r + '위').join(', ')})`);
                 }
             }
 
