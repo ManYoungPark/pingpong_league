@@ -1007,6 +1007,126 @@
         .modal-btn.confirm:hover {
             background: #eff6ff;
         }
+
+        /* Final Summary Styles */
+        .final-summary {
+            width: min(800px, 95vw);
+            background: linear-gradient(135deg, #fff 0%, #fef9c3 100%);
+            border: 2px solid #fbbf24;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 25px -5px rgba(251, 191, 36, 0.3);
+            text-align: center;
+            display: none;
+            /* Hidden by default */
+            animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .final-summary.show {
+            display: block;
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8) translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .summary-title {
+            font-size: 24px;
+            font-weight: 900;
+            color: #b45309;
+            margin-bottom: 20px;
+            text-shadow: 1px 1px 0 #fff;
+            letter-spacing: -0.5px;
+        }
+
+        .summary-content {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .summary-card {
+            flex: 1;
+            min-width: 280px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .summary-card.upper {
+            background: linear-gradient(to bottom, #fff, #fffbeb);
+        }
+
+        .summary-card.lower {
+            background: linear-gradient(to bottom, #fff, #f0f9ff);
+            border-color: #bae6fd;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .summary-card.upper .card-title {
+            color: #b45309;
+        }
+
+        .summary-card.lower .card-title {
+            color: #0369a1;
+        }
+
+        .rank-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #374151;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .rank-row.winner {
+            background: rgba(251, 191, 36, 0.1);
+            color: #000;
+            font-size: 16px;
+        }
+
+        .rank-row.runner-up {
+            background: rgba(243, 244, 246, 0.5);
+        }
+
+        .rank-row .icon {
+            margin-right: 8px;
+            font-size: 1.2em;
+        }
+
+        .rank-row .label {
+            width: 60px;
+            text-align: left;
+            opacity: 0.7;
+            font-size: 0.9em;
+        }
+
+        .rank-row .name {
+            flex: 1;
+            text-align: left;
+            font-weight: 800;
+        }
     </style>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 </head>
@@ -1256,6 +1376,46 @@
 
     <!-- TOURNAMENT SECTION -->
     <div id="tournament-area" style="display:none;">
+        <!-- Final Summary Section -->
+        <div id="final-summary" class="final-summary">
+            <div class="summary-title">🏆 최종 결과 발표 🏆</div>
+            <div class="summary-content">
+                <!-- Upper Result -->
+                <div class="summary-card upper">
+                    <div class="card-title">상위 토너먼트</div>
+                    <div class="rank-row winner">
+                        <span class="icon">🏆</span>
+                        <span class="label">우승</span>
+                        <span class="name" id="sum-u-1">-</span>
+                    </div>
+                    <div class="rank-row runner-up">
+                        <span class="icon">🥈</span>
+                        <span class="label">준우승</span>
+                        <span class="name" id="sum-u-2">-</span>
+                    </div>
+                    <div class="rank-row third">
+                        <span class="icon">🥉</span>
+                        <span class="label">3위</span>
+                        <span class="name" id="sum-u-3">-</span>
+                    </div>
+                </div>
+                <!-- Lower Result -->
+                <div class="summary-card lower">
+                    <div class="card-title">하위 토너먼트</div>
+                    <div class="rank-row winner">
+                        <span class="icon">🏆</span>
+                        <span class="label">우승</span>
+                        <span class="name" id="sum-l-1">-</span>
+                    </div>
+                    <div class="rank-row runner-up">
+                        <span class="icon">🥈</span>
+                        <span class="label">준우승</span>
+                        <span class="name" id="sum-l-2">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="tm-controls">
             <h2 class="tm-title">🏆 본선 토너먼트</h2>
             <button type="button" class="btn" onclick="captureResultImage()" style="margin-left:auto;">📷 이미지
@@ -3241,6 +3401,9 @@
 
             setNodeText(to, newValue, newRank);
             engine.applyWinLoseStyles(a, b, to, clickedId);
+
+            // Check for Final Result
+            checkTournamentCompletion();
         }
 
         function autoAdvanceByes({ engine }) {
@@ -3281,6 +3444,8 @@
                     }
                 }
             }
+            // Check for Final Result
+            checkTournamentCompletion();
         }
 
         const resizeHandlers = {}; // { U: func, L: func }
@@ -3528,6 +3693,96 @@
 
         // Expose button logic
         document.getElementById("btn-gen-tournament").addEventListener("click", runTournamentGeneration);
+
+        // ============================================
+        //  🏆 Final Result Summary Logic
+        // ============================================
+        function getRankers(prefix) {
+            // Helper to get text content safer
+            const getName = (id) => {
+                const el = document.getElementById(id);
+                return (el && hasPlayer(el)) ? extractName(el) : null;
+            };
+
+            // 1. Calculate Max Round
+            let maxR = 0;
+            for (let r = 1; r <= 8; r++) {
+                if (document.getElementById(`${prefix}-r${r}-1`)) maxR = r;
+            }
+            if (maxR === 0) return null;
+
+            // 2. Winner
+            const winnerId = `${prefix}-winner`;
+            const winnerName = getName(winnerId);
+            if (!winnerName) return null;
+
+            // 3. Finalists (Round N)
+            const finalists = [];
+            const f1 = getName(`${prefix}-r${maxR}-1`);
+            const f2 = getName(`${prefix}-r${maxR}-2`);
+            if (f1) finalists.push(f1);
+            if (f2) finalists.push(f2);
+
+            // 4. Runner Up
+            let runnerUpName = "";
+            const found = finalists.find(n => n !== winnerName);
+            if (found) runnerUpName = found;
+
+            // 5. Semi-Finalists (3rd Place) - Players in Round N-1 not in finalists
+            const semiLosers = [];
+            if (maxR > 1) {
+                const semiR = maxR - 1;
+                for (let k = 1; k <= 4; k++) {
+                    const p = getName(`${prefix}-r${semiR}-${k}`);
+                    if (p && !finalists.includes(p)) {
+                        semiLosers.push(p);
+                    }
+                }
+            }
+
+            return {
+                winner: winnerName,
+                runnerUp: runnerUpName || "",
+                third: semiLosers.join(", ")
+            };
+        }
+
+        function getLoserOf(matchId, winnerName) {
+            const mEl = document.getElementById(matchId);
+            if (!mEl) return null;
+            const aId = mEl.dataset.a;
+            const bId = mEl.dataset.b;
+            if (!aId || !bId) return null;
+
+            const nameA = extractName(document.getElementById(aId));
+            const nameB = extractName(document.getElementById(bId));
+
+            if (winnerName === nameA) return nameB;
+            if (winnerName === nameB) return nameA;
+            return null;
+        }
+
+        function checkTournamentCompletion() {
+            const uRank = getRankers("U");
+            const lRank = getRankers("L");
+
+            if (uRank && lRank) {
+                // Determine Upper
+                document.getElementById("sum-u-1").textContent = uRank.winner;
+                document.getElementById("sum-u-2").textContent = uRank.runnerUp;
+                document.getElementById("sum-u-3").textContent = uRank.third || "-"; // 3rd might be empty if tiny bracket
+
+                // Determine Lower
+                document.getElementById("sum-l-1").textContent = lRank.winner;
+                document.getElementById("sum-l-2").textContent = lRank.runnerUp;
+
+                const summaryEl = document.getElementById("final-summary");
+                summaryEl.classList.add("show");
+
+                // Optional: Scroll to top of summary if not visible
+                // summaryEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
 
         /* 
            Sample Tournament Logic 
