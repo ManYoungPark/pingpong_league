@@ -1218,6 +1218,18 @@
         </div>
     </div>
 
+    <!-- ✅ 점수 입력 포탈 (New) -->
+    <div class="portal" id="scorePortal" aria-hidden="true">
+        <div class="backdrop" id="scoreBackdrop"></div>
+        <div class="pop" id="scorePop" role="dialog" aria-modal="true">
+            <div class="row">
+                <div class="ttl" id="scoreTitle">점수 입력</div>
+                <button class="close" type="button" id="scoreClose">닫기</button>
+            </div>
+            <div class="grid" id="scoreGrid"></div>
+        </div>
+    </div>
+
     <!-- ✅ Loading Overlay -->
     <div id="loadingOverlay" class="loading-overlay">
         <div class="spinner"></div>
@@ -1712,6 +1724,121 @@
         moveClose.addEventListener("click", (e) => { e.stopPropagation(); closeMovePortal(); });
         moveBackdrop.addEventListener("click", () => closeMovePortal());
 
+        /* ========= 점수 입력 포탈 (New) ========= */
+        const scorePortal = document.getElementById("scorePortal");
+        const scoreBackdrop = document.getElementById("scoreBackdrop");
+        const scorePop = document.getElementById("scorePop");
+        const scoreGrid = document.getElementById("scoreGrid");
+        const scoreClose = document.getElementById("scoreClose");
+        const scoreTitle = document.getElementById("scoreTitle");
+
+        let currentScoreCtx = null; // {teamId, rowPlayer, colPlayer, anchorEl}
+
+        function isScoreOpen() { return scorePortal.classList.contains("open"); }
+        function closeScorePortal() {
+            scorePortal.classList.remove("open");
+            scorePortal.setAttribute("aria-hidden", "true");
+            currentScoreCtx = null;
+        }
+
+        function openScorePortal(ctx) {
+            currentScoreCtx = ctx;
+            const { teamId, rowPlayer, colPlayer, anchorEl } = ctx;
+            const resMap = ensureTeamResults(teamId);
+            const k = keyPair(rowPlayer, colPlayer);
+            const currentVal = resMap.get(k)?.score || "";
+
+            // Title: A vs B
+            scoreTitle.textContent = `${rowPlayer} vs ${colPlayer}`;
+            scoreGrid.innerHTML = "";
+
+            // Generate Options based on Match Format
+            const format = matchFormatEl.value; // bo3 or bo5
+            const optionValues = SCORE_OPTIONS[format] || [];
+
+            // Filter out empty string if present in options (we handle Clear separately)
+            const validOptions = optionValues.filter(v => v !== "");
+
+            validOptions.forEach(val => {
+                const parsed = parseScore(val);
+                if (!parsed) return;
+
+                const b = document.createElement("button");
+                b.type = "button";
+                b.className = "gbtn";
+
+                // Label Logic: Row Perspective
+                // val is "Left-Right". 
+                // We need to determine if "Left" corresponds to RowPlayer or ColPlayer.
+                // However, the SCORE_OPTIONS are just generic strings "2-0", "2-1".
+                // We typically interpret them as "Winner-Loser" or "Left-Right".
+                // Wait, SCORE_OPTIONS are e.g. ["2-0", "2-1", "1-2", "0-2"].
+                // Let's assume the standard: Left is Row, Right is Col?
+                // Actually, my plan said:
+                // If Left > Right: " (승)"
+                // If Left < Right: " (패)"
+
+                const left = parsed.a; // 2
+                const right = parsed.b; // 1
+
+                let suffix = "";
+                if (left > right) suffix = " (승)";
+                else if (left < right) suffix = " (패)";
+
+                b.textContent = val + suffix;
+
+                // Highlight current selection
+                // We need to match the stored score. 
+                // Stored score direction might be Row-Col or Col-Row depending on alphabetical order.
+                // We need to normalize 'val' to the stored key direction to check equality?
+                // Actually, simplest is: if I click this button "2-1", it means Row gets 2, Col gets 1.
+                // So I will construct the stored string based on KeyPair.
+
+                b.addEventListener("click", (e) => {
+                    e.stopPropagation();
+
+                    // Logic: Row=Left(val.a), Col=Right(val.b)
+                    const rowIsFirst = k.startsWith(`${rowPlayer}|||`);
+
+                    // if rowIsFirst, we want store = "Left-Right"
+                    // if !rowIsFirst (Col is first), we want store = "Right-Left"
+                    let storeVal = "";
+                    if (rowIsFirst) {
+                        storeVal = `${left}-${right}`;
+                    } else {
+                        storeVal = `${right}-${left}`;
+                    }
+
+                    resMap.set(k, { score: storeVal });
+                    renderAllTeams();
+                    closeScorePortal();
+                });
+
+                scoreGrid.appendChild(b);
+            });
+
+            // Clear Button
+            const btnClear = document.createElement("button");
+            btnClear.type = "button";
+            btnClear.className = "gbtn wide";
+            btnClear.textContent = "점수 삭제";
+            btnClear.style.color = "#ef4444";
+            btnClear.addEventListener("click", (e) => {
+                e.stopPropagation();
+                resMap.delete(k);
+                renderAllTeams();
+                closeScorePortal();
+            });
+            scoreGrid.appendChild(btnClear);
+
+            scorePortal.classList.add("open");
+            scorePortal.setAttribute("aria-hidden", "false");
+            requestAnimationFrame(() => placePop(scorePop, anchorEl));
+        }
+
+        scoreClose.addEventListener("click", (e) => { e.stopPropagation(); closeScorePortal(); });
+        scoreBackdrop.addEventListener("click", () => closeScorePortal());
+
         /* ========= 도움말 포탈 ========= */
         const helpPortal = document.getElementById("helpPortal");
         const helpBackdrop = document.getElementById("helpBackdrop");
@@ -1745,6 +1872,8 @@
             if (e.key === "Escape") {
                 closeAssign();
                 closeRank();
+                closeMovePortal(); // Added
+                closeScorePortal(); // Added
             }
         });
 
@@ -1752,10 +1881,14 @@
         window.addEventListener("resize", () => {
             if (isAssignOpen() && currentAssignAnchor) placePop(assignPop, currentAssignAnchor);
             if (isRankOpen() && currentRankCtx?.anchorEl) placePop(rankPop, currentRankCtx.anchorEl);
+            if (isMoveOpen() && currentMoveAnchor) placePop(movePop, currentMoveAnchor);
+            if (isScoreOpen() && currentScoreCtx?.anchorEl) placePop(scorePop, currentScoreCtx.anchorEl);
         }, { passive: true });
         window.addEventListener("scroll", () => {
             if (isAssignOpen() && currentAssignAnchor) placePop(assignPop, currentAssignAnchor);
             if (isRankOpen() && currentRankCtx?.anchorEl) placePop(rankPop, currentRankCtx.anchorEl);
+            if (isMoveOpen() && currentMoveAnchor) placePop(movePop, currentMoveAnchor);
+            if (isScoreOpen() && currentScoreCtx?.anchorEl) placePop(scorePop, currentScoreCtx.anchorEl);
         }, { passive: true, capture: true });
 
         /* ========= Drag & Drop ========= */
@@ -1779,6 +1912,9 @@
                 onDrop(name, e);
             });
         }
+
+        // CSS for score-cell added dynamically or we can just rely on inline. 
+        // Let's rely on inline for now as it's simple.
 
         function initState() {
             state.clear();
@@ -2316,44 +2452,67 @@
                         td.className = "diag";
                         td.textContent = "—";
                     } else {
-                        const sel = document.createElement("select");
-                        sel.className = "score";
+                        // ✅ View Mode + Click to Open Portal
                         const k = keyPair(rowP, colP);
 
-                        options.forEach(v => {
-                            const opt = document.createElement("option");
-                            opt.value = v;
-                            opt.textContent = v;
-                            sel.appendChild(opt);
-                        });
+                        const cell = document.createElement("div");
+                        cell.className = "score-cell";
+                        // We might need CSS for .score-cell to look like a button or clickable area
+                        // Using inline styles for now or reuse existing class if possible.
+                        // Let's add a class 'score-trigger' and style it.
+                        cell.style.cursor = "pointer";
+                        cell.style.padding = "4px";
+                        cell.style.borderRadius = "6px";
+                        cell.style.textAlign = "center";
+                        cell.style.fontWeight = "bold";
+                        cell.title = "클릭하여 점수 입력";
+
+                        // Hover effect
+                        cell.onmouseover = () => cell.style.backgroundColor = "#f1f5f9";
+                        cell.onmouseout = () => cell.style.backgroundColor = "transparent";
 
                         const current = resMap.get(k)?.score || "";
-                        let show = "";
+                        let displayTxt = "-";
+                        let color = "var(--muted)";
+
                         if (current) {
                             const parsed = parseScore(current);
                             if (parsed) {
                                 const rowIsFirst = k.startsWith(`${rowP}|||`);
-                                show = rowIsFirst ? `${parsed.a}-${parsed.b}` : `${parsed.b}-${parsed.a}`;
-                            }
-                        }
-                        sel.value = show;
+                                const myScore = rowIsFirst ? parsed.a : parsed.b;
+                                const opScore = rowIsFirst ? parsed.b : parsed.a;
 
-                        sel.addEventListener("change", () => {
-                            const val = sel.value;
-                            if (!val) {
-                                resMap.delete(k);
-                            } else {
-                                const parsed = parseScore(val);
-                                if (parsed) {
-                                    const rowIsFirst = k.startsWith(`${rowP}|||`);
-                                    const store = rowIsFirst ? `${parsed.a}-${parsed.b}` : `${parsed.b}-${parsed.a}`;
-                                    resMap.set(k, { score: store });
+                                displayTxt = String(myScore);
+
+                                // Color / Style based on Win/Loss
+                                if (myScore > opScore) {
+                                    color = "#1d4ed8"; // Win Blue
+                                } else {
+                                    color = "#ef4444"; // Lose Red? Or Gray? 
+                                    // Usually formatting: Win=Blue, Lose=Red or Muted.
+                                    color = "#ef4444";
                                 }
                             }
-                            renderAllTeams();
+                        }
+
+                        cell.textContent = displayTxt;
+                        cell.style.color = color;
+                        if (displayTxt !== "-") cell.style.fontSize = "15px";
+
+                        cell.addEventListener("click", (e) => {
+                            e.stopPropagation();
+                            closeAssign();
+                            closeRank();
+                            closeMovePortal();
+                            openScorePortal({
+                                teamId,
+                                rowPlayer: rowP,
+                                colPlayer: colP,
+                                anchorEl: cell
+                            });
                         });
 
-                        td.appendChild(sel);
+                        td.appendChild(cell);
                     }
 
                     tr.appendChild(td);
