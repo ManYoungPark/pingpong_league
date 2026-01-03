@@ -1778,14 +1778,27 @@
                 // If Left > Right: " (승)"
                 // If Left < Right: " (패)"
 
-                const left = parsed.a; // 2
-                const right = parsed.b; // 1
+                const left = parsed.a; // rowPlayer score
+                const right = parsed.b; // colPlayer score
 
-                let suffix = "";
-                if (left > right) suffix = " (승)";
-                else if (left < right) suffix = " (패)";
+                let label = "";
+                if (left > right) {
+                    // Row Player Wins
+                    label = `${rowPlayer} 승 (${left}-${right})`;
+                    b.classList.add("win-btn");
+                    b.classList.remove("lose-btn");
+                    b.style.color = "#1d4ed8";
+                } else {
+                    // Row Player Loses
+                    label = `${rowPlayer} 패 (${left}-${right})`;
+                    b.classList.add("lose-btn");
+                    b.classList.remove("win-btn");
+                    b.style.color = "#ef4444";
+                }
 
-                b.textContent = val + suffix;
+                b.style.fontWeight = "bold";
+
+                b.textContent = label;
 
                 // Highlight current selection
                 // We need to match the stored score. 
