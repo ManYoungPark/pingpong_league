@@ -2284,6 +2284,15 @@
             const blocks = []; // [{members:[...], reasonForLeader:'H2H/SD/SF/TIE/...' } ...] but we keep reason per member later
             const tieGroups = []; // [{tieKey, members, baseRank}]
             const reasonMap = new Map(); // name -> code (H2H/SD/SF/TIE)
+            const detailMap = new Map(); // name -> specific explanation string
+
+            // Initialize detail with basic stats
+            statsArr.forEach(s => {
+                const diff = s.setsFor - s.setsAgainst;
+                const sign = diff >= 0 ? "+" : "";
+                detailMap.set(s.name, `${s.win}승 ${s.lose}패 (득실 ${sign}${diff})`);
+            });
+
             let i = 0;
 
             while (i < statsArr.length) {
@@ -2299,15 +2308,26 @@
                     continue;
                 }
 
+                // 동률 발생 시, 기본 텍스트에 "동률" 정보 추가
+                group.forEach(nm => {
+                    const prev = detailMap.get(nm);
+                    detailMap.set(nm, prev + `\n└ ${group.length}명 동률(${pts}승)`);
+                });
+
                 // 2명 동률: H2H 우선
                 if (group.length === 2) {
                     const [a, b] = group;
                     const w = headToHeadWinner(a, b);
                     if (w) {
-                        const ordered = (w === a) ? [a, b] : [b, a];
-                        reasonMap.set(ordered[0], "H2H");
-                        blocks.push({ members: [ordered[0]], type: "single" });
-                        blocks.push({ members: [ordered[1]], type: "single" });
+                        const winner = w;
+                        const loser = (w === a) ? b : a;
+
+                        reasonMap.set(winner, "H2H");
+                        detailMap.set(winner, detailMap.get(winner) + `\n└ 승자승 우세 (vs ${loser})`);
+                        detailMap.set(loser, detailMap.get(loser) + `\n└ 승자승 열세 (vs ${winner})`);
+
+                        blocks.push({ members: [winner], type: "single" });
+                        blocks.push({ members: [loser], type: "single" });
                     } else {
                         // H2H가 없으면 전체 득실(SD)/득점(SF) 사용
                         const sA = base.get(a), sB = base.get(b);
@@ -2316,19 +2336,34 @@
                         const fa = sA.setsFor, fb = sB.setsFor;
 
                         if (da !== db) {
-                            const ordered = (da > db) ? [a, b] : [b, a];
-                            reasonMap.set(ordered[0], "SD");
-                            blocks.push({ members: [ordered[0]], type: "single" });
-                            blocks.push({ members: [ordered[1]], type: "single" });
+                            const better = (da > db) ? a : b;
+                            const worse = (da > db) ? b : a;
+                            const dBet = (da > db) ? da : db;
+                            const dWor = (da > db) ? db : da;
+
+                            reasonMap.set(better, "SD");
+                            detailMap.set(better, detailMap.get(better) + `\n└ 득실 우세 (${dBet} vs ${dWor})`);
+                            detailMap.set(worse, detailMap.get(worse) + `\n└ 득실 열세 (${dWor} vs ${dBet})`);
+
+                            blocks.push({ members: [better], type: "single" });
+                            blocks.push({ members: [worse], type: "single" });
                         } else if (fa !== fb) {
-                            const ordered = (fa > fb) ? [a, b] : [b, a];
-                            reasonMap.set(ordered[0], "SF");
-                            blocks.push({ members: [ordered[0]], type: "single" });
-                            blocks.push({ members: [ordered[1]], type: "single" });
+                            const better = (fa > fb) ? a : b;
+                            const worse = (fa > fb) ? b : a;
+
+                            reasonMap.set(better, "SF");
+                            detailMap.set(better, detailMap.get(better) + `\n└ 다득점 우세 (${(fa > fb) ? fa : fb} vs ${(fa > fb) ? fb : fa})`);
+                            detailMap.set(worse, detailMap.get(worse) + `\n└ 다득점 열세`);
+
+                            blocks.push({ members: [better], type: "single" });
+                            blocks.push({ members: [worse], type: "single" });
                         } else {
                             // 완전 동률: 공동
                             const ordered = [...group].sort((x, y) => x.localeCompare(y, 'ko'));
-                            ordered.forEach(n => reasonMap.set(n, "TIE"));
+                            ordered.forEach(n => {
+                                reasonMap.set(n, "TIE");
+                                detailMap.set(n, detailMap.get(n) + `\n└ 완전 동률 (공동 순위)`);
+                            });
                             blocks.push({ members: ordered, type: "tie" });
                         }
                     }
@@ -2371,26 +2406,40 @@
                     }
 
                     if (chunk.length === 1) {
-                        if (!reasonMap.has(chunk[0])) reasonMap.set(chunk[0], "SD");
+                        const better = chunk[0];
+                        if (!reasonMap.has(better)) {
+                            reasonMap.set(better, "SD");
+                            detailMap.set(better, detailMap.get(better) + `\n└ 3자간 득실/다득점 우위`);
+                        }
                         blocks.push({ members: chunk, type: "single" });
                     } else if (chunk.length === 2) {
                         // 2명만 남은 동률 chunk라면 H2H 한 번 더 시도
                         const [a, b] = chunk;
                         const w = headToHeadWinner(a, b);
                         if (w) {
-                            const ord2 = (w === a) ? [a, b] : [b, a];
-                            reasonMap.set(ord2[0], "H2H");
-                            blocks.push({ members: [ord2[0]], type: "single" });
-                            blocks.push({ members: [ord2[1]], type: "single" });
+                            const winner = w;
+                            const loser = (w === a) ? b : a;
+                            reasonMap.set(winner, "H2H");
+                            detailMap.set(winner, detailMap.get(winner) + `\n└ (재)승자승 우세`);
+                            detailMap.set(loser, detailMap.get(loser) + `\n└ (재)승자승 열세`);
+
+                            blocks.push({ members: [winner], type: "single" });
+                            blocks.push({ members: [loser], type: "single" });
                         } else {
                             const ord2 = [...chunk].sort((x, y) => x.localeCompare(y, 'ko'));
-                            ord2.forEach(n => reasonMap.set(n, "TIE"));
+                            ord2.forEach(n => {
+                                reasonMap.set(n, "TIE");
+                                detailMap.set(n, detailMap.get(n) + `\n└ (재)완전 동률`);
+                            });
                             blocks.push({ members: ord2, type: "tie" });
                         }
                     } else {
                         // 3명 이상 완전 동률: 공동
                         const ordN = [...chunk].sort((x, y) => x.localeCompare(y, 'ko'));
-                        ordN.forEach(n => reasonMap.set(n, "TIE"));
+                        ordN.forEach(n => {
+                            reasonMap.set(n, "TIE");
+                            detailMap.set(n, detailMap.get(n) + `\n└ (3자이상)완전 동률`);
+                        });
                         blocks.push({ members: ordN, type: "tie" });
                     }
                 }
@@ -2409,6 +2458,7 @@
                         points: s.win,
                         autoRank: rank,
                         autoReason: reasonMap.get(nm) || null,
+                        autoDetail: detailMap.get(nm) || "", // 상세 설명 추가
                         tieKey: null,
                         tieMembers: null,
                         tieBaseRank: null
@@ -2428,6 +2478,7 @@
                             points: s.win,
                             autoRank: baseRank,        // 공동 표시의 기준 rank
                             autoReason: "TIE",
+                            autoDetail: detailMap.get(nm) || "", // 상세 설명 추가
                             tieKey,
                             tieMembers: members,
                             tieBaseRank: baseRank
@@ -2455,7 +2506,8 @@
                         isManual: false,
                         isTieClickable: false,
                         tieMembers: null,
-                        baseRank: null
+                        baseRank: null,
+                        detail: ""
                     });
                 }
                 return final;
@@ -2487,7 +2539,8 @@
                             isManual: true,
                             isTieClickable: true,
                             tieMembers: ti.members,
-                            baseRank: ti.baseRank
+                            baseRank: ti.baseRank,
+                            detail: st.autoDetail
                         });
                     } else {
                         // 전원 확정이면, 남은 사람은 없게 되는 게 정상(운영상). 그래도 안전하게 공동 표시 유지.
@@ -2498,7 +2551,8 @@
                             isManual: false,
                             isTieClickable: true,
                             tieMembers: ti.members,
-                            baseRank: ti.baseRank
+                            baseRank: ti.baseRank,
+                            detail: st.autoDetail
                         });
                     }
                 } else {
@@ -2510,7 +2564,8 @@
                         isManual: false,
                         isTieClickable: false,
                         tieMembers: null,
-                        baseRank: null
+                        baseRank: null,
+                        detail: st.autoDetail
                     });
                 }
             }
@@ -2758,9 +2813,23 @@
                     const man = f?.isManual ? `<span class="manual" title="사용자 확정">MAN</span>` : "";
 
                     // code 뱃지
-                    const codeTag = code ? `<span class="code" title="${code === 'TIE' ? '동률이 끝까지 안 풀려 공동 순위' : '타이브레이커로 결정'}">${code}</span>` : "";
+                    // code 뱃지 (타이브레이커 툴팁 제거)
+                    const codeTag = code ? `<span class="code"${code === 'TIE' ? ' title="동률이 끝까지 안 풀려 공동 순위"' : ''}>${code}</span>` : "";
 
                     rk.innerHTML = `${crown}${label}${codeTag}${man}`;
+
+                    // ✅ 랭킹 상세 설명 툴팁
+                    if (f?.detail) {
+                        rk.title = f.detail;
+                        rk.style.cursor = "help"; // 도움이 된다는 커서 표시
+                    }
+
+                    // ✅ 랭킹 상세 설명 툴팁 (사용자 요청: 타이브레이커/단독 등은 팝업 제외, 완전 동률만 표시)
+                    // "타이브레이커로 결정은 팝업을 안띄워도 될거 같애"
+                    if (f?.detail && auto?.autoReason === "TIE") {
+                        rk.title = f.detail;
+                        rk.style.cursor = "help";
+                    }
 
                     // ✅ 동률(TIE)이면 클릭해서 확정 가능
                     const isTieClickable = (auto?.autoReason === "TIE") && !!auto?.tieMembers?.length;
