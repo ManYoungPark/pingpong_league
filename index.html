@@ -519,6 +519,12 @@
         .rr td.rank {
             background: #fbfbfc;
             font-weight: 900;
+            width: calc(100% / var(--cols) * 1.5) !important;
+        }
+
+        /* Target the header too */
+        .rr th.rank {
+            width: calc(100% / var(--cols) * 1.5) !important;
         }
 
         .rank .crown {
@@ -526,14 +532,15 @@
         }
 
         .rank .code {
-            margin-left: 6px;
-            font-size: 11px;
+            margin-left: 2px;
+            font-size: 9px;
             color: var(--muted);
             font-weight: 900;
             border: 1px solid var(--border);
             background: #fff;
-            padding: 1px 6px;
+            padding: 0 4px;
             border-radius: 999px;
+            letter-spacing: -0.5px;
         }
 
         /* Clickable Header for Moving Group */
@@ -1702,14 +1709,29 @@
         }
 
         function openRankPortal(ctx) {
-            // ctx: {teamId, name, tieMembers, baseRank, anchorEl}
+            // ctx: {teamId, name, tieMembers, baseRank, anchorEl, detail}
             currentRankCtx = ctx;
-            const { teamId, name, tieMembers, baseRank, anchorEl } = ctx;
+            const { teamId, name, tieMembers, baseRank, anchorEl, detail } = ctx;
 
             const manual = ensureManual(teamId);
 
             rankTitle.textContent = `순위 확정 · ${name} (동률 ${tieMembers.length}명)`;
             rankGrid.innerHTML = "";
+
+            // 상세 설명 표시 (모바일 대응)
+            if (detail) {
+                const desc = document.createElement("div");
+                desc.style.fontSize = "13px";
+                desc.style.color = "#4b5563";
+                desc.style.background = "#f3f4f6";
+                desc.style.padding = "8px 12px";
+                desc.style.borderRadius = "8px";
+                desc.style.marginBottom = "12px";
+                desc.style.whiteSpace = "pre-wrap"; // 줄바꿈 유지
+                desc.style.textAlign = "left";
+                desc.textContent = detail;
+                rankGrid.appendChild(desc);
+            }
 
             const usedRanks = new Map(); // rank -> ownerName
             for (const [nm, rk] of manual.entries()) {
@@ -2611,7 +2633,8 @@
 
             const tbl = document.createElement("table");
             tbl.className = "rr";
-            tbl.style.setProperty("--cols", String(players.length + 4));
+            // Rank column is 1.5x width from CSS, so we add 0.5 to total count
+            tbl.style.setProperty("--cols", String(players.length + 4.5));
 
             const thead = document.createElement("thead");
             const hr = document.createElement("tr");
@@ -2644,7 +2667,7 @@
             hr.appendChild(ptTh);
 
             const rkTh = document.createElement("th");
-            rkTh.className = "sticky";
+            rkTh.className = "sticky rank";
             rkTh.textContent = "순위";
             hr.appendChild(rkTh);
 
@@ -2845,6 +2868,7 @@
                                 name: rowP,
                                 tieMembers: auto.tieMembers,
                                 baseRank: auto.tieBaseRank,
+                                detail: f?.detail || "", // 상세 설명 전달
                                 anchorEl: rk
                             });
                         });
