@@ -572,6 +572,15 @@
             border-radius: 999px;
         }
 
+        /* Crown Icon */
+        /* Crown Icon */
+        .crown {
+            margin-right: 2px;
+            font-size: 1.2em;
+            filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.5));
+            vertical-align: middle;
+        }
+
         /* =========================================
            Tournament Section Styles
            ========================================= */
@@ -585,11 +594,139 @@
             align-items: center;
         }
 
+        /* Final Summary Styles */
+        .final-summary {
+            width: min(800px, 95vw);
+            background: linear-gradient(135deg, #fff 0%, #fef9c3 100%);
+            border: 2px solid #fbbf24;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 25px -5px rgba(251, 191, 36, 0.3);
+            text-align: center;
+            display: none;
+            /* Hidden by default */
+            animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .final-summary.show {
+            display: block;
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8) translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .summary-title {
+            font-size: 24px;
+            font-weight: 900;
+            color: #b45309;
+            margin-bottom: 20px;
+            text-shadow: 1px 1px 0 #fff;
+            letter-spacing: -0.5px;
+        }
+
+        .summary-content {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .summary-card {
+            flex: 1;
+            min-width: 280px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .summary-card.upper {
+            background: linear-gradient(to bottom, #fff, #fffbeb);
+        }
+
+        .summary-card.lower {
+            background: linear-gradient(to bottom, #fff, #f0f9ff);
+            border-color: #bae6fd;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .summary-card.upper .card-title {
+            color: #b45309;
+        }
+
+        .summary-card.lower .card-title {
+            color: #0369a1;
+        }
+
+        .rank-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #374151;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .rank-row.winner {
+            background: rgba(251, 191, 36, 0.1);
+            color: #000;
+            font-size: 16px;
+        }
+
+        .rank-row.runner-up {
+            background: rgba(243, 244, 246, 0.5);
+        }
+
+        .rank-row .icon {
+            margin-right: 8px;
+            font-size: 1.2em;
+        }
+
+        .rank-row .label {
+            width: 60px;
+            text-align: left;
+            opacity: 0.7;
+            font-size: 0.9em;
+        }
+
+        .rank-row .name {
+            flex: 1;
+            text-align: left;
+            font-weight: 800;
+        }
+
         .tm-controls {
             display: flex;
             gap: 12px;
             margin-bottom: 20px;
             align-items: center;
+        }
+
+        .tm-name-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            white-space: nowrap;
         }
 
         .tm-panel-row {
@@ -1007,126 +1144,6 @@
         .modal-btn.confirm:hover {
             background: #eff6ff;
         }
-
-        /* Final Summary Styles */
-        .final-summary {
-            width: min(800px, 95vw);
-            background: linear-gradient(135deg, #fff 0%, #fef9c3 100%);
-            border: 2px solid #fbbf24;
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 40px;
-            box-shadow: 0 10px 25px -5px rgba(251, 191, 36, 0.3);
-            text-align: center;
-            display: none;
-            /* Hidden by default */
-            animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        .final-summary.show {
-            display: block;
-        }
-
-        @keyframes popIn {
-            from {
-                opacity: 0;
-                transform: scale(0.8) translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-            }
-        }
-
-        .summary-title {
-            font-size: 24px;
-            font-weight: 900;
-            color: #b45309;
-            margin-bottom: 20px;
-            text-shadow: 1px 1px 0 #fff;
-            letter-spacing: -0.5px;
-        }
-
-        .summary-content {
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .summary-card {
-            flex: 1;
-            min-width: 280px;
-            background: rgba(255, 255, 255, 0.6);
-            border-radius: 12px;
-            padding: 16px;
-            border: 1px solid rgba(251, 191, 36, 0.3);
-        }
-
-        .summary-card.upper {
-            background: linear-gradient(to bottom, #fff, #fffbeb);
-        }
-
-        .summary-card.lower {
-            background: linear-gradient(to bottom, #fff, #f0f9ff);
-            border-color: #bae6fd;
-        }
-
-        .card-title {
-            font-size: 16px;
-            font-weight: 800;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid rgba(0, 0, 0, 0.05);
-        }
-
-        .summary-card.upper .card-title {
-            color: #b45309;
-        }
-
-        .summary-card.lower .card-title {
-            color: #0369a1;
-        }
-
-        .rank-row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 8px;
-            font-size: 14px;
-            font-weight: 700;
-            color: #374151;
-            padding: 4px 8px;
-            border-radius: 6px;
-        }
-
-        .rank-row.winner {
-            background: rgba(251, 191, 36, 0.1);
-            color: #000;
-            font-size: 16px;
-        }
-
-        .rank-row.runner-up {
-            background: rgba(243, 244, 246, 0.5);
-        }
-
-        .rank-row .icon {
-            margin-right: 8px;
-            font-size: 1.2em;
-        }
-
-        .rank-row .label {
-            width: 60px;
-            text-align: left;
-            opacity: 0.7;
-            font-size: 0.9em;
-        }
-
-        .rank-row .name {
-            flex: 1;
-            text-align: left;
-            font-weight: 800;
-        }
     </style>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 </head>
@@ -1166,7 +1183,6 @@
 
                     <button type="button" class="btn" onclick="openReset()">🔄 초기화</button>
                     <button type="button" class="btn" onclick="runAutoTestScenario()">🧪 테스트(3조)</button>
-                    <button type="button" class="btn" onclick="runAutoTestScenario4Groups()">🎲 테스트(4조 랜덤)</button>
                     <!-- <button type="button" class="btn primary" id="btn-gen-tournament">🏆 본선 토너먼트 생성</button> -->
                     <button type="button" class="btn" id="btn-show-sample">👀 예시 보기</button>
                 </div>
@@ -2309,11 +2325,10 @@
                         blocks.push({ members: [ordered[0]], type: "single" });
                         blocks.push({ members: [ordered[1]], type: "single" });
                     } else {
-                        // H2H가 없으면 전체 득실(SD)/득점(SF) 사용
-                        const sA = base.get(a), sB = base.get(b);
-                        const da = sA.setsFor - sA.setsAgainst;
-                        const db = sB.setsFor - sB.setsAgainst;
-                        const fa = sA.setsFor, fb = sB.setsFor;
+                        // H2H가 없으면 SD/SF로 보되, 끝까지 같으면 공동(TIE)
+                        const inner = innerStats(group);
+                        const da = inner.get(a).diff, db = inner.get(b).diff;
+                        const fa = inner.get(a).for, fb = inner.get(b).for;
 
                         if (da !== db) {
                             const ordered = (da > db) ? [a, b] : [b, a];
@@ -2335,42 +2350,37 @@
                     continue;
                 }
 
-                // 3명 이상 동률: 전체 SD/SF로 정렬
+                // 3명 이상 동률: SD/SF로 정렬 후, 완전 동일 묶음은 공동
+                const inner = innerStats(group);
                 const ordered = [...group].sort((a, b) => {
-                    const sA = base.get(a), sB = base.get(b);
-                    const da = sA.setsFor - sA.setsAgainst;
-                    const db = sB.setsFor - sB.setsAgainst;
-                    if (db !== da) return db - da; // Desc
-
-                    const fa = sA.setsFor, fb = sB.setsFor;
-                    if (fb !== fa) return fb - fa; // Desc
-
-                    return a.localeCompare(b, 'ko'); // Asc
+                    const da = inner.get(a).diff, db = inner.get(b).diff;
+                    if (db !== da) return db - da;
+                    const fa = inner.get(a).for, fb = inner.get(b).for;
+                    if (fb !== fa) return fb - fa;
+                    return a.localeCompare(b, 'ko'); // 표시 순서만
                 });
 
                 // diff/for 동일한 구간을 tie-block으로 묶기
                 let k = 0;
                 while (k < ordered.length) {
                     const head = ordered[k];
-                    const sHead = base.get(head);
-                    const headDiff = sHead.setsFor - sHead.setsAgainst;
-                    const headFor = sHead.setsFor;
+                    const headDiff = inner.get(head).diff;
+                    const headFor = inner.get(head).for;
 
                     const chunk = [head];
                     k++;
                     while (k < ordered.length) {
                         const cur = ordered[k];
-                        const sCur = base.get(cur);
-                        const curDiff = sCur.setsFor - sCur.setsAgainst;
-                        const curFor = sCur.setsFor;
-
-                        if (curDiff === headDiff && curFor === headFor) {
+                        if (inner.get(cur).diff === headDiff && inner.get(cur).for === headFor) {
                             chunk.push(cur);
                             k++;
                         } else break;
                     }
 
                     if (chunk.length === 1) {
+                        // 이 사람은 SD/SF로 위로 간 것: reason은 상황에 따라 SD/SF 중 하나로 표시 (간단히 SD 우선, 없으면 SF)
+                        // (엄밀히는 비교 상대에 따라 다르지만, UI에서는 "동률그룹 기준으로 올라감" 정도면 충분)
+                        // headDiff 기준으로 다른 사람보다 유리하면 SD, 아니면 SF
                         if (!reasonMap.has(chunk[0])) reasonMap.set(chunk[0], "SD");
                         blocks.push({ members: chunk, type: "single" });
                     } else if (chunk.length === 2) {
@@ -2954,7 +2964,9 @@
                 const arr = byRank.get(r);
                 // 1st place group order: 1, 2, 3 ...
                 // 2nd place group order: N, N-1 ... to avoid same group meeting early if possible
-                const groupOrder = Array.from({ length: groupCount }, (_, i) => i + 1);
+                const groupOrder = (r % 2 === 1)
+                    ? Array.from({ length: groupCount }, (_, i) => i + 1)
+                    : Array.from({ length: groupCount }, (_, i) => groupCount - i);
 
                 const byGroup = new Map(arr.map(x => [x.group, x]));
                 for (const g of groupOrder) {
@@ -3187,11 +3199,15 @@
         function setNodeText(id, text, subText) {
             const el = document.getElementById(id);
             if (!el) return;
+
+            // ✅ 우승자에게 왕관(👑) 제거 (라벨로 이동)
+            // 원래 텍스트 그대로 사용
+
             // Use HTML to include rank info if available
             if (subText) {
                 el.innerHTML = `${text}<small>${subText}</small>`;
             } else {
-                el.innerHTML = text; // Fallback or BYE
+                el.innerHTML = text;
             }
             el.classList.remove("empty");
             el.classList.remove("bye");
@@ -3529,7 +3545,7 @@
             champ.style.top = `${(H / 2) - 55}px`;
             champ.style.left = (direction === 1) ? `${champX}px` : `${padX}px`;
             champ.innerHTML = `
-                <div class="label">CHAMPION</div>
+                <div class="label"><span class="crown">👑</span> CHAMPION</div>
                 <div id="${prefix}-winner" class="tm-player empty tm-winner-box" style="position:static; cursor:pointer;">?</div>
             `;
             wrapEl.appendChild(champ);
@@ -3643,11 +3659,7 @@
                 const ranks = grp.map(p => p.rank);
                 const uniqueRanks = new Set(ranks);
                 if (uniqueRanks.size !== ranks.length) {
-                    // Find duplicate ranks
-                    const counts = {};
-                    ranks.forEach(r => counts[r] = (counts[r] || 0) + 1);
-                    const dups = Object.keys(counts).filter(r => counts[r] > 1);
-                    invalidGroups.push(`${gNum}조 (동률: ${dups.map(r => r + '위').join(', ')})`);
+                    invalidGroups.push(`${gNum}조 (동률 존재)`);
                 }
             }
 
@@ -3699,9 +3711,6 @@
                 area.scrollIntoView({ behavior: 'smooth' });
             }, 200);
         }
-
-        // Expose button logic
-        document.getElementById("btn-gen-tournament").addEventListener("click", runTournamentGeneration);
 
         // ============================================
         //  🏆 Final Result Summary Logic
@@ -3756,6 +3765,30 @@
             };
         }
 
+        let runnerUpName = "";
+        let semiLosers = [];
+
+        if (winnerName === nameA) {
+            runnerUpName = nameB;
+            // Winner came from A, RunnerUp came from B
+            // 3rd place candidates are losers of the semi-finals
+            // We need to find the node that LOST to A and the node that LOST to B in previous round
+            // A comes from (finalA.dataset.a vs finalA.dataset.b)
+            semiLosers.push(getLoserOf(finalAId, nameA));
+            semiLosers.push(getLoserOf(finalBId, nameB));
+        } else {
+            runnerUpName = nameA;
+            semiLosers.push(getLoserOf(finalBId, nameB));
+            semiLosers.push(getLoserOf(finalAId, nameA));
+        }
+
+        return {
+            winner: winnerName,
+            runnerUp: runnerUpName,
+            third: semiLosers.filter(n => n).join(", ") // Simple join for now
+        };
+        }
+
         function getLoserOf(matchId, winnerName) {
             const mEl = document.getElementById(matchId);
             if (!mEl) return null;
@@ -3792,6 +3825,10 @@
                 // summaryEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         }
+
+        // Hook into existing functions
+        // We will call checkTournamentCompletion() at the end of advanceWinner and autoAdvanceByes
+        document.getElementById("btn-gen-tournament").addEventListener("click", runTournamentGeneration);
 
         /* 
            Sample Tournament Logic 
@@ -3896,66 +3933,6 @@
                         // Score 2-0 for winner
                         const val = isWinnerFirst ? "2-0" : "0-2";
                         resMap.set(k, { score: val });
-                    }
-                }
-            });
-
-            renderAllTeams();
-
-            // 4. Draw Tournament
-            setTimeout(runTournamentGeneration, 100);
-        }
-
-        function runAutoTestScenario4Groups() {
-            if (!confirm("현재 데이터를 모두 지우고 4개 조(4,5,4,4명) 랜덤 점수 테스트를 진행하시겠습니까?")) return;
-
-            initState();
-
-            // 1. 4 Teams
-            createTeams(4);
-
-            // 2. Assign players (4, 5, 4, 4 = 17 total)
-            if (INITIAL_NAMES.length < 17) {
-                alert("이름이 부족합니다 (최소 17명 필요)");
-                return;
-            }
-
-            // Shuffle names slightly for randomness if desired, but simple slice is fine for test.
-            // Let's just take first 17.
-            // But to make it more random-like, we use random scores.
-            const p1 = INITIAL_NAMES.slice(0, 4);
-            const p2 = INITIAL_NAMES.slice(4, 9);
-            const p3 = INITIAL_NAMES.slice(9, 13);
-            const p4 = INITIAL_NAMES.slice(13, 17);
-
-            const pools = [p1, p2, p3, p4];
-
-            pools.forEach((members, grpIdx) => {
-                const teamId = `team-${grpIdx + 1}`;
-                members.forEach(nm => {
-                    state.set(nm, { where: "team", teamId });
-                });
-
-                // 3. Generate Random Results
-                const resMap = ensureTeamResults(teamId);
-
-                for (let i = 0; i < members.length; i++) {
-                    for (let j = i + 1; j < members.length; j++) {
-                        const A = members[i];
-                        const B = members[j];
-                        const k = keyPair(A, B);
-
-                        // Random score: 2-0, 0-2, 2-1, 1-2
-                        // Weighted random? Or just pure random.
-                        // Let's make it somewhat interesting.
-                        const r = Math.random();
-                        let scoreVal = "2-0";
-                        if (r < 0.25) scoreVal = "2-0";
-                        else if (r < 0.5) scoreVal = "0-2";
-                        else if (r < 0.75) scoreVal = "2-1";
-                        else scoreVal = "1-2";
-
-                        resMap.set(k, { score: scoreVal });
                     }
                 }
             });
