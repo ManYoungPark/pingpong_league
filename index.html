@@ -3022,8 +3022,14 @@
             for (const r of ranks) {
                 const arr = byRank.get(r);
                 // 1st place group order: 1, 2, 3 ...
-                // 2nd place group order: N, N-1 ... to avoid same group meeting early if possible
-                const groupOrder = Array.from({ length: groupCount }, (_, i) => i + 1);
+                // 2nd place group order: optimized for 4-group to separate same-group meeting until Final
+                // [2, 1, 4, 3] order puts G1-2nd in opposite half of G1-1st, etc.
+                let groupOrder;
+                if (r === 2 && groupCount === 4) {
+                    groupOrder = [2, 1, 4, 3];
+                } else {
+                    groupOrder = Array.from({ length: groupCount }, (_, i) => i + 1);
+                }
 
                 const byGroup = new Map(arr.map(x => [x.group, x]));
                 for (const g of groupOrder) {
