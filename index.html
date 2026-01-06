@@ -1346,6 +1346,20 @@
         </div>
     </div>
 
+    <!-- ✅ 알림/정보 포탈 (New - 순위 설명 등) -->
+    <div class="portal" id="infoPortal" aria-hidden="true">
+        <div class="backdrop" id="infoBackdrop"></div>
+        <div class="pop" id="infoPop" role="dialog" aria-modal="true" style="min-width: 320px;">
+            <div class="row">
+                <div class="ttl" id="infoTitle">정보</div>
+                <button class="close" type="button" id="infoClose">닫기</button>
+            </div>
+            <div class="content" id="infoContent"
+                style="padding: 0 4px 16px; font-size: 14px; line-height: 1.5; color: #374151; white-space: pre-wrap;">
+            </div>
+        </div>
+    </div>
+
     <!-- ✅ 점수 입력 포탈 (New) -->
     <div class="portal" id="scorePortal" aria-hidden="true">
         <div class="backdrop" id="scoreBackdrop"></div>
@@ -2070,6 +2084,7 @@
                 closeRank();
                 closeMovePortal(); // Added
                 closeScorePortal(); // Added
+                closeInfoPortal(); // Added
             }
         });
 
@@ -2079,13 +2094,45 @@
             if (isRankOpen() && currentRankCtx?.anchorEl) placePop(rankPop, currentRankCtx.anchorEl);
             if (isMoveOpen() && currentMoveAnchor) placePop(movePop, currentMoveAnchor);
             if (isScoreOpen() && currentScoreCtx?.anchorEl) placePop(scorePop, currentScoreCtx.anchorEl);
+            if (isInfoOpen() && currentInfoAnchor) placePop(infoPop, currentInfoAnchor);
         }, { passive: true });
         window.addEventListener("scroll", () => {
             if (isAssignOpen() && currentAssignAnchor) placePop(assignPop, currentAssignAnchor);
             if (isRankOpen() && currentRankCtx?.anchorEl) placePop(rankPop, currentRankCtx.anchorEl);
             if (isMoveOpen() && currentMoveAnchor) placePop(movePop, currentMoveAnchor);
             if (isScoreOpen() && currentScoreCtx?.anchorEl) placePop(scorePop, currentScoreCtx.anchorEl);
+            if (isInfoOpen() && currentInfoAnchor) placePop(infoPop, currentInfoAnchor);
         }, { passive: true, capture: true });
+
+        /* ========= 정보 알림 포탈 (New) ========= */
+        const infoPortal = document.getElementById("infoPortal");
+        const infoBackdrop = document.getElementById("infoBackdrop");
+        const infoPop = document.getElementById("infoPop");
+        const infoClose = document.getElementById("infoClose");
+        const infoTitle = document.getElementById("infoTitle");
+        const infoContent = document.getElementById("infoContent");
+
+        let currentInfoAnchor = null;
+
+        function isInfoOpen() { return infoPortal.classList.contains("open"); }
+        function closeInfoPortal() {
+            infoPortal.classList.remove("open");
+            infoPortal.setAttribute("aria-hidden", "true");
+            currentInfoAnchor = null;
+        }
+
+        function openInfoPortal(title, content, anchorEl) {
+            currentInfoAnchor = anchorEl;
+            infoTitle.textContent = title;
+            infoContent.textContent = content;
+
+            infoPortal.classList.add("open");
+            infoPortal.setAttribute("aria-hidden", "false");
+            requestAnimationFrame(() => placePop(infoPop, anchorEl));
+        }
+
+        infoClose.addEventListener("click", (e) => { e.stopPropagation(); closeInfoPortal(); });
+        infoBackdrop.addEventListener("click", () => closeInfoPortal());
 
         /* ========= Drag & Drop ========= */
         function makeDropTarget(el, onDrop) {
@@ -2835,42 +2882,47 @@
                     // manual 뱃지
                     const man = f?.isManual ? `<span class="manual" title="사용자 확정">MAN</span>` : "";
 
-                    // code 뱃지
-                    // code 뱃지 (타이브레이커 툴팁 제거)
-                    const codeTag = code ? `<span class="code"${code === 'TIE' ? ' title="동률이 끝까지 안 풀려 공동 순위"' : ''}>${code}</span>` : "";
+                    // code 뱃지 (타이브레이커 툴팁 제거 - 클릭으로 대체)
+                    const codeTag = code ? `<span class="code">${code}</span>` : "";
 
                     rk.innerHTML = `${crown}${label}${codeTag}${man}`;
 
-                    // ✅ 랭킹 상세 설명 툴팁
-                    if (f?.detail) {
-                        rk.title = f.detail;
-                        rk.style.cursor = "help"; // 도움이 된다는 커서 표시
-                    }
+                    // ✅ 클릭 상호작용 (iPad 등 모바일 대응)
+                    // 1. 동률 manual 결정이 필요한 경우 (isTieClickable)
+                    // 2. 아니더라도 상세 설명(f.detail)이 있는 경우 (순위 정보 확인용)
 
-                    // ✅ 랭킹 상세 설명 툴팁 (사용자 요청: 타이브레이커/단독 등은 팝업 제외, 완전 동률만 표시)
-                    // "타이브레이커로 결정은 팝업을 안띄워도 될거 같애"
-                    if (f?.detail && auto?.autoReason === "TIE") {
-                        rk.title = f.detail;
-                        rk.style.cursor = "help";
-                    }
-
-                    // ✅ 동률(TIE)이면 클릭해서 확정 가능
                     const isTieClickable = (auto?.autoReason === "TIE") && !!auto?.tieMembers?.length;
-                    if (isTieClickable) {
+                    const hasDetail = !!f?.detail;
+
+                    if (isTieClickable || hasDetail) {
                         rk.classList.add("clickable");
-                        rk.title = "동률입니다. 눌러서 최종 순위를 확정하세요.";
+
+                        // 힌트 제거 (툴팁 대신 클릭 유도)
+                        // rk.title = ... (Removed)
+
                         rk.addEventListener("click", (e) => {
                             e.stopPropagation();
                             closeAssign();
+                            // 다른 포탈 닫기
+                            closeMovePortal();
+                            closeScorePortal();
+                            closeInfoPortal();
+                            closeRank();
 
-                            openRankPortal({
-                                teamId,
-                                name: rowP,
-                                tieMembers: auto.tieMembers,
-                                baseRank: auto.tieBaseRank,
-                                detail: f?.detail || "", // 상세 설명 전달
-                                anchorEl: rk
-                            });
+                            if (isTieClickable) {
+                                // 기존: 동률 해결 팝업
+                                openRankPortal({
+                                    teamId,
+                                    name: rowP,
+                                    tieMembers: auto.tieMembers,
+                                    baseRank: auto.tieBaseRank,
+                                    detail: f?.detail || "",
+                                    anchorEl: rk
+                                });
+                            } else {
+                                // 신규: 단순 정보 팝업
+                                openInfoPortal(`순위 정보 · ${rowP}`, f.detail, rk);
+                            }
                         });
                     }
                 }
