@@ -1627,6 +1627,103 @@
             } catch (e) { console.error("Save failed", e); }
         }
 
+        // ✅ Backup Key
+        const BACKUP_KEY = 'block_tournament_backup_v1';
+
+        // ✅ Tournament State (MatchId -> WinnerName)
+        const bracketState = new Map();
+
+        function saveAllData() {
+            try {
+                // Map Serialization helper
+                const serializeMap = (map) => Array.from(map.entries());
+                const serializeDeepMap = (map) => Array.from(map.entries()).map(([k, v]) => [k, Array.from(v.entries())]);
+
+                const data = {
+                    groupsCount: state.groupsCount,
+                    matchFormat: matchFormatEl.value,
+                    playersState: serializeMap(state),
+                    results: serializeDeepMap(resultsByTeam),
+                    manualRanks: serializeDeepMap(manualRankByTeam),
+                    bracketState: serializeMap(bracketState),
+                    timestamp: Date.now()
+                };
+                localStorage.setItem(BACKUP_KEY, JSON.stringify(data));
+                // console.log("Auto-saved");
+            } catch (e) { console.error("Auto-save failed", e); }
+        }
+
+        function loadAllData() {
+            try {
+                const raw = localStorage.getItem(BACKUP_KEY);
+                if (!raw) return false;
+                const data = JSON.parse(raw);
+
+                if (data.groupsCount) state.groupsCount = data.groupsCount;
+                if (data.matchFormat) matchFormatEl.value = data.matchFormat;
+
+                if (data.playersState) {
+                    state.clear();
+                    new Map(data.playersState).forEach((v, k) => state.set(k, v));
+                }
+
+                if (data.results) {
+                    resultsByTeam.clear();
+                    new Map(data.results).forEach((v, k) => {
+                        resultsByTeam.set(k, new Map(v));
+                    });
+                }
+
+                if (data.manualRanks) {
+                    manualRankByTeam.clear();
+                    new Map(data.manualRanks).forEach((v, k) => {
+                        manualRankByTeam.set(k, new Map(v));
+                    });
+
+                }
+
+                if (data.bracketState) {
+                    bracketState.clear();
+                    new Map(data.bracketState).forEach((v, k) => bracketState.set(k, v));
+                }
+                return true;
+            } catch (e) {
+                console.error("Load failed", e);
+                return false;
+            }
+        }
+
+        // ✅ Check Storage and Ask User
+        function checkStorageAndInit() {
+            const raw = localStorage.getItem(BACKUP_KEY);
+            if (raw) {
+                if (confirm("이전 작업 데이터가 발견되었습니다.\n불러오시겠습니까?")) {
+                    if (loadAllData()) {
+                        console.log("Data restored.");
+                        // UI Regeneration
+                        createTeams(state.groupsCount);
+                        renderAllTeams();
+
+                        // If tournament was active, try to show it
+                        if (bracketState.size > 0) {
+                            setTimeout(() => {
+                                runTournamentGeneration();
+                            }, 100);
+                        }
+                        return;
+                    }
+                } else {
+                    // User chose NOT to load -> Clear backup
+                    localStorage.removeItem(BACKUP_KEY);
+                }
+            }
+
+            // Default Init
+            initState();
+            renderPool();
+            createTeams(4);
+        }
+
         function addPlayer() {
             const name = prompt("추가할 선수 이름을 입력하세요:");
             if (!name || !name.trim()) return;
@@ -1654,6 +1751,7 @@
             }
 
             renderPool();
+            saveAllData(); // ✅ Auto-save
             alert(`'${cleanName}' 선수가 추가되었습니다.`);
         }
 
@@ -3094,6 +3192,7 @@
                 teamBox.querySelector(".count").textContent = `${members.length}명`;
                 renderRoundRobin(teamBox, teamId, members);
             });
+            saveAllData(); // ✅ Auto-save on every render (covers most state changes)
         }
 
         function moveToTeam(name, teamId) {
@@ -3646,6 +3745,7 @@
                 if (m.a === startId || m.b === startId) {
                     setNodeEmpty(m.to);
                     engine.clearStylesTo(m.to);
+                    bracketState.delete(m.to); // ✅ Clear State
                     clearDownstream({ startId: m.to, engine });
                 }
             }
@@ -3698,6 +3798,10 @@
 
             setNodeText(to, newValue, newRank);
             engine.applyWinLoseStyles(a, b, to, clickedId);
+
+            // ✅ Save State
+            bracketState.set(to, newValue);
+            saveAllData();
 
             // Check for Final Result
             checkTournamentCompletion();
@@ -3905,6 +4009,49 @@
             resizeHandlers[prefix] = onResize;
 
             engine.initLines();
+
+            // ✅ Restore Bracket State
+            setTimeout(() => {
+                bracketState.forEach((winnerName, nodeId) => {
+                    const el = document.getElementById(nodeId);
+                    if (!el || !el.id.startsWith(prefix)) return;
+
+                    // Only if it's currently empty (don't overwrite if logic regenerated it ? actually we should overwrite to matches saved state)
+                    // But wait, if we have logic, maybe we shouldn't?
+                    // Let's trust the saved state for user actions. 
+
+                    // We need to find the rank label... which is hard because we only saved the name.
+                    // Loop up player cache or just use name. Rank label is visual sugar.
+                    // Try to find player info
+                    let rankLabel = "";
+                    const pInfo = PLAYER_INFO.get(winnerName);
+                    // Not quite, PLAYER_INFO doesn't have "rank in group".
+                    // But we can leave rank label empty or try to infer.
+                    // For now, just restore name.
+
+                    if (extractName(el) !== winnerName) {
+                        setNodeText(nodeId, winnerName, "");
+
+                        // Also need to restore lines... implies finding which parent was clicked.
+                        // We need to find 'a' or 'b' that matches winnerName.
+                        const aId = el.dataset.a;
+                        const bId = el.dataset.b;
+                        if (aId && bId) {
+                            const aEl = document.getElementById(aId);
+                            const bEl = document.getElementById(bId);
+                            const aName = extractName(aEl);
+                            const bName = extractName(bEl);
+
+                            if (aName === winnerName) {
+                                engine.applyWinLoseStyles(aId, bId, nodeId, aId);
+                            } else if (bName === winnerName) {
+                                engine.applyWinLoseStyles(aId, bId, nodeId, bId);
+                            }
+                        }
+                    }
+                });
+                checkTournamentCompletion();
+            }, 0);
         }
 
         /* 
@@ -4275,9 +4422,7 @@
         }
 
         // init
-        initState();
-        renderPool();
-        createTeams(4);
+        checkStorageAndInit();
 
         async function exportToGoogleSheet() {
             // Hardcoded Default URL
