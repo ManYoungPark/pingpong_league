@@ -305,17 +305,21 @@
             font-weight: 900;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 2px;
+            /* Reduced from 4px */
         }
 
         .grade-badge {
             font-size: 10px;
             background: #e2e8f0;
             color: #475569;
-            padding: 1px 5px;
+            padding: 1px 4px;
+            /* Slightly tighter padding */
             border-radius: 4px;
             font-weight: 700;
             vertical-align: middle;
+            margin-left: 2px;
+            /* Tight margin instead of space char */
         }
 
 
@@ -626,7 +630,8 @@
 
         .tm-panel-row {
             display: flex;
-            gap: 24px;
+            gap: 12px;
+            /* Decreased gap (24 -> 12) */
             align-items: flex-start;
             justify-content: center;
             flex-wrap: wrap;
@@ -639,7 +644,10 @@
             gap: 10px;
             align-items: center;
             width: 100%;
-            max-width: 800px;
+            flex: 1;
+            /* ✅ Auto-expand */
+            min-width: 320px;
+            /* ✅ Prevent too small */
         }
 
         .tm-title {
@@ -650,7 +658,8 @@
 
         .tm-wrap {
             position: relative;
-            width: min(800px, 98vw);
+            width: 100%;
+            /* ✅ Fill panel */
             height: 600px;
             background: #fff;
             border: 1px solid #eee;
@@ -669,22 +678,24 @@
         /* Bracket Nodes */
         .tm-player {
             position: absolute !important;
-            width: 110px;
-            height: 42px;
+            width: 85px;
+            /* Slightly increased (80->85) */
+            height: 34px;
             border: 1px solid #3498db;
             background: #fff;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 800;
             cursor: pointer;
             border-radius: 6px;
             transition: all .15s;
             z-index: 10;
             user-select: none;
-            padding: 2px 4px;
+            padding: 1px 0;
+            /* Minimized side padding */
             box-sizing: border-box;
             text-align: center;
             line-height: 1.2;
@@ -738,9 +749,11 @@
         .tm-winner-box {
             border: 2px solid #e74c3c;
             color: #e74c3c;
-            width: 130px;
-            height: 48px;
-            font-size: 14px;
+            width: 110px;
+            /* Restored/Increased (100->110) */
+            height: 60px;
+            /* Bit taller for champion */
+            font-size: 13px;
         }
 
         /* SVG Lines */
@@ -2297,6 +2310,11 @@
             return list.map(x => x.name);
         }
 
+        function getGradeBadgeHTML(name) {
+            const info = PLAYER_INFO.get(name);
+            return (info && info.grade) ? `<span class="grade-badge">${info.grade}</span>` : "";
+        }
+
         function createNameChip(name) {
             const div = document.createElement("div");
             div.className = "name-chip";
@@ -2307,13 +2325,7 @@
 
             const nm = document.createElement("span");
             nm.className = "nm";
-
-            const info = PLAYER_INFO.get(name);
-            const gradeBadge = info && info.grade
-                ? `<span class="grade-badge">${info.grade}</span>`
-                : "";
-
-            nm.innerHTML = `${name} ${gradeBadge}`;
+            nm.innerHTML = `${name}${getGradeBadgeHTML(name)}`;
 
             // ✅ 전체 영역 클릭 시 조 선택
             div.addEventListener("click", (e) => {
@@ -2813,7 +2825,7 @@
                     th.style.cursor = "default";
                 }
 
-                th.textContent = p;
+                th.innerHTML = `${p}${getGradeBadgeHTML(p)}`; // ✅ Show grade (No space char)
                 hr.appendChild(th);
             });
 
@@ -2866,7 +2878,7 @@
                     left.style.cursor = "default";
                 }
 
-                left.textContent = rowP;
+                left.innerHTML = `${rowP}${getGradeBadgeHTML(rowP)}`; // ✅ Show grade (No space char)
                 tr.appendChild(left);
 
                 for (let j = 0; j < players.length; j++) {
@@ -3474,11 +3486,15 @@
         function setNodeText(id, text, subText) {
             const el = document.getElementById(id);
             if (!el) return;
+
+            // ✅ Wrap to prevent flex-column break
+            const nameHtml = `<span class="tm-nm-wrap">${text}${getGradeBadgeHTML(text)}</span>`;
+
             // Use HTML to include rank info if available
             if (subText) {
-                el.innerHTML = `${text}<small>${subText}</small>`;
+                el.innerHTML = `${nameHtml}<small>${subText}</small>`;
             } else {
-                el.innerHTML = text; // Fallback or BYE
+                el.innerHTML = nameHtml; // Fallback or BYE
             }
             el.classList.remove("empty");
             el.classList.remove("bye");
@@ -3537,13 +3553,13 @@
                 const botY = Math.max(y1, y2);
                 const joinY = Math.max(topY, Math.min(yt, botY));
 
-                let joinX;
                 if (direction === 1) {
                     const maxX = Math.max(x1, x2);
-                    joinX = Math.min(xt - 24, maxX + 40);
+                    // Standard centered fork: Midpoint between source end and target start
+                    joinX = (maxX + xt) / 2;
                 } else {
                     const minX = Math.min(x1, x2);
-                    joinX = Math.max(xt + 24, minX - 40);
+                    joinX = (minX + xt) / 2;
                 }
 
                 svg.appendChild(mkPath(`M ${x1} ${y1} H ${joinX}`, fromId1, toId, 'in'));
@@ -3657,10 +3673,20 @@
         }
 
         function extractName(el) {
-            // Safer extraction: Get the first text node (User Name)
-            // ignoring <small> tag
             if (!el) return "";
-            // Find first text node
+
+            // 1. Check wrapper
+            const wrap = el.querySelector(".tm-nm-wrap");
+            if (wrap) {
+                for (let i = 0; i < wrap.childNodes.length; i++) {
+                    if (wrap.childNodes[i].nodeType === Node.TEXT_NODE) {
+                        return wrap.childNodes[i].textContent.trim();
+                    }
+                }
+                return wrap.innerText.trim();
+            }
+
+            // 2. Find first text node (Legacy/Direct)
             for (let i = 0; i < el.childNodes.length; i++) {
                 if (el.childNodes[i].nodeType === Node.TEXT_NODE) {
                     return el.childNodes[i].textContent.trim();
@@ -3747,6 +3773,11 @@
             const svg = document.getElementById(svgId);
             const titleEl = document.getElementById(titleElId);
 
+            // ✅ Register Resize Handler
+            resizeHandlers[prefix] = () => {
+                createBracketUI({ wrapId, svgId, prefix, direction, B, slots, titleElId, titleText });
+            };
+
             wrapEl.querySelectorAll(".tm-player, .tm-champ-label").forEach(el => el.remove());
             svg.innerHTML = "";
 
@@ -3757,14 +3788,14 @@
 
             titleEl.textContent = `${titleText} (${B}강, BYE ${slots.filter(x => x === null).length}개)`;
 
-            // ✅ Dynamic Height: Prevent overlap (B=16 needs ~960px)
-            const minH = Math.max(600, B * 55 + 60);
+            // ✅ Dynamic Height: Prevent overlap (Reduced factor for compactness)
+            const minH = Math.max(500, B * 40 + 60);
             wrapEl.style.height = `${minH}px`;
 
             const W = wrapEl.clientWidth;
             const H = wrapEl.clientHeight;
-            const boxW = 110, boxH = 42; // Increased H
-            const champW = 130;
+            const boxW = 85, boxH = 34; // Slightly increased
+            const champW = 110;
 
             const rounds = Math.log2(B);
             const padX = 20;
@@ -3835,8 +3866,9 @@
                     el.classList.add("empty");
                     continue;
                 }
-                // ! Display Name + Rank Label
-                el.innerHTML = `${p.name}<small>${p.label}</small>`;
+                // ! Display Name + Grade + Rank Label
+                // Wrap in tm-nm-wrap
+                el.innerHTML = `<span class="tm-nm-wrap">${p.name}${getGradeBadgeHTML(p.name)}</span><small>${p.label}</small>`;
                 el.classList.remove("empty");
                 el.classList.remove("bye");
             }
@@ -4137,6 +4169,16 @@
             }, 50);
         }
         document.getElementById("btn-show-sample").addEventListener("click", runSampleTournament);
+
+        // ✅ Resize Listener
+        let resizeTimer = null;
+        window.addEventListener("resize", () => {
+            if (resizeTimer) clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                if (resizeHandlers.U) resizeHandlers.U();
+                if (resizeHandlers.L) resizeHandlers.L();
+            }, 200);
+        });
 
         function runAutoTestScenario() {
             if (!confirm("현재 데이터를 모두 지우고 테스트 데이터를 생성하시겠습니까?")) return;
