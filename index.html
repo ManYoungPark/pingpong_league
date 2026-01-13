@@ -9,9 +9,12 @@
         :root {
             --bg: #f4f7f9;
             --card: #ffffff;
-            --border: #e6e9ee;
-            --text: #1f2937;
-            --muted: #6b7280;
+            --border: #cbd5e1;
+            /* Darkened for visibility (was #e6e9ee) */
+            --text: #1e293b;
+            /* Slate-800 for stronger contrast */
+            --muted: #64748b;
+            /* Slate-500 */
             --danger: #ef4444;
             --shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
             --radius: 12px;
@@ -300,6 +303,19 @@
             white-space: nowrap;
             text-align: left;
             font-weight: 900;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .grade-badge {
+            font-size: 10px;
+            background: #e2e8f0;
+            color: #475569;
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-weight: 700;
+            vertical-align: middle;
         }
 
 
@@ -472,18 +488,24 @@
         .rr th.sticky {
             position: sticky;
             top: 0;
-            background: #f8fafc;
+            background: #e2e8f0;
+            /* Darker header bg */
             z-index: 2;
-            font-weight: 900;
+            font-weight: 800;
+            box-shadow: 0 1px 0 #94a3b8;
+            /* Subtle separator shadow */
         }
 
         .rr th.leftsticky {
             position: sticky;
             left: 0;
-            background: #f8fafc;
+            background: #e2e8f0;
+            /* Darker header bg */
             z-index: 1;
             text-align: left;
-            font-weight: 900;
+            font-weight: 800;
+            box-shadow: 1px 0 0 #94a3b8;
+            /* Subtle separator shadow */
         }
 
         .rr th.corner {
@@ -491,13 +513,16 @@
             left: 0;
             top: 0;
             z-index: 3;
-            background: #f1f5f9;
+            background: #cbd5e1;
+            /* Even darker for corner */
             text-align: left;
+            box-shadow: 1px 1px 0 #94a3b8;
         }
 
         .rr td.diag {
             background: #f1f5f9;
-            color: var(--muted);
+            /* Keep diag slightly lighter than headers but visible */
+            color: #94a3b8;
             font-weight: 900;
         }
 
@@ -1199,7 +1224,8 @@
         <section class="card" id="card-teams">
             <div class="card-hd">
                 <div class="title">조 테이블 <span class="pill" id="teamInfo">0조</span></div>
-                <!-- <span class="pill">조 카드에 드롭</span> -->
+                <button type="button" class="btn" id="btn-edit-mode" onclick="toggleEditMode()"
+                    style="margin-left:auto; margin-right:8px; padding:6px 12px;">🛠️ 수정</button>
                 <button class="linkbtn" id="openHelpBtn" style="font-size:12px;">💡 도움말: 동률 처리 기준 & 예시 (동률 코드: H2H · SD
                     · SF · TIE(공동))</button>
             </div>
@@ -1481,19 +1507,53 @@
         })();
 
         // ✅ Load Names: LocalStorage -> names.json (Async) -> Default Fallback
-        const STORAGE_KEY = 'my_tournament_names_v1';
+        // ✅ Load Names: LocalStorage -> names.json (Async) -> Default Fallback
+        const STORAGE_KEY = 'my_tournament_players_v2';
 
         // 1. Fallback Defaults (Network Error / File protocol)
-        const DEFAULT_NAMES = [
-            "박만영", "이정우", "김경태", "박병재", "안성대", "유호성", "조복연", "강희철",
-            "곽은숙", "권영규", "김미경", "김성호", "김세중", "김순동", "김영민", "김형찬",
-            "김홍석", "류계열", "류성문", "박덕례", "박수용", "박혜란", "백낙천", "서상국",
-            "송광용", "김종탁", "오장진", "윤교찬", "이교탁", "이영숙", "임규호", "정경자", "정선철", "정진숙", "조상배", "최매완",
-            "박현신", "홍순관", "홍현숙"
+        // 1. Fallback Defaults (Network Error / File protocol)
+        const DEFAULT_PLAYERS = [
+            { id: "p001", name: "박만영", grade: 1 },
+            { id: "p002", name: "이정우", grade: 3 },
+            { id: "p003", name: "김경태", grade: 2 },
+            { id: "p004", name: "박병재", grade: 1 },
+            { id: "p005", name: "안성대", grade: 5 },
+            { id: "p006", name: "유호성", grade: 2 },
+            { id: "p007", name: "조복연", grade: 3 },
+            { id: "p008", name: "강희철", grade: 4 },
+            { id: "p009", name: "김미경", grade: 6 },
+            { id: "p010", name: "김성호", grade: 5 },
+            { id: "p011", name: "김세중", grade: 6 },
+            { id: "p012", name: "김순동", grade: 5 },
+            { id: "p013", name: "김형찬", grade: 1 },
+            { id: "p014", name: "김홍석", grade: 5 },
+            { id: "p015", name: "류계열", grade: 5 },
+            { id: "p016", name: "박덕례", grade: 6 },
+            { id: "p017", name: "박혜란", grade: 6 },
+            { id: "p018", name: "백낙천", grade: 3 },
+            { id: "p019", name: "서상국", grade: 3 },
+            { id: "p020", name: "송광용", grade: 4 },
+            { id: "p021", name: "김종탁", grade: 4 },
+            { id: "p022", name: "오장진", grade: 4 },
+            { id: "p023", name: "윤교찬", grade: 6 },
+            { id: "p024", name: "이교탁", grade: 7 },
+            { id: "p025", name: "이영숙", grade: 4 },
+            { id: "p026", name: "임규호", grade: 6 },
+            { id: "p027", name: "정경자", grade: 6 },
+            { id: "p028", name: "정선철", grade: 4 },
+            { id: "p029", name: "조상배", grade: 4 },
+            { id: "p030", name: "최매완", grade: 3 },
+            { id: "p031", name: "박현신", grade: 6 },
+            { id: "p032", name: "홍순관", grade: 6 },
+            { id: "p033", name: "홍현숙", grade: 7 }
         ];
 
+        // Player Info Lookup (name -> {id, grade})
+        const PLAYER_INFO = new Map();
+        DEFAULT_PLAYERS.forEach(p => PLAYER_INFO.set(p.name, p));
+
         // Initialize with Defaults first
-        let INITIAL_NAMES = [...DEFAULT_NAMES];
+        let INITIAL_NAMES = DEFAULT_PLAYERS.map(p => p.name);
 
         // 2. Try LocalStorage (User's custom list)
         let hasLocalStorage = false;
@@ -1502,7 +1562,15 @@
             if (raw) {
                 const stored = JSON.parse(raw);
                 if (Array.isArray(stored) && stored.length > 0) {
-                    INITIAL_NAMES = stored;
+                    // Check if stored items are objects (v2) or strings (v1 legacy handling)
+                    if (typeof stored[0] === 'object') {
+                        // v2: [{name, grade, id}, ...]
+                        INITIAL_NAMES = stored.map(p => p.name);
+                        stored.forEach(p => PLAYER_INFO.set(p.name, p));
+                    } else {
+                        // v1 legacy fallback (shouldn't happen with new key, but safe to have)
+                        INITIAL_NAMES = stored;
+                    }
                     hasLocalStorage = true;
                 }
             }
@@ -1538,7 +1606,11 @@
 
         function saveNames() {
             try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_NAMES));
+                // Save full player objects to persist grades
+                const dataToSave = INITIAL_NAMES.map(name => {
+                    return PLAYER_INFO.get(name) || { name, grade: 0, id: 'unknown' };
+                });
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
             } catch (e) { console.error("Save failed", e); }
         }
 
@@ -1551,6 +1623,13 @@
                 alert("이미 존재하는 이름입니다!");
                 return;
             }
+
+            // Ask for grade
+            const gradeInput = prompt(`'${cleanName}' 선수의 등급(Grade)을 입력하세요 (숫자):`, "0");
+            const grade = gradeInput ? parseInt(gradeInput, 10) : 0;
+
+            // Update Info
+            PLAYER_INFO.set(cleanName, { id: "custom", name: cleanName, grade: grade });
 
             INITIAL_NAMES.push(cleanName);
             INITIAL_NAMES.sort((a, b) => a.localeCompare(b, 'ko'));
@@ -1566,7 +1645,11 @@
         }
 
         function downloadNamesJSON() {
-            const dataStr = JSON.stringify(INITIAL_NAMES, null, 2); // Pretty print
+            // Download full data
+            const dataToSave = INITIAL_NAMES.map(name => {
+                return PLAYER_INFO.get(name) || { name, grade: 0 };
+            });
+            const dataStr = JSON.stringify(dataToSave, null, 2); // Pretty print
             const blob = new Blob([dataStr], { type: "application/json" });
             const url = URL.createObjectURL(blob);
 
@@ -1595,6 +1678,21 @@
         function ensureManual(teamId) {
             if (!manualRankByTeam.has(teamId)) manualRankByTeam.set(teamId, new Map());
             return manualRankByTeam.get(teamId);
+        }
+
+        let isEditMode = false;
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const btn = document.getElementById("btn-edit-mode");
+            if (isEditMode) {
+                btn.textContent = "✅ 완료";
+                btn.classList.add("primary");
+                // 수정 모드 진입 시 알림 혹은 시각적 피드백이 필요하면 여기 추가
+            } else {
+                btn.textContent = "🛠️ 수정";
+                btn.classList.remove("primary");
+            }
+            renderAllTeams(); // Re-render to update UI
         }
 
         const poolEl = document.getElementById("pool");
@@ -1851,7 +1949,7 @@
             // Update State
             // if toTeamId is null => Pool
             if (toTeamId) {
-                state.set(name, { where: "team", teamId: toTeamId });
+                state.set(name, { where: "team", teamId: toTeamId, order: Date.now() });
             } else {
                 state.set(name, { where: "pool" });
             }
@@ -2188,12 +2286,15 @@
         }
 
         function getTeamMembers(teamId) {
-            const members = [];
-            for (const name of INITIAL_NAMES) {
-                const s = state.get(name);
-                if (s?.where === "team" && s.teamId === teamId) members.push(name);
+            const list = [];
+            for (const [name, s] of state.entries()) {
+                if (s.where === "team" && s.teamId === teamId) {
+                    list.push({ name, order: s.order || 0 });
+                }
             }
-            return members;
+            // Sort by order (insertion time)
+            list.sort((a, b) => a.order - b.order);
+            return list.map(x => x.name);
         }
 
         function createNameChip(name) {
@@ -2206,7 +2307,13 @@
 
             const nm = document.createElement("span");
             nm.className = "nm";
-            nm.textContent = name;
+
+            const info = PLAYER_INFO.get(name);
+            const gradeBadge = info && info.grade
+                ? `<span class="grade-badge">${info.grade}</span>`
+                : "";
+
+            nm.innerHTML = `${name} ${gradeBadge}`;
 
             // ✅ 전체 영역 클릭 시 조 선택
             div.addEventListener("click", (e) => {
@@ -2693,13 +2800,20 @@
 
             players.forEach(p => {
                 const th = document.createElement("th");
-                th.className = "sticky clickable-head";
+                th.className = "sticky"; // 기본 sticky만 적용
+
+                if (isEditMode) {
+                    th.classList.add("clickable-head");
+                    th.title = "클릭하여 조 이동";
+                    th.onclick = (e) => {
+                        e.stopPropagation();
+                        openMoveGroupPortal(p, teamId, th);
+                    };
+                } else {
+                    th.style.cursor = "default";
+                }
+
                 th.textContent = p;
-                th.title = "클릭하여 조 이동";
-                th.onclick = (e) => {
-                    e.stopPropagation();
-                    openMoveGroupPortal(p, teamId, th);
-                };
                 hr.appendChild(th);
             });
 
@@ -2739,13 +2853,20 @@
                 const tr = document.createElement("tr");
 
                 const left = document.createElement("th");
-                left.className = "leftsticky clickable-head";
+                left.className = "leftsticky"; // 기본 sticky만 적용
+
+                if (isEditMode) {
+                    left.classList.add("clickable-head");
+                    left.title = "클릭하여 조 이동";
+                    left.onclick = (e) => {
+                        e.stopPropagation();
+                        openMoveGroupPortal(rowP, teamId, left);
+                    };
+                } else {
+                    left.style.cursor = "default";
+                }
+
                 left.textContent = rowP;
-                left.title = "클릭하여 조 이동";
-                left.onclick = (e) => {
-                    e.stopPropagation();
-                    openMoveGroupPortal(rowP, teamId, left);
-                };
                 tr.appendChild(left);
 
                 for (let j = 0; j < players.length; j++) {
@@ -2770,10 +2891,23 @@
                         cell.style.borderRadius = "6px";
                         cell.style.textAlign = "center";
                         cell.style.fontWeight = "bold";
-                        cell.title = "클릭하여 점수 입력";
+
+                        if (isEditMode) {
+                            cell.style.cursor = "not-allowed";
+                            cell.title = "수정 모드 점수 입력 불가";
+                        } else {
+                            cell.style.cursor = "pointer";
+                            cell.title = "클릭하여 점수 입력";
+                        }
 
                         // Hover effect
-                        cell.onmouseover = () => cell.style.backgroundColor = "#f1f5f9";
+                        cell.onmouseover = () => {
+                            // Edit mode: still allow hover effect or distinct one? 
+                            // Let's keep it simple, maybe red tint for blocked?
+                            // User request is simple: "Show msg when clicked". 
+                            // Just keep standard hover or disable it.
+                            if (!isEditMode) cell.style.backgroundColor = "#f1f5f9";
+                        };
                         cell.onmouseout = () => cell.style.backgroundColor = "transparent";
 
                         const current = resMap.get(k)?.score || "";
@@ -2789,13 +2923,10 @@
 
                                 displayTxt = String(myScore);
 
-                                // Color / Style based on Win/Loss
                                 if (myScore > opScore) {
                                     color = "#1d4ed8"; // Win Blue
                                 } else {
-                                    color = "#ef4444"; // Lose Red? Or Gray? 
-                                    // Usually formatting: Win=Blue, Lose=Red or Muted.
-                                    color = "#ef4444";
+                                    color = "#ef4444"; // Lose Red
                                 }
                             }
                         }
@@ -2804,8 +2935,13 @@
                         cell.style.color = color;
                         if (displayTxt !== "-") cell.style.fontSize = "15px";
 
+                        // Always attach click to show alert in Edit Mode
                         cell.addEventListener("click", (e) => {
                             e.stopPropagation();
+                            if (isEditMode) {
+                                alert("수정 모드일 때는 점수를 입력할 수 없습니다.\n'완료' 버튼을 눌러 수정을 마쳐주세요.");
+                                return;
+                            }
                             closeAssign();
                             closeRank();
                             closeMovePortal();
@@ -2950,7 +3086,7 @@
 
         function moveToTeam(name, teamId) {
             if (!state.has(name)) return;
-            state.set(name, { where: "team", teamId });
+            state.set(name, { where: "team", teamId, order: Date.now() });
             renderAllTeams();
         }
         function moveToPool(name) {
