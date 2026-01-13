@@ -3141,28 +3141,7 @@
                 rrHost.className = "rr-host";
                 body.appendChild(rrHost);
 
-                const footer = document.createElement("div");
-                footer.className = "footer";
-
-                const clearBtn = document.createElement("button");
-                clearBtn.className = "linkbtn";
-                clearBtn.textContent = "이 조 비우기";
-                clearBtn.addEventListener("click", () => {
-                    for (const nm of INITIAL_NAMES) {
-                        const s = state.get(nm);
-                        if (s?.where === "team" && s.teamId === teamId) {
-                            state.set(nm, { where: "pool" });
-                        }
-                    }
-                    // ✅ 수동 확정도 함께 초기화(해당 조)
-                    manualRankByTeam.delete(teamId);
-
-                    renderAllTeams();
-                });
-
-                footer.append(clearBtn);
-
-                box.append(hd, body, footer);
+                box.append(hd, body);
 
                 makeDropTarget(box, (nm, evt) => {
                     const nearest = evt.target.closest(".team");
