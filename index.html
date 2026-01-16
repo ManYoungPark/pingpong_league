@@ -472,8 +472,11 @@
 
         table.rr {
             border-collapse: collapse;
-            width: 100%;
-            table-layout: fixed;
+            width: auto;
+            /* Allow growth */
+            min-width: 100%;
+            table-layout: auto;
+            /* Changed to auto for better content fit */
             font-size: 12px;
         }
 
@@ -485,8 +488,8 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            width: calc(100% / var(--cols));
-            min-width: 80px;
+            /* width: calc(100% / var(--cols)); Removed to allow auto-sizing */
+            /* min-width: 80px; Removed */
         }
 
         .rr th.sticky {
@@ -510,6 +513,8 @@
             font-weight: 800;
             box-shadow: 1px 0 0 #94a3b8;
             /* Subtle separator shadow */
+            /* width: 120px !important; REMOVED */
+            /* min-width: 120px !important; REMOVED */
         }
 
         .rr th.corner {
@@ -521,6 +526,8 @@
             /* Even darker for corner */
             text-align: left;
             box-shadow: 1px 1px 0 #94a3b8;
+            /* width: 120px !important; REMOVED */
+            /* min-width: 120px !important; REMOVED */
         }
 
         .rr td.diag {
@@ -540,20 +547,25 @@
             cursor: pointer;
         }
 
-        .rr td.wl {
+        .rr td.wl,
+        .rr th.wl {
             background: #fbfbfc;
             font-weight: 900;
+            width: 50px !important;
+            min-width: 50px !important;
+            padding: 4px 2px;
+            font-size: 11px;
+            /* Slightly smaller text */
         }
 
-        .rr td.rank {
-            background: #fbfbfc;
-            font-weight: 900;
-            width: calc(100% / var(--cols) * 1.5) !important;
-        }
-
-        /* Target the header too */
+        .rr td.rank,
         .rr th.rank {
-            width: calc(100% / var(--cols) * 1.5) !important;
+            background: #fbfbfc;
+            font-weight: 900;
+            width: 40px !important;
+            min-width: 40px !important;
+            padding: 4px 2px;
+            font-size: 11px;
         }
 
         .rank .crown {
@@ -3387,12 +3399,12 @@
             });
 
             const wlTh = document.createElement("th");
-            wlTh.className = "sticky";
+            wlTh.className = "sticky wl";
             wlTh.textContent = "승-패";
             hr.appendChild(wlTh);
 
             const ptTh = document.createElement("th");
-            ptTh.className = "sticky";
+            ptTh.className = "sticky wl";
             ptTh.textContent = "득실";
             hr.appendChild(ptTh);
 
