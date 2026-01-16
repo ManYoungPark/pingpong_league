@@ -1448,48 +1448,395 @@
                         <button type="button" class="btn" onclick="openReset()">🔄 초기화</button>
                         <button type="button" class="btn" onclick="runAutoTestScenario()">🧪 테스트(3조)</button>
                         <button type="button" class="btn" onclick="runAutoTestScenario4Groups()">🎲 테스트(4조 랜덤)</button>
+                        <button type="button" class="btn" onclick="runAutoTestScenarioMixed()">🧩 테스트(혼합 22명)</button>
                         <!-- <button type="button" class="btn primary" id="btn-gen-tournament">🏆 본선 토너먼트 생성</button> -->
                         <button type="button" class="btn" id="btn-show-sample">👀 예시 보기</button>
                     </div>
-            </div>
-            </section>
+                    <!-- Fix: removed extra closing div -->
+                </section>
 
-            <section class="card" id="card-pool">
-                <div class="card-hd">
-                    <div class="title" style="display:flex; align-items:center; gap:8px;">
-                        이름 목록 <span class="pill" id="poolCount">0명</span>
-                        <button type="button" class="btn"
-                            style="padding:4px 8px; font-size:11px; background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;"
-                            onclick="addPlayer()">+ 이름 추가</button>
-                        <button type="button" class="btn"
-                            style="padding:4px 8px; font-size:11px; background:#f0fdf4; color:#15803d; border-color:#bbf7d0;"
-                            onclick="downloadNamesJSON()" title="현재 명단을 names.json으로 다운로드">💾 저장</button>
+                <section class="card" id="card-pool">
+                    <div class="card-hd">
+                        <div class="title" style="display:flex; align-items:center; gap:8px;">
+                            이름 목록 <span class="pill" id="poolCount">0명</span>
+                            <button type="button" class="btn"
+                                style="padding:4px 8px; font-size:11px; background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;"
+                                onclick="addPlayer()">+ 이름 추가</button>
+                            <button type="button" class="btn"
+                                style="padding:4px 8px; font-size:11px; background:#f0fdf4; color:#15803d; border-color:#bbf7d0;"
+                                onclick="downloadNamesJSON()" title="현재 명단을 names.json으로 다운로드">💾 저장</button>
+                        </div>
+                        <span class="pill">여기로 드롭하면 회수</span>
                     </div>
-                    <span class="pill">여기로 드롭하면 회수</span>
-                </div>
-                <div class="list droptarget" id="pool"></div>
-            </section>
+                    <div class="list droptarget" id="pool"></div>
+                </section>
 
-            <section class="card" id="card-teams">
-                <div class="card-hd">
-                    <div class="title">조 테이블 <span class="pill" id="teamInfo">0조</span></div>
-                    <button type="button" class="btn" id="btn-edit-mode" onclick="toggleEditMode()"
-                        style="margin-left:auto; margin-right:8px; padding:6px 12px;">🛠️ 수정</button>
-                    <button class="linkbtn" id="openHelpBtn" style="font-size:12px;">💡 도움말: 동률 처리 기준 & 예시 (동률 코드: H2H ·
-                        SD
-                        · SF · TIE(공동))</button>
-                </div>
-                <div class="teams" id="teams"></div>
-                <div style="padding:12px; text-align:center; border-top:1px solid var(--border);">
-                    <!-- <button class="linkbtn" id="openHelpBtn" style="font-size:13px;">💡 도움말: 동률 처리 기준 & 예시</button> -->
-                    <button type="button" class="btn primary" id="btn-gen-tournament"
-                        style="width:100%; padding: 12px; font-size:15px;">🏆 본선 토너먼트 생성</button>
-                </div>
-            </section>
+                <section class="card" id="card-teams">
+                    <div class="card-hd">
+                        <div class="title">조 테이블 <span class="pill" id="teamInfo">0조</span></div>
+                        <button type="button" class="btn" id="btn-edit-mode" onclick="toggleEditMode()"
+                            style="margin-left:auto; margin-right:8px; padding:6px 12px;">🛠️ 수정</button>
+                        <button class="linkbtn" id="openHelpBtn" style="font-size:12px;">💡 도움말: 동률 처리 기준 & 예시 (동률 코드:
+                            H2H ·
+                            SD
+                            · SF · TIE(공동))</button>
+                    </div>
+                    <div class="teams" id="teams"></div>
+                    <div style="padding:12px; text-align:center; border-top:1px solid var(--border);">
+                        <!-- <button class="linkbtn" id="openHelpBtn" style="font-size:13px;">💡 도움말: 동률 처리 기준 & 예시</button> -->
+                        <button type="button" class="btn primary" id="btn-gen-tournament"
+                            style="width:100%; padding: 12px; font-size:15px;">🏆 본선 토너먼트 생성</button>
+                    </div>
+                </section>
 
+            </div>
+
+            <!-- TOURNAMENT SECTION (Restored) -->
+            <div id="tournament-area" style="display:none;">
+                <!-- Final Summary Section -->
+                <div id="final-summary" class="final-summary">
+                    <div class="summary-title">🏆 최종 결과 발표 🏆</div>
+                    <div class="summary-content">
+                        <!-- Upper Result -->
+                        <div class="summary-card upper">
+                            <div class="card-title">상위 토너먼트</div>
+                            <div class="rank-row winner">
+                                <span class="icon">🏆</span>
+                                <span class="label">우승</span>
+                                <span class="name" id="sum-u-1">-</span>
+                            </div>
+                            <div class="rank-row runner-up">
+                                <span class="icon">🥈</span>
+                                <span class="label">준우승</span>
+                                <span class="name" id="sum-u-2">-</span>
+                            </div>
+                            <div class="rank-row third">
+                                <span class="icon">🥉</span>
+                                <span class="label">3위</span>
+                                <span class="name" id="sum-u-3">-</span>
+                            </div>
+                        </div>
+                        <!-- Lower Result -->
+                        <div class="summary-card lower">
+                            <div class="card-title">하위 토너먼트</div>
+                            <div class="rank-row winner">
+                                <span class="icon">🏆</span>
+                                <span class="label">우승</span>
+                                <span class="name" id="sum-l-1">-</span>
+                            </div>
+                            <div class="rank-row runner-up">
+                                <span class="icon">🥈</span>
+                                <span class="label">준우승</span>
+                                <span class="name" id="sum-l-2">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tm-controls">
+                    <h2 class="tm-title">🏆 본선 토너먼트</h2>
+                    <button type="button" class="btn" onclick="captureResultImage()" style="margin-left:auto;">📷 이미지
+                        저장</button>
+                </div>
+
+                <div class="tm-panel-row">
+                    <div class="tm-panel">
+                        <div class="tm-title" id="tm-titleUpper">상위 토너먼트</div>
+                        <div id="tm-wrap-upper" class="tm-wrap">
+                            <svg id="tm-lines-upper" class="tm-lines"></svg>
+                        </div>
+                    </div>
+
+                    <div class="tm-panel">
+                        <div class="tm-title" id="tm-titleLower">하위 토너먼트</div>
+                        <div id="tm-wrap-lower" class="tm-wrap">
+                            <svg id="tm-lines-lower" class="tm-lines"></svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div><!-- /tab-match -->
+
+        <!-- 2. History Tab -->
+        <div id="tab-history" class="tab-content">
+            <div id="history-list" class="history-list"></div>
         </div>
 
-        <!-- TOURNAMENT SECTION (Restored) -->
+        <!-- 3. Dashboard Tab -->
+        <div id="tab-dashboard-view" class="tab-content">
+            <div class="tm-dashboard" style="max-width: 1400px;">
+                <div class="tm-dash-header">
+                    <h3>📊 종합 통계</h3>
+                </div>
+                <div class="tm-cards">
+                    <div class="tm-card">
+                        <div class="label">총 대회 수</div>
+                        <div class="val" id="stat-total-tourneys">-</div>
+                    </div>
+                    <div class="tm-card">
+                        <div class="label">총 경기 수</div>
+                        <div class="val" id="stat-total-matches">-</div>
+                    </div>
+                    <div class="tm-card">
+                        <div class="label">등록 선수</div>
+                        <div class="val" id="stat-total-players">-</div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                    <!-- Chart 1 -->
+                    <div class="card">
+                        <div class="card-hd">
+                            <div class="title">👑 명예의 전당 (최다 우승)</div>
+                        </div>
+                        <div style="padding: 12px; height: 300px;">
+                            <canvas id="chart-wins"></canvas>
+                        </div>
+                    </div>
+                    <!-- Chart 2 -->
+                    <div class="card">
+                        <div class="card-hd">
+                            <div class="title">🔥 성실함의 상징 (최다 출석)</div>
+                        </div>
+                        <div style="padding: 12px; height: 300px;">
+                            <canvas id="chart-attendance"></canvas>
+                        </div>
+                    </div>
+                    <!-- Chart 3 (Lower Winner) -->
+                    <div class="card">
+                        <div class="card-hd">
+                            <div class="title">🍀 하위부 최다 우승 (Legend of Lower)</div>
+                        </div>
+                        <div style="padding: 12px; height: 300px;">
+                            <canvas id="chart-wins-lower"></canvas>
+                        </div>
+                    </div>
+                    <!-- Chart 4 (Lower Runner-up) -->
+                    <div class="card">
+                        <div class="card-hd">
+                            <div class="title">🥈 하위부 최다 준우승 (Prince of Lower)</div>
+                        </div>
+                        <div style="padding: 12px; height: 300px;">
+                            <canvas id="chart-runners-lower"></canvas>
+                        </div>
+                    </div>
+                    <!-- H2H Search -->
+                    <div class="card">
+                        <div class="card-hd">
+                            <div class="title">⚔️ 상대 전적 검색</div>
+                        </div>
+                        <div class="h2h-box">
+                            <div class="h2h-selects">
+                                <select id="h2h-p1" class="select">
+                                    <option value="">선수 1</option>
+                                </select>
+                                <span style="align-self:center; font-weight:900; color:#cbd5e1;">VS</span>
+                                <select id="h2h-p2" class="select">
+                                    <option value="">선수 2</option>
+                                </select>
+                            </div>
+                            <button id="btn-h2h-search" class="btn primary" style="width:100%; margin-bottom:16px;">🔍
+                                전적
+                                조회</button>
+
+                            <div id="h2h-result">
+                                <div style="color:#94a3b8; font-size:13px;">두 선수를 선택하고 조회하세요.</div>
+                            </div>
+                            <div id="h2h-list" class="h2h-list"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ✅ 조 선택 포탈 -->
+        <div class="portal" id="assignPortal" aria-hidden="true">
+            <div class="backdrop" id="assignBackdrop"></div>
+            <div class="pop" id="assignPop" role="dialog" aria-modal="true">
+                <div class="row">
+                    <div class="ttl" id="assignTitle">조 선택</div>
+                    <button class="close" type="button" id="assignClose">닫기</button>
+                </div>
+                <div class="grid" id="assignGrid"></div>
+            </div>
+        </div>
+
+        <!-- ✅ 순위 확정 포탈 -->
+        <div class="portal" id="rankPortal" aria-hidden="true">
+            <div class="backdrop" id="rankBackdrop"></div>
+            <div class="pop" id="rankPop" role="dialog" aria-modal="true">
+                <div class="row">
+                    <div class="ttl" id="rankTitle">순위 확정</div>
+                    <button class="close" type="button" id="rankClose">닫기</button>
+                </div>
+                <div class="grid" id="rankGrid"></div>
+            </div>
+        </div>
+
+        <!-- ✅ 도움말 포탈 -->
+        <div class="portal" id="helpPortal" aria-hidden="true">
+            <div class="backdrop" id="helpBackdrop"></div>
+            <div class="pop" id="helpPop" role="dialog" aria-modal="true" style="max-width:400px;">
+                <div class="row">
+                    <div class="ttl">동률 처리 기준 & 예시</div>
+                    <button class="close" type="button" id="helpClose">닫기</button>
+                </div>
+                <div style="padding:10px 14px; font-size:13px; line-height:1.6; color:#333;">
+                    <h3 style="margin:0 0 8px; font-size:14px; font-weight:800; color:#111;">1. 동률 처리 기준 (순위 산정 우선순위)
+                    </h3>
+                    <p style="margin:0 0 8px; color:#555;">리그전(조별 경기)에서 참가자의 순위는 아래 기준을 <b>위에서부터 순차적으로 적용</b>하여 결정한다.
+                    </p>
+                    <ol style="margin:0 0 20px; padding-left:20px; color:#4b5563;">
+                        <li style="margin-bottom:4px;"><b>승점 (Wins)</b><br />승리 횟수가 많은 참가자를 상위 순위로 한다.</li>
+                        <li style="margin-bottom:4px;"><b>승자승 (Head-to-Head)</b><br />동률자가 <b>2명일 경우에만 적용</b>하며, 두 참가자 간
+                            맞대결에서 승리한 참가자를 상위 순위로 한다.</li>
+                        <li style="margin-bottom:4px;"><b>세트 득실 (Set Difference, SD)</b><br />모든 경기에서의 <b>총 세트 득수에서 총 세트
+                                실수를
+                                뺀 값</b>이 큰 참가자를 상위 순위로 한다.</li>
+                        <li style="margin-bottom:4px;"><b>세트 다득 (Set For, SF)</b><br />세트 득실이 같은 경우, <b>총 세트 득수가 많은
+                                참가자</b>를
+                            상위 순위로 한다.</li>
+                        <li><b>공동 순위 (Tie)</b><br />위 모든 기준이 동일할 경우, 해당 참가자들은 <b>공동 순위</b>로 처리한다.<br />(필요 시 주최 측이 별도의
+                            결정 방식
+                            또는 추가 경기로 순위를 확정할 수 있다.)</li>
+                    </ol>
+
+                    <h3 style="margin:0 0 8px; font-size:14px; font-weight:800; color:#111;">2. 동률 처리 예시</h3>
+                    <div
+                        style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; color:#4b5563; margin-bottom:20px;">
+                        <h4 style="margin:0 0 6px; font-size:13px; font-weight:800;">예시 상황</h4>
+                        <p style="margin:0 0 10px;">A, B, C 세 명의 참가자가 각각 <b>1승 1패</b>로 동률인 경우</p>
+
+                        <h4 style="margin:0 0 6px; font-size:13px; font-weight:800;">경기 결과</h4>
+                        <ul style="margin:0 0 10px; padding-left:20px;">
+                            <li>A vs B : A 승 (2–0)</li>
+                            <li>B vs C : B 승 (2–1)</li>
+                            <li>C vs A : C 승 (2–1)</li>
+                        </ul>
+
+                        <h4 style="margin:0 0 6px; font-size:13px; font-weight:800;">판단 과정</h4>
+                        <ol style="margin:0 0 10px; padding-left:20px;">
+                            <li><b>승점</b>: 세 참가자 모두 1승 1패 → 동률</li>
+                            <li><b>승자승</b>: 세 명이 서로 순환 승리를 기록하여 적용 불가<br />(A는 B에게 승리, B는 C에게 승리, C는 A에게 승리)</li>
+                            <li><b>세트 득실 (SD) 비교</b>
+                                <table
+                                    style="width:100%; margin-top:6px; border-collapse:collapse; font-size:12px; background:#fff;">
+                                    <tr style="background:#f1f5f9; border-bottom:1px solid #e2e8f0;">
+                                        <th style="padding:4px; border:1px solid #e2e8f0;">참가자</th>
+                                        <th style="padding:4px; border:1px solid #e2e8f0;">세트 득</th>
+                                        <th style="padding:4px; border:1px solid #e2e8f0;">세트 실</th>
+                                        <th style="padding:4px; border:1px solid #e2e8f0;">세트 득실</th>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">A</td>
+                                        <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">3</td>
+                                        <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">2</td>
+                                        <td
+                                            style="padding:4px; border:1px solid #e2e8f0; text-align:center; font-weight:bold; color:#1d4ed8;">
+                                            +1</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">B</td>
+                                        <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">2</td>
+                                        <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">3</td>
+                                        <td
+                                            style="padding:4px; border:1px solid #e2e8f0; text-align:center; font-weight:bold; color:#ef4444;">
+                                            -1</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">C</td>
+                                        <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">3</td>
+                                        <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">3</td>
+                                        <td
+                                            style="padding:4px; border:1px solid #e2e8f0; text-align:center; font-weight:bold;">
+                                            0</td>
+                                    </tr>
+                                </table>
+                            </li>
+                        </ol>
+
+                        <h4 style="margin:0 0 6px; font-size:13px; font-weight:800;">최종 순위</h4>
+                        <ul style="margin:0; padding-left:20px;">
+                            <li><b>1위</b> : A (세트 득실 +1)</li>
+                            <li><b>2위</b> : C (세트 득실 0)</li>
+                            <li><b>3위</b> : B (세트 득실 -1)</li>
+                        </ul>
+                    </div>
+
+                    <h3 style="margin:0 0 8px; font-size:14px; font-weight:800; color:#111;">3. 참고 사항</h3>
+                    <ul style="margin:0; padding-left:20px; color:#4b5563;">
+                        <li style="margin-bottom:4px;"><b>3명 이상 동률일 경우</b>, 승자승 기준은 적용하지 않고 세트 득실부터 비교한다.</li>
+                        <li style="margin-bottom:4px;">모든 세트 득실 및 세트 득수는 <b>해당 조의 모든 경기 결과를 합산</b>하여 계산한다.
+                        </li>
+                        <li>공동 순위가 발생할 경우, 순위 표에는 <b>“공동 ○위”</b>로 표시한다.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ✅ 조 이동 포탈 (New) -->
+        <div class="portal" id="movePortal" aria-hidden="true">
+            <div class="backdrop" id="moveBackdrop"></div>
+            <div class="pop" id="movePop" role="dialog" aria-modal="true">
+                <div class="row">
+                    <div class="ttl" id="moveTitle">조 이동</div>
+                    <button class="close" type="button" id="moveClose">닫기</button>
+                </div>
+                <div class="grid" id="moveGrid"></div>
+            </div>
+        </div>
+
+        <!-- ✅ 알림/정보 포탈 (New - 순위 설명 등) -->
+        <div class="portal" id="infoPortal" aria-hidden="true">
+            <div class="backdrop" id="infoBackdrop"></div>
+            <div class="pop" id="infoPop" role="dialog" aria-modal="true" style="min-width: 320px;">
+                <div class="row">
+                    <div class="ttl" id="infoTitle">정보</div>
+                    <button class="close" type="button" id="infoClose">닫기</button>
+                </div>
+                <div class="content" id="infoContent"
+                    style="padding: 0 4px 16px; font-size: 14px; line-height: 1.5; color: #374151; white-space: pre-wrap;">
+                </div>
+            </div>
+        </div>
+
+        <!-- ✅ 점수 입력 포탈 (New) -->
+        <div class="portal" id="scorePortal" aria-hidden="true">
+            <div class="backdrop" id="scoreBackdrop"></div>
+            <div class="pop" id="scorePop" role="dialog" aria-modal="true">
+                <div class="row">
+                    <div class="ttl" id="scoreTitle">점수 입력</div>
+                    <button class="close" type="button" id="scoreClose">닫기</button>
+                </div>
+                <div class="grid" id="scoreGrid"></div>
+            </div>
+        </div>
+
+        <!-- ✅ Loading Overlay -->
+        <div id="loadingOverlay" class="loading-overlay">
+            <div class="spinner"></div>
+            <div class="loading-text" id="loadingText">처리 중입니다...</div>
+        </div>
+
+        <!-- ✅ Custom Confirm Modal -->
+        <div id="customModal" class="modal-portal">
+            <div class="modal-backdrop" id="customModalBackdrop"></div>
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h3 class="modal-title" id="modalTitle">알림</h3>
+                </div>
+                <div class="modal-body">
+                    <div id="modalMessage">내용</div>
+                    <ul id="modalList" class="modal-list" style="display:none;"></ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="modal-btn cancel" id="modalCancelBtn">취소</button>
+                    <button type="button" class="modal-btn confirm" id="modalConfirmBtn">확인</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TOURNAMENT SECTION -->
         <div id="tournament-area" style="display:none;">
             <!-- Final Summary Section -->
             <div id="final-summary" class="final-summary">
@@ -1537,6 +1884,10 @@
                     저장</button>
             </div>
 
+            <div id="tm-dashboard" class="tm-dashboard" style="margin-bottom: 30px;">
+                <!-- Dashboard content will be injected here -->
+            </div>
+
             <div class="tm-panel-row">
                 <div class="tm-panel">
                     <div class="tm-title" id="tm-titleUpper">상위 토너먼트</div>
@@ -1552,350 +1903,7 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div><!-- /tab-match -->
-
-    <!-- 2. History Tab -->
-    <div id="tab-history" class="tab-content">
-        <div id="history-list" class="history-list"></div>
-    </div>
-
-    <!-- 3. Dashboard Tab -->
-    <div id="tab-dashboard-view" class="tab-content">
-        <div class="tm-dashboard" style="max-width: 1400px;">
-            <div class="tm-dash-header">
-                <h3>📊 종합 통계</h3>
-            </div>
-            <div class="tm-cards">
-                <div class="tm-card">
-                    <div class="label">총 대회 수</div>
-                    <div class="val" id="stat-total-tourneys">-</div>
-                </div>
-                <div class="tm-card">
-                    <div class="label">총 경기 수</div>
-                    <div class="val" id="stat-total-matches">-</div>
-                </div>
-                <div class="tm-card">
-                    <div class="label">등록 선수</div>
-                    <div class="val" id="stat-total-players">-</div>
-                </div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-                <!-- Chart 1 -->
-                <div class="card">
-                    <div class="card-hd">
-                        <div class="title">👑 명예의 전당 (최다 우승)</div>
-                    </div>
-                    <div style="padding: 12px; height: 300px;">
-                        <canvas id="chart-wins"></canvas>
-                    </div>
-                </div>
-                <!-- Chart 2 -->
-                <div class="card">
-                    <div class="card-hd">
-                        <div class="title">🔥 성실함의 상징 (최다 출석)</div>
-                    </div>
-                    <div style="padding: 12px; height: 300px;">
-                        <canvas id="chart-attendance"></canvas>
-                    </div>
-                </div>
-                <!-- Chart 3 (Lower Winner) -->
-                <div class="card">
-                    <div class="card-hd">
-                        <div class="title">🍀 하위부 최다 우승 (Legend of Lower)</div>
-                    </div>
-                    <div style="padding: 12px; height: 300px;">
-                        <canvas id="chart-wins-lower"></canvas>
-                    </div>
-                </div>
-                <!-- Chart 4 (Lower Runner-up) -->
-                <div class="card">
-                    <div class="card-hd">
-                        <div class="title">🥈 하위부 최다 준우승 (Prince of Lower)</div>
-                    </div>
-                    <div style="padding: 12px; height: 300px;">
-                        <canvas id="chart-runners-lower"></canvas>
-                    </div>
-                </div>
-                <!-- H2H Search -->
-                <div class="card">
-                    <div class="card-hd">
-                        <div class="title">⚔️ 상대 전적 검색</div>
-                    </div>
-                    <div class="h2h-box">
-                        <div class="h2h-selects">
-                            <select id="h2h-p1" class="select">
-                                <option value="">선수 1</option>
-                            </select>
-                            <span style="align-self:center; font-weight:900; color:#cbd5e1;">VS</span>
-                            <select id="h2h-p2" class="select">
-                                <option value="">선수 2</option>
-                            </select>
-                        </div>
-                        <button id="btn-h2h-search" class="btn primary" style="width:100%; margin-bottom:16px;">🔍 전적
-                            조회</button>
-
-                        <div id="h2h-result">
-                            <div style="color:#94a3b8; font-size:13px;">두 선수를 선택하고 조회하세요.</div>
-                        </div>
-                        <div id="h2h-list" class="h2h-list"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ✅ 조 선택 포탈 -->
-    <div class="portal" id="assignPortal" aria-hidden="true">
-        <div class="backdrop" id="assignBackdrop"></div>
-        <div class="pop" id="assignPop" role="dialog" aria-modal="true">
-            <div class="row">
-                <div class="ttl" id="assignTitle">조 선택</div>
-                <button class="close" type="button" id="assignClose">닫기</button>
-            </div>
-            <div class="grid" id="assignGrid"></div>
-        </div>
-    </div>
-
-    <!-- ✅ 순위 확정 포탈 -->
-    <div class="portal" id="rankPortal" aria-hidden="true">
-        <div class="backdrop" id="rankBackdrop"></div>
-        <div class="pop" id="rankPop" role="dialog" aria-modal="true">
-            <div class="row">
-                <div class="ttl" id="rankTitle">순위 확정</div>
-                <button class="close" type="button" id="rankClose">닫기</button>
-            </div>
-            <div class="grid" id="rankGrid"></div>
-        </div>
-    </div>
-
-    <!-- ✅ 도움말 포탈 -->
-    <div class="portal" id="helpPortal" aria-hidden="true">
-        <div class="backdrop" id="helpBackdrop"></div>
-        <div class="pop" id="helpPop" role="dialog" aria-modal="true" style="max-width:400px;">
-            <div class="row">
-                <div class="ttl">동률 처리 기준 & 예시</div>
-                <button class="close" type="button" id="helpClose">닫기</button>
-            </div>
-            <div style="padding:10px 14px; font-size:13px; line-height:1.6; color:#333;">
-                <h3 style="margin:0 0 8px; font-size:14px; font-weight:800; color:#111;">1. 동률 처리 기준 (순위 산정 우선순위)</h3>
-                <p style="margin:0 0 8px; color:#555;">리그전(조별 경기)에서 참가자의 순위는 아래 기준을 <b>위에서부터 순차적으로 적용</b>하여 결정한다.</p>
-                <ol style="margin:0 0 20px; padding-left:20px; color:#4b5563;">
-                    <li style="margin-bottom:4px;"><b>승점 (Wins)</b><br />승리 횟수가 많은 참가자를 상위 순위로 한다.</li>
-                    <li style="margin-bottom:4px;"><b>승자승 (Head-to-Head)</b><br />동률자가 <b>2명일 경우에만 적용</b>하며, 두 참가자 간
-                        맞대결에서 승리한 참가자를 상위 순위로 한다.</li>
-                    <li style="margin-bottom:4px;"><b>세트 득실 (Set Difference, SD)</b><br />모든 경기에서의 <b>총 세트 득수에서 총 세트 실수를
-                            뺀 값</b>이 큰 참가자를 상위 순위로 한다.</li>
-                    <li style="margin-bottom:4px;"><b>세트 다득 (Set For, SF)</b><br />세트 득실이 같은 경우, <b>총 세트 득수가 많은 참가자</b>를
-                        상위 순위로 한다.</li>
-                    <li><b>공동 순위 (Tie)</b><br />위 모든 기준이 동일할 경우, 해당 참가자들은 <b>공동 순위</b>로 처리한다.<br />(필요 시 주최 측이 별도의 결정 방식
-                        또는 추가 경기로 순위를 확정할 수 있다.)</li>
-                </ol>
-
-                <h3 style="margin:0 0 8px; font-size:14px; font-weight:800; color:#111;">2. 동률 처리 예시</h3>
-                <div
-                    style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; color:#4b5563; margin-bottom:20px;">
-                    <h4 style="margin:0 0 6px; font-size:13px; font-weight:800;">예시 상황</h4>
-                    <p style="margin:0 0 10px;">A, B, C 세 명의 참가자가 각각 <b>1승 1패</b>로 동률인 경우</p>
-
-                    <h4 style="margin:0 0 6px; font-size:13px; font-weight:800;">경기 결과</h4>
-                    <ul style="margin:0 0 10px; padding-left:20px;">
-                        <li>A vs B : A 승 (2–0)</li>
-                        <li>B vs C : B 승 (2–1)</li>
-                        <li>C vs A : C 승 (2–1)</li>
-                    </ul>
-
-                    <h4 style="margin:0 0 6px; font-size:13px; font-weight:800;">판단 과정</h4>
-                    <ol style="margin:0 0 10px; padding-left:20px;">
-                        <li><b>승점</b>: 세 참가자 모두 1승 1패 → 동률</li>
-                        <li><b>승자승</b>: 세 명이 서로 순환 승리를 기록하여 적용 불가<br />(A는 B에게 승리, B는 C에게 승리, C는 A에게 승리)</li>
-                        <li><b>세트 득실 (SD) 비교</b>
-                            <table
-                                style="width:100%; margin-top:6px; border-collapse:collapse; font-size:12px; background:#fff;">
-                                <tr style="background:#f1f5f9; border-bottom:1px solid #e2e8f0;">
-                                    <th style="padding:4px; border:1px solid #e2e8f0;">참가자</th>
-                                    <th style="padding:4px; border:1px solid #e2e8f0;">세트 득</th>
-                                    <th style="padding:4px; border:1px solid #e2e8f0;">세트 실</th>
-                                    <th style="padding:4px; border:1px solid #e2e8f0;">세트 득실</th>
-                                </tr>
-                                <tr>
-                                    <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">A</td>
-                                    <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">3</td>
-                                    <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">2</td>
-                                    <td
-                                        style="padding:4px; border:1px solid #e2e8f0; text-align:center; font-weight:bold; color:#1d4ed8;">
-                                        +1</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">B</td>
-                                    <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">2</td>
-                                    <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">3</td>
-                                    <td
-                                        style="padding:4px; border:1px solid #e2e8f0; text-align:center; font-weight:bold; color:#ef4444;">
-                                        -1</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">C</td>
-                                    <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">3</td>
-                                    <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">3</td>
-                                    <td
-                                        style="padding:4px; border:1px solid #e2e8f0; text-align:center; font-weight:bold;">
-                                        0</td>
-                                </tr>
-                            </table>
-                        </li>
-                    </ol>
-
-                    <h4 style="margin:0 0 6px; font-size:13px; font-weight:800;">최종 순위</h4>
-                    <ul style="margin:0; padding-left:20px;">
-                        <li><b>1위</b> : A (세트 득실 +1)</li>
-                        <li><b>2위</b> : C (세트 득실 0)</li>
-                        <li><b>3위</b> : B (세트 득실 -1)</li>
-                    </ul>
-                </div>
-
-                <h3 style="margin:0 0 8px; font-size:14px; font-weight:800; color:#111;">3. 참고 사항</h3>
-                <ul style="margin:0; padding-left:20px; color:#4b5563;">
-                    <li style="margin-bottom:4px;"><b>3명 이상 동률일 경우</b>, 승자승 기준은 적용하지 않고 세트 득실부터 비교한다.</li>
-                    <li style="margin-bottom:4px;">모든 세트 득실 및 세트 득수는 <b>해당 조의 모든 경기 결과를 합산</b>하여 계산한다.
-                    </li>
-                    <li>공동 순위가 발생할 경우, 순위 표에는 <b>“공동 ○위”</b>로 표시한다.</li>
-                </ul>
-            </div>
-        </div>
-    </div>
-
-    <!-- ✅ 조 이동 포탈 (New) -->
-    <div class="portal" id="movePortal" aria-hidden="true">
-        <div class="backdrop" id="moveBackdrop"></div>
-        <div class="pop" id="movePop" role="dialog" aria-modal="true">
-            <div class="row">
-                <div class="ttl" id="moveTitle">조 이동</div>
-                <button class="close" type="button" id="moveClose">닫기</button>
-            </div>
-            <div class="grid" id="moveGrid"></div>
-        </div>
-    </div>
-
-    <!-- ✅ 알림/정보 포탈 (New - 순위 설명 등) -->
-    <div class="portal" id="infoPortal" aria-hidden="true">
-        <div class="backdrop" id="infoBackdrop"></div>
-        <div class="pop" id="infoPop" role="dialog" aria-modal="true" style="min-width: 320px;">
-            <div class="row">
-                <div class="ttl" id="infoTitle">정보</div>
-                <button class="close" type="button" id="infoClose">닫기</button>
-            </div>
-            <div class="content" id="infoContent"
-                style="padding: 0 4px 16px; font-size: 14px; line-height: 1.5; color: #374151; white-space: pre-wrap;">
-            </div>
-        </div>
-    </div>
-
-    <!-- ✅ 점수 입력 포탈 (New) -->
-    <div class="portal" id="scorePortal" aria-hidden="true">
-        <div class="backdrop" id="scoreBackdrop"></div>
-        <div class="pop" id="scorePop" role="dialog" aria-modal="true">
-            <div class="row">
-                <div class="ttl" id="scoreTitle">점수 입력</div>
-                <button class="close" type="button" id="scoreClose">닫기</button>
-            </div>
-            <div class="grid" id="scoreGrid"></div>
-        </div>
-    </div>
-
-    <!-- ✅ Loading Overlay -->
-    <div id="loadingOverlay" class="loading-overlay">
-        <div class="spinner"></div>
-        <div class="loading-text" id="loadingText">처리 중입니다...</div>
-    </div>
-
-    <!-- ✅ Custom Confirm Modal -->
-    <div id="customModal" class="modal-portal">
-        <div class="modal-backdrop" id="customModalBackdrop"></div>
-        <div class="modal-card">
-            <div class="modal-header">
-                <h3 class="modal-title" id="modalTitle">알림</h3>
-            </div>
-            <div class="modal-body">
-                <div id="modalMessage">내용</div>
-                <ul id="modalList" class="modal-list" style="display:none;"></ul>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="modal-btn cancel" id="modalCancelBtn">취소</button>
-                <button type="button" class="modal-btn confirm" id="modalConfirmBtn">확인</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- TOURNAMENT SECTION -->
-    <div id="tournament-area" style="display:none;">
-        <!-- Final Summary Section -->
-        <div id="final-summary" class="final-summary">
-            <div class="summary-title">🏆 최종 결과 발표 🏆</div>
-            <div class="summary-content">
-                <!-- Upper Result -->
-                <div class="summary-card upper">
-                    <div class="card-title">상위 토너먼트</div>
-                    <div class="rank-row winner">
-                        <span class="icon">🏆</span>
-                        <span class="label">우승</span>
-                        <span class="name" id="sum-u-1">-</span>
-                    </div>
-                    <div class="rank-row runner-up">
-                        <span class="icon">🥈</span>
-                        <span class="label">준우승</span>
-                        <span class="name" id="sum-u-2">-</span>
-                    </div>
-                    <div class="rank-row third">
-                        <span class="icon">🥉</span>
-                        <span class="label">3위</span>
-                        <span class="name" id="sum-u-3">-</span>
-                    </div>
-                </div>
-                <!-- Lower Result -->
-                <div class="summary-card lower">
-                    <div class="card-title">하위 토너먼트</div>
-                    <div class="rank-row winner">
-                        <span class="icon">🏆</span>
-                        <span class="label">우승</span>
-                        <span class="name" id="sum-l-1">-</span>
-                    </div>
-                    <div class="rank-row runner-up">
-                        <span class="icon">🥈</span>
-                        <span class="label">준우승</span>
-                        <span class="name" id="sum-l-2">-</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="tm-controls">
-            <h2 class="tm-title">🏆 본선 토너먼트</h2>
-            <button type="button" class="btn" onclick="captureResultImage()" style="margin-left:auto;">📷 이미지
-                저장</button>
-        </div>
-
-        <div id="tm-dashboard" class="tm-dashboard" style="margin-bottom: 30px;">
-            <!-- Dashboard content will be injected here -->
-        </div>
-
-        <div class="tm-panel-row">
-            <div class="tm-panel">
-                <div class="tm-title" id="tm-titleUpper">상위 토너먼트</div>
-                <div id="tm-wrap-upper" class="tm-wrap">
-                    <svg id="tm-lines-upper" class="tm-lines"></svg>
-                </div>
-            </div>
-
-            <div class="tm-panel">
-                <div class="tm-title" id="tm-titleLower">하위 토너먼트</div>
-                <div id="tm-wrap-lower" class="tm-wrap">
-                    <svg id="tm-lines-lower" class="tm-lines"></svg>
-                </div>
-            </div>
-        </div>
-    </div><!-- /tournament-area -->
+        </div><!-- /tournament-area -->
     </div><!-- /tab-match -->
 
     <!-- 2. History Tab -->
@@ -1998,19 +2006,19 @@
         // 1. Fallback Defaults (Network Error / File protocol)
         const DEFAULT_PLAYERS = [
             { id: "p001", name: "박만영", grade: 1 },
-            { id: "p002", name: "이정우", grade: 3 },
+            { id: "p002", name: "이정우", grade: 4 },
             { id: "p003", name: "김경태", grade: 2 },
             { id: "p004", name: "박병재", grade: 1 },
-            { id: "p005", name: "안성대", grade: 5 },
+            { id: "p005", name: "안성대", grade: 6 },
             { id: "p006", name: "유호성", grade: 2 },
-            { id: "p007", name: "조복연", grade: 3 },
+            { id: "p007", name: "조복연", grade: 4 },
             { id: "p008", name: "강희철", grade: 4 },
             { id: "p009", name: "김미경", grade: 6 },
-            { id: "p010", name: "김성호", grade: 5 },
+            { id: "p010", name: "김성호", grade: 6 },
             { id: "p011", name: "김세중", grade: 6 },
             { id: "p012", name: "김순동", grade: 5 },
             { id: "p013", name: "김형찬", grade: 1 },
-            { id: "p014", name: "김홍석", grade: 5 },
+            { id: "p014", name: "김홍석", grade: 6 },
             { id: "p015", name: "류계열", grade: 5 },
             { id: "p016", name: "박덕례", grade: 6 },
             { id: "p017", name: "박혜란", grade: 6 },
@@ -2040,7 +2048,9 @@
         let INITIAL_NAMES = DEFAULT_PLAYERS.map(p => p.name);
 
         // 2. Try LocalStorage (User's custom list)
+        // ❌ USER REQUEST: Disable LocalStorage for names. Always use program defaults.
         let hasLocalStorage = false;
+        /*
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
             if (raw) {
@@ -2061,12 +2071,16 @@
         } catch (e) {
             console.error("LS load failed", e);
         }
+        */
 
         INITIAL_NAMES.sort((a, b) => a.localeCompare(b, 'ko'));
 
         // 3. Try Fetching names.json (Async) - ONLY if LS is empty
         // If the user has already customized the list (LS exists), we do NOT overwrite it with the file.
         // This ensures 'Add Player' changes are respected.
+        // 3. Try Fetching names.json (Async) - ONLY if LS is empty
+        // ❌ USER REQUEST: Disable name.json loading too. Only use DEFAULT_PLAYERS in code.
+        /*
         (async function loadNamesFromJson() {
             if (hasLocalStorage) return; // Skip if user has data
 
@@ -2087,6 +2101,7 @@
                 console.warn("names.json fetch failed (likely local file protocol). Using defaults.", err);
             }
         })();
+        */
 
         function saveNames() {
             try {
@@ -2178,7 +2193,7 @@
                         // If tournament was active, try to show it
                         if (bracketState.size > 0) {
                             setTimeout(() => {
-                                runTournamentGeneration();
+                                runTournamentGeneration(true);
                             }, 100);
                         }
                         return;
@@ -2288,9 +2303,20 @@
 
         function openReset() {
             if (!confirm("모든 데이터를 초기화하시겠습니까? (이전 배정/점수 삭제됨)")) return;
+
+            // ✅ Ask about Names Reset
+            if (localStorage.getItem(STORAGE_KEY)) {
+                if (confirm("저장된 '선수 명단'도 삭제하고 코드의 기본값으로 되돌리시겠습니까?\n(코드에서 이름을 수정한 경우 '확인'을 눌러야 적용됩니다.)")) {
+                    localStorage.removeItem(STORAGE_KEY);
+                    alert("명단이 초기화되었습니다. 페이지를 새로고침합니다.");
+                    location.reload();
+                    return;
+                }
+            }
+
             initState();
             renderPool();
-            createTeams(4); // Default 4 groups
+            createTeams(4); // Default 4 Groups
 
             // clear tournament area if open
             const area = document.getElementById("tournament-area");
@@ -2844,6 +2870,9 @@
             for (const n of INITIAL_NAMES) state.set(n, { where: "pool" });
             resultsByTeam.clear();
             manualRankByTeam.clear();
+            // ✅ Fix: Clear bracket state to prevent old tournament data from persisting
+            bracketState.clear();
+
             state.groupsCount = 0;
             closeAssign();
             closeRank();
@@ -4528,7 +4557,7 @@
         /* 
            Main Execution: Generate Tournament from actual state
         */
-        function runTournamentGeneration() {
+        function runTournamentGeneration(isRestoring = false) {
             const groupRanks = collectRealGroupRanks();
 
             // Check total players
@@ -4574,6 +4603,16 @@
 
             // Basic Split: n/2
             const { upperEntries, lowerEntries } = splitUpperLower(groupRanks);
+
+            // ✅ CONFIRM & CLEAR: If tournament exists, ask user and clear state
+            // This prevents "Ghost Players" from previous generation appearing in new structure
+            if (!isRestoring && bracketState.size > 0) {
+                if (!confirm("이미 진행 중인 토너먼트 데이터가 있습니다.\n새로 생성하면 기존 경기 결과가 초기화됩니다.\n계속하시겠습니까?")) {
+                    return;
+                }
+                bracketState.clear();
+                saveAllData();
+            }
 
             // Draw Dashboard
             drawTournamentDashboard(groupRanks);
@@ -4874,6 +4913,62 @@
                         // Random score: 2-0, 0-2, 2-1, 1-2
                         // Weighted random? Or just pure random.
                         // Let's make it somewhat interesting.
+                        const r = Math.random();
+                        let scoreVal = "2-0";
+                        if (r < 0.25) scoreVal = "2-0";
+                        else if (r < 0.5) scoreVal = "0-2";
+                        else if (r < 0.75) scoreVal = "2-1";
+                        else scoreVal = "1-2";
+
+                        resMap.set(k, { score: scoreVal });
+                    }
+                }
+            });
+
+            renderAllTeams();
+
+            // 4. Draw Tournament
+            setTimeout(runTournamentGeneration, 100);
+        }
+
+        function runAutoTestScenarioMixed() {
+            if (!confirm("데이터를 초기화하고 혼합 4개 조(5,6,6,5명) 테스트를 진행하시겠습니까? (총 22명)")) return;
+
+            initState();
+
+            // 1. 4 Teams
+            createTeams(4);
+
+            // 2. Assign 22 players (5, 6, 6, 5)
+            // Ensure we have enough names
+            if (INITIAL_NAMES.length < 22) {
+                alert("이름이 부족합니다 (최소 22명 필요)");
+                return;
+            }
+
+            const p1 = INITIAL_NAMES.slice(0, 5);
+            const p2 = INITIAL_NAMES.slice(5, 11);
+            const p3 = INITIAL_NAMES.slice(11, 17);
+            const p4 = INITIAL_NAMES.slice(17, 22);
+
+            const pools = [p1, p2, p3, p4];
+
+            pools.forEach((members, grpIdx) => {
+                const teamId = `team-${grpIdx + 1}`;
+                members.forEach(nm => {
+                    state.set(nm, { where: "team", teamId });
+                });
+
+                // 3. Generate Random Results
+                const resMap = ensureTeamResults(teamId);
+
+                for (let i = 0; i < members.length; i++) {
+                    for (let j = i + 1; j < members.length; j++) {
+                        const A = members[i];
+                        const B = members[j];
+                        const k = keyPair(A, B);
+
+                        // Random score
                         const r = Math.random();
                         let scoreVal = "2-0";
                         if (r < 0.25) scoreVal = "2-0";
