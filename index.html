@@ -5526,53 +5526,98 @@
             const el = document.getElementById("timeEst");
             if (!el) return;
 
-            // if (!state.groupsCount || state.groupsCount === 0) {
-            //     el.textContent = "⏱️ 대기중";
-            //     return;
-            // }
-
-            // Recalculate based on current DOM teams to be safe (or state)
-            let totalMatches = 0;
-            // Iterate known groups from state
             const groupCount = state.groupsCount || 0;
-
             if (groupCount === 0) {
                 el.textContent = "⏱️ 준비중";
                 return;
             }
 
+            let totalMatches = 0;
+            let remainingMatches = 0;
+
+            // Player Bottleneck Tracking
+            const playerRemainingCounts = new Map(); // name -> count
+
             for (let i = 1; i <= groupCount; i++) {
-                const members = getTeamMembers(`team-${i}`);
+                const teamId = `team-${i}`;
+                const members = getTeamMembers(teamId);
                 const n = members.length;
-                if (n >= 2) {
-                    totalMatches += (n * (n - 1)) / 2;
+                if (n < 2) continue;
+
+                // Create full match list for this group
+                const teamResults = resultsByTeam.has(teamId) ? resultsByTeam.get(teamId) : new Map();
+
+                for (let a = 0; a < n - 1; a++) {
+                    for (let b = a + 1; b < n; b++) {
+                        totalMatches++;
+
+                        const p1 = members[a];
+                        const p2 = members[b];
+
+                        // ✅ Use keyPair consistently
+                        const key = (p1.localeCompare(p2, 'ko') <= 0) ? `${p1}|||${p2}` : `${p2}|||${p1}`;
+
+                        // Check if finished (Must have valid score with hyphen)
+                        const entry = teamResults.get(key);
+                        const isFinished = entry && entry.score && entry.score.includes("-");
+
+                        if (!isFinished) {
+                            remainingMatches++;
+
+                            // Increment player counters
+                            playerRemainingCounts.set(p1, (playerRemainingCounts.get(p1) || 0) + 1);
+                            playerRemainingCounts.set(p2, (playerRemainingCounts.get(p2) || 0) + 1);
+                        }
+                    }
                 }
             }
 
             if (totalMatches === 0) {
-                el.textContent = "⏱️ 0분";
+                el.textContent = "⏱️ 0분 (0/0경기)";
                 return;
             }
 
-            // Calculation
-            const requiredMinutes = (totalMatches * estMinsPerMatch) / estTableCount;
-
-            // 💡 탁구대 회전율 고려 (Efficiency Factor)
-            // 이상적일 때는 빈틈없이 돌아가지만, 실제로는:
-            // - 선수 호명 및 입장 대기
-            // - 몸풀기 (1~2분)
-            // - 결과 기록 및 다음 게임 배정 딜레이
-            // -> 통상적으로 10%~15% 정도의 여유 시간을 추가하는 것이 정확함.
+            // Efficiency Factor 1.1 (10% Buffer)
             const efficiencyFactor = 1.1;
-            const bufferedMinutes = Math.ceil(requiredMinutes * efficiencyFactor);
 
-            const hours = Math.floor(bufferedMinutes / 60);
-            const mins = Math.floor(bufferedMinutes % 60);
+            // 1. Total Estimated Time (Table Batching)
+            const totalRounds = Math.ceil(totalMatches / estTableCount);
+            const totalRequired = totalRounds * estMinsPerMatch;
+            const totalBuffered = Math.ceil(totalRequired * efficiencyFactor);
+            const totalH = Math.floor(totalBuffered / 60);
+            const totalM = Math.floor(totalBuffered % 60);
+
+            // 2. Remaining Time (Advanced: Max(Table Constraint, Player Constraint))
+
+            // A. Table Constraint
+            const roundsByTable = Math.ceil(remainingMatches / estTableCount);
+
+            // B. Player Constraint (Bottleneck)
+            let maxPlayerRemaining = 0;
+            for (const count of playerRemainingCounts.values()) {
+                if (count > maxPlayerRemaining) maxPlayerRemaining = count;
+            }
+
+            // Final Rounds needed is the greater of the two
+            const finalRemainingRounds = Math.max(roundsByTable, maxPlayerRemaining);
+
+            const remainRequired = finalRemainingRounds * estMinsPerMatch;
+            const remainBuffered = Math.ceil(remainRequired * efficiencyFactor);
+            const remainH = Math.floor(remainBuffered / 60);
+            const remainM = Math.floor(remainBuffered % 60);
 
             let txt = `⏱️ 예상: `;
-            if (hours > 0) txt += `${hours}시간 `;
-            txt += `${mins}분`;
-            txt += ` (${totalMatches}경기/${estTableCount}대)`;
+            if (totalH > 0) txt += `${totalH}시간 `;
+            txt += `${totalM}분`;
+
+            // Add Remaining Info
+            txt += ` (남음: `;
+            if (remainH > 0) txt += `${remainH}시간 `;
+            txt += `${remainM}분, `;
+
+            // txt += `[T:${roundsByTable}/P:${maxPlayerRemaining}] `; // Debug
+
+            txt += `${remainingMatches}/${totalMatches}경기)`;
 
             el.textContent = txt;
         }
