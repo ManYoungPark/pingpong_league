@@ -1459,8 +1459,15 @@
                     <div class="card-hd">
                         <div class="title" style="display:flex; align-items:center; gap:8px;">
                             이름 목록 <span class="pill" id="poolCount">0명</span>
+                            <div
+                                style="display:flex; gap:4px; margin-left:8px; border-left:1px solid #e2e8f0; padding-left:8px;">
+                                <button type="button" class="btn" id="btn-sort-name"
+                                    style="padding:4px 8px; font-size:11px;" onclick="setPoolSort('name')">가나다순</button>
+                                <button type="button" class="btn" id="btn-sort-grade"
+                                    style="padding:4px 8px; font-size:11px;" onclick="setPoolSort('grade')">부수순</button>
+                            </div>
                             <button type="button" class="btn"
-                                style="padding:4px 8px; font-size:11px; background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;"
+                                style="padding:4px 8px; font-size:11px; background:#f0fdf4; color:#15803d; border-color:#bbf7d0; margin-left:auto;"
                                 onclick="addPlayer()">+ 이름 추가</button>
                             <button type="button" class="btn"
                                 style="padding:4px 8px; font-size:11px; background:#f0fdf4; color:#15803d; border-color:#bbf7d0;"
@@ -1474,6 +1481,12 @@
                 <section class="card" id="card-teams">
                     <div class="card-hd">
                         <div class="title">조 테이블 <span class="pill" id="teamInfo">0조</span>
+                            <button type="button" class="btn primary" onclick="runMonthlyAutoFill()"
+                                style="margin-left:8px; padding:4px 8px; font-size:12px; border-radius:8px;">📅 월례대회
+                                자동</button>
+                            <button type="button" class="btn primary" onclick="runMonthlyAutoFillLevel()"
+                                style="margin-left:4px; padding:4px 8px; font-size:12px; border-radius:8px; background-color:#8b5cf6; border-color:#7c3aed;">📅
+                                최강/일반/초심</button>
                             <!-- Time Estimate Feature -->
                             <span id="timeEst"
                                 style="cursor:pointer; font-size:13px; color:#7c3aed; font-weight:bold; margin-left:8px; border-bottom:1px dashed #7c3aed;"
@@ -2872,15 +2885,64 @@
             return div;
         }
 
+        let currentPoolSort = 'name'; // 'name' or 'grade'
+
+        function setPoolSort(mode) {
+            currentPoolSort = mode;
+            renderPool();
+            updateSortBtnStyles();
+        }
+
+        function updateSortBtnStyles() {
+            const btnName = document.getElementById('btn-sort-name');
+            const btnGrade = document.getElementById('btn-sort-grade');
+
+            if (!btnName || !btnGrade) return;
+
+            if (currentPoolSort === 'name') {
+                btnName.style.fontWeight = '800';
+                btnName.style.color = '#1d4ed8';
+                btnName.style.background = '#eff6ff';
+                btnName.style.borderColor = '#bfdbfe';
+
+                btnGrade.style.fontWeight = '400';
+                btnGrade.style.color = '#64748b';
+                btnGrade.style.background = '#fff';
+                btnGrade.style.borderColor = '#e2e8f0';
+            } else {
+                btnGrade.style.fontWeight = '800';
+                btnGrade.style.color = '#1d4ed8';
+                btnGrade.style.background = '#eff6ff';
+                btnGrade.style.borderColor = '#bfdbfe';
+
+                btnName.style.fontWeight = '400';
+                btnName.style.color = '#64748b';
+                btnName.style.background = '#fff';
+                btnName.style.borderColor = '#e2e8f0';
+            }
+        }
+
         function renderPool() {
             poolEl.innerHTML = "";
-            const inPool = [];
+            let inPool = [];
             for (const name of INITIAL_NAMES) {
                 const s = state.get(name);
                 if (s?.where === "pool") inPool.push(name);
             }
+
+            // Sorting Logic
+            inPool.sort((a, b) => {
+                if (currentPoolSort === 'grade') {
+                    const ga = PLAYER_INFO.get(a)?.grade || 0;
+                    const gb = PLAYER_INFO.get(b)?.grade || 0;
+                    if (ga !== gb) return ga - gb; // Lower grade first (1 -> 7)
+                }
+                return a.localeCompare(b, 'ko');
+            });
+
             inPool.forEach(n => poolEl.appendChild(createNameChip(n)));
             setText(poolCountEl, `${inPool.length}명`);
+            updateSortBtnStyles();
         }
 
         function hasAnyPlayedMatch(teamId, players) {
@@ -2894,6 +2956,94 @@
                 }
             }
             return false;
+        }
+
+        /* ========= 자동 배정 (월례대회) ========= */
+        function runMonthlyAutoFill() {
+            if (!confirm("월례대회 3개조 자동 배정을 시작하시겠습니까?\n(기존 배정 내용은 초기화됩니다.)")) return;
+
+            // 1. Reset & Set 3 Groups
+            initState();
+            createTeams(3);
+
+            // 2. Define Target List (21 players)
+            const targets = [
+                "박만영", "정선철", "조복연", "이교탁", "박혜란", "윤교찬", "최매완",
+                "김형찬", "오장진", "안성대", "김성호", "홍순관", "서상국", "김경태",
+                "유호성", "백낙천", "정경자", "이영숙", "박병재", "김홍석", "홍현숙"
+            ];
+
+            // 3. Sort by Grade (Asc) then Name (Asc)
+            targets.sort((a, b) => {
+                const ga = PLAYER_INFO.get(a)?.grade || 99;
+                const gb = PLAYER_INFO.get(b)?.grade || 99;
+                if (ga !== gb) return ga - gb;
+                return a.localeCompare(b, 'ko');
+            });
+
+            // 4. Distribute (Sequential: 1->2->3->1...)
+            targets.forEach((name, idx) => {
+                const teamNum = (idx % 3) + 1;
+                // Add to state (Move from pool to team)
+                state.set(name, { where: "team", teamId: `team-${teamNum}`, order: Date.now() + idx });
+
+                // Ensure player is in INITIAL_NAMES/PLAYER_INFO if missing (Safety fallback)
+                if (!PLAYER_INFO.has(name)) {
+                    PLAYER_INFO.set(name, { id: "auto", name: name, grade: 0 });
+                }
+            });
+
+            // 5. Render
+            renderAllTeams();
+            renderPool();
+            alert(`배정이 완료되었습니다.\n(총 ${targets.length}명, 3개조)`);
+        }
+
+        function runMonthlyAutoFillLevel() {
+            if (!confirm("월례대회 '수준별' 3개조 자동 배정을 시작하시겠습니까?\n(1조: 고수, 3조: 하수)\n기존 배정 내용은 초기화됩니다.")) return;
+
+            // 1. Reset & Set 3 Groups
+            initState();
+            createTeams(3);
+
+            // 2. Define Target List (21 players)
+            const targets = [
+                "박만영", "정선철", "조복연", "이교탁", "박혜란", "윤교찬", "최매완",
+                "김형찬", "오장진", "안성대", "김성호", "홍순관", "서상국", "김경태",
+                "유호성", "백낙천", "정경자", "이영숙", "박병재", "김홍석", "홍현숙"
+            ];
+
+            // 3. Sort by Grade (Asc) then Name (Asc)
+            targets.sort((a, b) => {
+                const ga = PLAYER_INFO.get(a)?.grade || 99;
+                const gb = PLAYER_INFO.get(b)?.grade || 99;
+                if (ga !== gb) return ga - gb;
+                return a.localeCompare(b, 'ko');
+            });
+
+            // 4. Distribute (Level Based: 1->1->... then 2->2... then 3->3...)
+            // 21 players / 3 groups = 7 per group.
+            const perGroup = Math.ceil(targets.length / 3);
+
+            targets.forEach((name, idx) => {
+                // idx 0~6 -> Team 1
+                // idx 7~13 -> Team 2
+                // idx 14~20 -> Team 3
+                const teamNum = Math.floor(idx / perGroup) + 1;
+
+                // Add to state
+                state.set(name, { where: "team", teamId: `team-${teamNum}`, order: Date.now() + idx });
+
+                // Ensure player info
+                if (!PLAYER_INFO.has(name)) {
+                    PLAYER_INFO.set(name, { id: "auto", name: name, grade: 0 });
+                }
+            });
+
+            // 5. Render
+            renderAllTeams();
+            renderPool();
+            alert(`수준별 배정이 완료되었습니다.\n(1조: 상위, 2조: 중위, 3조: 하위)`);
         }
 
         /* ========= 자동 순위 계산 (공동 순위 포함) =========
