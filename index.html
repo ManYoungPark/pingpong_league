@@ -1473,7 +1473,7 @@
                                 style="padding:4px 8px; font-size:11px; background:#f0fdf4; color:#15803d; border-color:#bbf7d0;"
                                 onclick="downloadNamesJSON()" title="현재 명단을 names.json으로 다운로드">💾 저장</button>
                         </div>
-                        <span class="pill">여기로 드롭하면 회수</span>
+                        <!--                        <span class="pill">여기로 드롭하면 회수</span>-->
                     </div>
                     <div class="list droptarget" id="pool"></div>
                 </section>
@@ -1481,12 +1481,12 @@
                 <section class="card" id="card-teams">
                     <div class="card-hd">
                         <div class="title">조 테이블 <span class="pill" id="teamInfo">0조</span>
-                            <button type="button" class="btn primary" onclick="runMonthlyAutoFill()"
+                            <!-- <button type="button" class="btn primary" onclick="runMonthlyAutoFill()"
                                 style="margin-left:8px; padding:4px 8px; font-size:12px; border-radius:8px;">📅 월례대회
-                                자동</button>
+                                자동</button> 
                             <button type="button" class="btn primary" onclick="runMonthlyAutoFillLevel()"
                                 style="margin-left:4px; padding:4px 8px; font-size:12px; border-radius:8px; background-color:#8b5cf6; border-color:#7c3aed;">📅
-                                최강/일반/초심</button>
+                                최강/일반/초심</button>-->
                             <!-- Time Estimate Feature -->
                             <span id="timeEst"
                                 style="cursor:pointer; font-size:13px; color:#7c3aed; font-weight:bold; margin-left:8px; border-bottom:1px dashed #7c3aed;"
@@ -1965,7 +1965,8 @@
             { id: "p030", name: "최매완", grade: 4 },
             { id: "p031", name: "박현신", grade: 6 },
             { id: "p032", name: "홍순관", grade: 6 },
-            { id: "p033", name: "홍현숙", grade: 7 }
+            { id: "p033", name: "홍현숙", grade: 7 },
+            { id: "p034", name: "박승기", grade: 6 }
         ];
 
         // Player Info Lookup (name -> {id, grade})
@@ -2765,7 +2766,11 @@
         function openInfoPortal(title, content, anchorEl) {
             currentInfoAnchor = anchorEl;
             infoTitle.textContent = title;
+            infoTitle.textContent = title;
             infoContent.textContent = content;
+            infoContent.style.whiteSpace = "pre-wrap"; // Enable multi-line display
+            infoContent.style.lineHeight = "1.5";
+            infoContent.style.textAlign = "left";
 
             infoPortal.classList.add("open");
             infoPortal.setAttribute("aria-hidden", "false");
@@ -3096,12 +3101,18 @@
                         points: s.win,
                         autoRank: null,
                         autoReason: null,
+                        autoDetail: "경기 기록 없음",
                         tieKey: null,
                         tieMembers: null,
                         tieBaseRank: null
                     });
                 });
                 return { map: out, anyPlayed, tieGroups: [] };
+            }
+
+            // Helper to format reasoning
+            function formatReason(baseDetail, reason, extra) {
+                return baseDetail + `\n└ ${reason} ${extra}`;
             }
 
             function headToHeadWinner(a, b) {
@@ -3261,6 +3272,24 @@
                             chunk.push(cur);
                             k++;
                         } else break;
+                    }
+
+                    // 3명 이상 동률 발생 시 상세 설명 추가
+                    if (group.length >= 3) {
+                        chunk.forEach(nm => {
+                            const s = base.get(nm);
+                            const d = s.setsFor - s.setsAgainst;
+                            const f = s.setsFor;
+                            const sign = d >= 0 ? "+" : "";
+                            // Update detail with 3-way tie specific info
+                            // We want to append this ONLY ONCE per user for this tie group, but since we iterate chunks,
+                            // we need to be careful not to duplicate.
+                            // Actually, 'detailMap' accumulates.
+                            // Let's just add the final decision criteria.
+
+                            // If this chunk is the result of sorting by Diff/For:
+                            detailMap.set(nm, detailMap.get(nm) + `\n└ 3자간 비교: 득실 ${sign}${d}, 득점 ${f}`);
+                        });
                     }
 
                     if (chunk.length === 1) {
