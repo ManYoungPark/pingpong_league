@@ -1599,8 +1599,9 @@
 
                 <div class="tm-controls">
                     <h2 class="tm-title">🏆 본선 토너먼트</h2>
-                    <button type="button" class="btn" onclick="captureResultImage()" style="margin-left:auto;">📷 이미지
-                        저장</button>
+                    <button type="button" class="btn" onclick="exportToGoogleSheet()"
+                        style="margin-left:auto; margin-right:8px;">📤 서버에 결과저장</button>
+                    <button type="button" class="btn" onclick="captureResultImage()">📷 이미지 저장</button>
                 </div>
 
                 <div class="tm-panel-row">
@@ -5250,6 +5251,8 @@
         // init
         checkStorageAndInit();
 
+
+
         async function exportToGoogleSheet() {
             // Hardcoded Default URL
             const url = "https://script.google.com/macros/s/AKfycbybkNRimOGBcCYH7HAbiT6lhlqtT9SzVZ0QjDxkD6By1ePgtv5XS8-eGSIIRocNpdJn/exec";
@@ -5322,13 +5325,24 @@
 
             // Apply Points
             const upper = analyzeBracket('U');
+            const lower = analyzeBracket('L');
+
+            // [Validation] Ensure Winners are decided
+            if (upper.winner === '미정') {
+                alert("상위 토너먼트 우승자가 확정되지 않았습니다.\n모든 경기가 종료된 후 저장할 수 있습니다.");
+                return;
+            }
+            if (document.getElementById('L-winner') && lower.winner === '미정') {
+                alert("하위 토너먼트 우승자가 확정되지 않았습니다.\n모든 경기가 종료된 후 저장할 수 있습니다.");
+                return;
+            }
+
             if (upper.winner !== '미정') {
                 addPointByName(upper.winner, 5, "상위 우승");
                 addPointByName(upper.runnerUp, 4, "상위 준우승");
                 upper.semiFinalists.forEach(name => addPointByName(name, 3, "상위 4강"));
             }
 
-            const lower = analyzeBracket('L');
             if (lower.winner !== '미정') {
                 addPointByName(lower.winner, 4, "하위 우승");
                 addPointByName(lower.runnerUp, 3, "하위 준우승");
