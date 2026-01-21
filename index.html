@@ -1746,71 +1746,57 @@
                     <button class="close" type="button" id="helpClose">닫기</button>
                 </div>
                 <div style="padding:10px 14px; font-size:13px; line-height:1.6; color:#333;">
-                    <h3 style="margin:0 0 8px; font-size:14px; font-weight:800; color:#111;">1. 동률 처리 기준 (순위 산정 우선순위)
-                    </h3>
-                    <p style="margin:0 0 8px; color:#555;">리그전(조별 경기)에서 참가자의 순위는 아래 기준을 <b>위에서부터 순차적으로 적용</b>하여 결정한다.
-                    </p>
+                    <h3 style="margin:0 0 8px; font-size:14px; font-weight:800; color:#111;">1. 순위 산정 우선순위</h3>
+                    <p style="margin:0 0 8px; color:#555;">리그전(조별 경기) 순위는 아래 기준을 <b>순차적으로 적용</b>하여 결정합니다.</p>
                     <ol style="margin:0 0 20px; padding-left:20px; color:#4b5563;">
-                        <li style="margin-bottom:4px;"><b>승점 (Wins)</b><br />승리 횟수가 많은 참가자를 상위 순위로 한다.</li>
-                        <li style="margin-bottom:4px;"><b>승자승 (Head-to-Head)</b><br />동률자가 <b>2명일 경우에만 적용</b>하며, 두 참가자 간
-                            맞대결에서 승리한 참가자를 상위 순위로 한다.</li>
-                        <li style="margin-bottom:4px;"><b>세트 득실 (Set Difference, SD)</b><br />모든 경기에서의 <b>총 세트 득수에서 총 세트
-                                실수를
-                                뺀 값</b>이 큰 참가자를 상위 순위로 한다.</li>
-                        <li style="margin-bottom:4px;"><b>세트 다득 (Set For, SF)</b><br />세트 득실이 같은 경우, <b>총 세트 득수가 많은
-                                참가자</b>를
-                            상위 순위로 한다.</li>
-                        <li><b>공동 순위 (Tie)</b><br />위 모든 기준이 동일할 경우, 해당 참가자들은 <b>공동 순위</b>로 처리한다.<br />(필요 시 주최 측이 별도의
-                            결정 방식
-                            또는 추가 경기로 순위를 확정할 수 있다.)</li>
+                        <li style="margin-bottom:4px;"><b>승수 (Wins)</b><br />전체 경기 승리 횟수가 많은 순서</li>
+                        <li style="margin-bottom:4px;"><b>승자승 (Head-to-Head)</b><br />승수가 같은 선수들끼리의 <b>맞대결 승수</b>가 많은 순서
+                            (3인 이상 포함)</li>
+                        <li style="margin-bottom:4px;"><b>세트 득실 (Set Difference)</b><br />이긴 세트에서 진 세트를 뺀 값이 큰 순서<br />
+                            <small style="color:#6b7280;">* 동률 시 변별력을 위해 내부적으로는 <b>득실률(득세트/총세트)</b>을 계산하여 결정합니다.</small>
+                        </li>
+                        <li style="margin-bottom:4px;"><b>세트 다득 (Set For)</b><br />총 이긴 세트가 많은 순서</li>
+                        <li><b>공동 순위 (Tie)</b><br />모든 기준이 같을 경우 공동 순위로 처리 (필요 시 수동 확정 가능)</li>
                     </ol>
 
-                    <h3 style="margin:0 0 8px; font-size:14px; font-weight:800; color:#111;">2. 동률 처리 예시</h3>
+                    <h3 style="margin:0 0 8px; font-size:14px; font-weight:800; color:#111;">2. 동률 처리 예시 (3인 동률 시)</h3>
                     <div
                         style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; color:#4b5563; margin-bottom:20px;">
-                        <h4 style="margin:0 0 6px; font-size:13px; font-weight:800;">예시 상황</h4>
-                        <p style="margin:0 0 10px;">A, B, C 세 명의 참가자가 각각 <b>1승 1패</b>로 동률인 경우</p>
-
-                        <h4 style="margin:0 0 6px; font-size:13px; font-weight:800;">경기 결과</h4>
+                        <h4 style="margin:0 0 6px; font-size:13px; font-weight:800;">상황: A, B, C 모두 1승 1패</h4>
                         <ul style="margin:0 0 10px; padding-left:20px;">
                             <li>A vs B : A 승 (2–0)</li>
                             <li>B vs C : B 승 (2–1)</li>
                             <li>C vs A : C 승 (2–1)</li>
                         </ul>
-
                         <h4 style="margin:0 0 6px; font-size:13px; font-weight:800;">판단 과정</h4>
                         <ol style="margin:0 0 10px; padding-left:20px;">
-                            <li><b>승점</b>: 세 참가자 모두 1승 1패 → 동률</li>
-                            <li><b>승자승</b>: 세 명이 서로 순환 승리를 기록하여 적용 불가<br />(A는 B에게 승리, B는 C에게 승리, C는 A에게 승리)</li>
-                            <li><b>세트 득실 (SD) 비교</b>
+                            <li><b>승수</b>: 모두 1승으로 동일</li>
+                            <li><b>승자승</b>: 세 명 간의 맞대결도 각각 1승 1패로 동일</li>
+                            <li><b>세트 득실 비교</b>
                                 <table
                                     style="width:100%; margin-top:6px; border-collapse:collapse; font-size:12px; background:#fff;">
                                     <tr style="background:#f1f5f9; border-bottom:1px solid #e2e8f0;">
                                         <th style="padding:4px; border:1px solid #e2e8f0;">참가자</th>
-                                        <th style="padding:4px; border:1px solid #e2e8f0;">세트 득</th>
-                                        <th style="padding:4px; border:1px solid #e2e8f0;">세트 실</th>
-                                        <th style="padding:4px; border:1px solid #e2e8f0;">세트 득실</th>
+                                        <th style="padding:4px; border:1px solid #e2e8f0;">득/실</th>
+                                        <th style="padding:4px; border:1px solid #e2e8f0;">득실(차)</th>
                                     </tr>
                                     <tr>
                                         <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">A</td>
-                                        <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">3</td>
-                                        <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">2</td>
+                                        <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">3/2</td>
                                         <td
                                             style="padding:4px; border:1px solid #e2e8f0; text-align:center; font-weight:bold; color:#1d4ed8;">
                                             +1</td>
                                     </tr>
                                     <tr>
                                         <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">B</td>
-                                        <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">2</td>
-                                        <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">3</td>
+                                        <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">2/3</td>
                                         <td
                                             style="padding:4px; border:1px solid #e2e8f0; text-align:center; font-weight:bold; color:#ef4444;">
                                             -1</td>
                                     </tr>
                                     <tr>
                                         <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">C</td>
-                                        <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">3</td>
-                                        <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">3</td>
+                                        <td style="padding:4px; border:1px solid #e2e8f0; text-align:center;">3/3</td>
                                         <td
                                             style="padding:4px; border:1px solid #e2e8f0; text-align:center; font-weight:bold;">
                                             0</td>
@@ -1818,21 +1804,13 @@
                                 </table>
                             </li>
                         </ol>
-
-                        <h4 style="margin:0 0 6px; font-size:13px; font-weight:800;">최종 순위</h4>
-                        <ul style="margin:0; padding-left:20px;">
-                            <li><b>1위</b> : A (세트 득실 +1)</li>
-                            <li><b>2위</b> : C (세트 득실 0)</li>
-                            <li><b>3위</b> : B (세트 득실 -1)</li>
-                        </ul>
+                        <h4 style="margin:0 0 6px; font-size:13px; font-weight:800;">최종 순위: A(1위) > C(2위) > B(3위)</h4>
                     </div>
 
                     <h3 style="margin:0 0 8px; font-size:14px; font-weight:800; color:#111;">3. 참고 사항</h3>
                     <ul style="margin:0; padding-left:20px; color:#4b5563;">
-                        <li style="margin-bottom:4px;"><b>3명 이상 동률일 경우</b>, 승자승 기준은 적용하지 않고 세트 득실부터 비교한다.</li>
-                        <li style="margin-bottom:4px;">모든 세트 득실 및 세트 득수는 <b>해당 조의 모든 경기 결과를 합산</b>하여 계산한다.
-                        </li>
-                        <li>공동 순위가 발생할 경우, 순위 표에는 <b>“공동 ○위”</b>로 표시한다.</li>
+                        <li style="margin-bottom:4px;"><b>득실률 계산</b>: (본인 득점 세트합) / (본인 전체 경기 세트합)</li>
+                        <li style="margin-bottom:4px;">동률 해결이 안 될 경우 순위 셀을 클릭하여 <b>수동으로 순위를 확정</b>할 수 있습니다.</li>
                     </ul>
                 </div>
             </div>
@@ -3063,7 +3041,7 @@
         function computeRanking(teamId, players) {
             const resMap = ensureTeamResults(teamId);
 
-            // 기본 통계
+            // 기본 통계 (Overall stats)
             const base = new Map();
             players.forEach(p => base.set(p, { name: p, played: 0, win: 0, lose: 0, setsFor: 0, setsAgainst: 0 }));
 
@@ -3089,9 +3067,13 @@
             }
 
             const anyPlayed = Array.from(base.values()).some(s => s.played > 0);
-            const statsArr = Array.from(base.values()).map(s => ({ ...s, points: s.win }));
+            const statsArr = Array.from(base.values()).map(s => {
+                // Calculate Ratio: For / (For + Against)
+                const denom = s.setsFor + s.setsAgainst;
+                const ratio = denom === 0 ? 0 : (s.setsFor / denom);
+                return { ...s, points: s.win, setRatio: ratio };
+            });
 
-            // 점수 입력 전이면 rank는 null
             if (!anyPlayed) {
                 const out = new Map();
                 players.forEach(p => {
@@ -3099,6 +3081,7 @@
                     out.set(p, {
                         ...s,
                         points: s.win,
+                        setRatio: 0,
                         autoRank: null,
                         autoReason: null,
                         autoDetail: "경기 기록 없음",
@@ -3110,25 +3093,10 @@
                 return { map: out, anyPlayed, tieGroups: [] };
             }
 
-            // Helper to format reasoning
-            function formatReason(baseDetail, reason, extra) {
-                return baseDetail + `\n└ ${reason} ${extra}`;
-            }
-
-            function headToHeadWinner(a, b) {
-                const k = keyPair(a, b);
-                const parsed = parseScore(resMap.get(k)?.score || "");
-                if (!parsed) return null;
-                const aIsFirst = k.startsWith(`${a}|||`);
-                const aScore = aIsFirst ? parsed.a : parsed.b;
-                const bScore = aIsFirst ? parsed.b : parsed.a;
-                if (aScore === bScore) return null;
-                return aScore > bScore ? a : b;
-            }
-
-            function innerStats(group) {
-                const inner = new Map();
-                group.forEach(p => inner.set(p, { diff: 0, for: 0 }));
+            // Helper to get H2H Wins within a subgroup
+            function getSubgroupWins(group) {
+                const wins = new Map();
+                group.forEach(p => wins.set(p, 0));
                 for (let i = 0; i < group.length; i++) {
                     for (let j = i + 1; j < group.length; j++) {
                         const A = group[i], B = group[j];
@@ -3138,32 +3106,27 @@
                         const aIsFirst = k.startsWith(`${A}|||`);
                         const aScore = aIsFirst ? parsed.a : parsed.b;
                         const bScore = aIsFirst ? parsed.b : parsed.a;
-                        inner.get(A).diff += (aScore - bScore);
-                        inner.get(B).diff += (bScore - aScore);
-                        inner.get(A).for += aScore;
-                        inner.get(B).for += bScore;
+                        if (aScore > bScore) wins.set(A, wins.get(A) + 1);
+                        else if (bScore > aScore) wins.set(B, wins.get(B) + 1);
                     }
                 }
-                return inner;
+                return wins;
             }
 
-            // 승점으로 1차 그룹
-            statsArr.sort((x, y) => (y.points - x.points) || x.name.localeCompare(y.name, 'ko'));
-
-            const blocks = []; // [{members:[...], reasonForLeader:'H2H/SD/SF/TIE/...' } ...] but we keep reason per member later
-            const tieGroups = []; // [{tieKey, members, baseRank}]
-            const reasonMap = new Map(); // name -> code (H2H/SD/SF/TIE)
-            const detailMap = new Map(); // name -> specific explanation string
-
-            // Initialize detail with basic stats
+            const detailMap = new Map();
             statsArr.forEach(s => {
-                const diff = s.setsFor - s.setsAgainst;
-                const sign = diff >= 0 ? "+" : "";
-                detailMap.set(s.name, `${s.win}승 ${s.lose}패 (득실 ${sign}${diff})`);
+                const ratio = (s.setRatio * 100).toFixed(1);
+                detailMap.set(s.name, `${s.win}승 ${s.lose}패 (세트득실률 ${ratio}%)`);
             });
 
-            let i = 0;
+            const reasonMap = new Map();
+            const blocks = [];
+            const tieGroups = [];
 
+            // 1차 정렬: 승수 내림차순
+            statsArr.sort((x, y) => (y.points - x.points) || x.name.localeCompare(y.name, 'ko'));
+
+            let i = 0;
             while (i < statsArr.length) {
                 const pts = statsArr[i].points;
                 const group = [];
@@ -3177,195 +3140,117 @@
                     continue;
                 }
 
-                // 동률 발생 시, 기본 텍스트에 "동률" 정보 추가
+                // 동률 발생
                 group.forEach(nm => {
-                    const prev = detailMap.get(nm);
-                    detailMap.set(nm, prev + `\n└ ${group.length}명 동률(${pts}승)`);
+                    detailMap.set(nm, detailMap.get(nm) + `\n└ ${group.length}명 동률(${pts}승)`);
                 });
 
-                // 2명 동률: H2H 우선
-                if (group.length === 2) {
-                    const [a, b] = group;
-                    const w = headToHeadWinner(a, b);
-                    if (w) {
-                        const winner = w;
-                        const loser = (w === a) ? b : a;
+                // 2. 동률 그룹 내 승자승(H2H Wins)
+                const subWins = getSubgroupWins(group);
+                const subOrdered = [...group].sort((a, b) => {
+                    const wa = subWins.get(a), wb = subWins.get(b);
+                    if (wa !== wb) return wb - wa;
 
-                        reasonMap.set(winner, "H2H");
-                        detailMap.set(winner, detailMap.get(winner) + `\n└ 승자승 우세 (vs ${loser})`);
-                        detailMap.set(loser, detailMap.get(loser) + `\n└ 승자승 열세 (vs ${winner})`);
+                    // 3. 세트 득실률 (Set Ratio)
+                    const ra = statsArr.find(x => x.name === a).setRatio;
+                    const rb = statsArr.find(x => x.name === b).setRatio;
+                    if (ra !== rb) return rb - ra;
 
-                        blocks.push({ members: [winner], type: "single" });
-                        blocks.push({ members: [loser], type: "single" });
-                    } else {
-                        // H2H가 없으면 전체 득실(SD)/득점(SF) 사용
-                        const sA = base.get(a), sB = base.get(b);
-                        const da = sA.setsFor - sA.setsAgainst;
-                        const db = sB.setsFor - sB.setsAgainst;
-                        const fa = sA.setsFor, fb = sB.setsFor;
+                    // 4. 세트 다득 (Set For)
+                    const fa = statsArr.find(x => x.name === a).setsFor;
+                    const fb = statsArr.find(x => x.name === b).setsFor;
+                    if (fa !== fb) return fb - fa;
 
-                        if (da !== db) {
-                            const better = (da > db) ? a : b;
-                            const worse = (da > db) ? b : a;
-                            const dBet = (da > db) ? da : db;
-                            const dWor = (da > db) ? db : da;
-
-                            reasonMap.set(better, "SD");
-                            detailMap.set(better, detailMap.get(better) + `\n└ 득실 우세 (${dBet} vs ${dWor})`);
-                            detailMap.set(worse, detailMap.get(worse) + `\n└ 득실 열세 (${dWor} vs ${dBet})`);
-
-                            blocks.push({ members: [better], type: "single" });
-                            blocks.push({ members: [worse], type: "single" });
-                        } else if (fa !== fb) {
-                            const better = (fa > fb) ? a : b;
-                            const worse = (fa > fb) ? b : a;
-
-                            reasonMap.set(better, "SF");
-                            detailMap.set(better, detailMap.get(better) + `\n└ 다득점 우세 (${(fa > fb) ? fa : fb} vs ${(fa > fb) ? fb : fa})`);
-                            detailMap.set(worse, detailMap.get(worse) + `\n└ 다득점 열세`);
-
-                            blocks.push({ members: [better], type: "single" });
-                            blocks.push({ members: [worse], type: "single" });
-                        } else {
-                            // 완전 동률: 공동
-                            const ordered = [...group].sort((x, y) => x.localeCompare(y, 'ko'));
-                            ordered.forEach(n => {
-                                reasonMap.set(n, "TIE");
-                                detailMap.set(n, detailMap.get(n) + `\n└ 완전 동률 (공동 순위)`);
-                            });
-                            blocks.push({ members: ordered, type: "tie" });
-                        }
-                    }
-                    continue;
-                }
-
-                // 3명 이상 동률: 전체 SD/SF로 정렬
-                const ordered = [...group].sort((a, b) => {
-                    const sA = base.get(a), sB = base.get(b);
-                    const da = sA.setsFor - sA.setsAgainst;
-                    const db = sB.setsFor - sB.setsAgainst;
-                    if (db !== da) return db - da; // Desc
-
-                    const fa = sA.setsFor, fb = sB.setsFor;
-                    if (fb !== fa) return fb - fa; // Desc
-
-                    return a.localeCompare(b, 'ko'); // Asc
+                    return a.localeCompare(b, 'ko');
                 });
 
-                // diff/for 동일한 구간을 tie-block으로 묶기
+                // 정렬된 subOrdered를 돌며 실제 변별 수단 기록 및 블록화
                 let k = 0;
-                while (k < ordered.length) {
-                    const head = ordered[k];
-                    const sHead = base.get(head);
-                    const headDiff = sHead.setsFor - sHead.setsAgainst;
-                    const headFor = sHead.setsFor;
+                while (k < subOrdered.length) {
+                    const head = subOrdered[k];
+                    const sHeadWins = subWins.get(head);
+                    const headStats = statsArr.find(x => x.name === head);
 
                     const chunk = [head];
                     k++;
-                    while (k < ordered.length) {
-                        const cur = ordered[k];
-                        const sCur = base.get(cur);
-                        const curDiff = sCur.setsFor - sCur.setsAgainst;
-                        const curFor = sCur.setsFor;
+                    while (k < subOrdered.length) {
+                        const cur = subOrdered[k];
+                        const sCurWins = subWins.get(cur);
+                        const curStats = statsArr.find(x => x.name === cur);
 
-                        if (curDiff === headDiff && curFor === headFor) {
+                        if (sCurWins === sHeadWins &&
+                            curStats.setRatio === headStats.setRatio &&
+                            curStats.setsFor === headStats.setsFor) {
                             chunk.push(cur);
                             k++;
                         } else break;
                     }
 
-                    // 3명 이상 동률 발생 시 상세 설명 추가
-                    if (group.length >= 3) {
-                        chunk.forEach(nm => {
-                            const s = base.get(nm);
-                            const d = s.setsFor - s.setsAgainst;
-                            const f = s.setsFor;
-                            const sign = d >= 0 ? "+" : "";
-                            // Update detail with 3-way tie specific info
-                            // We want to append this ONLY ONCE per user for this tie group, but since we iterate chunks,
-                            // we need to be careful not to duplicate.
-                            // Actually, 'detailMap' accumulates.
-                            // Let's just add the final decision criteria.
-
-                            // If this chunk is the result of sorting by Diff/For:
-                            detailMap.set(nm, detailMap.get(nm) + `\n└ 3자간 비교: 득실 ${sign}${d}, 득점 ${f}`);
-                        });
-                    }
-
                     if (chunk.length === 1) {
-                        const better = chunk[0];
-                        if (!reasonMap.has(better)) {
-                            reasonMap.set(better, "SD");
-                            detailMap.set(better, detailMap.get(better) + `\n└ 3자간 득실/다득점 우위`);
+                        const nm = chunk[0];
+                        const winsInSub = subWins.get(nm);
+                        // 변별 기준 찾기 (본인보다 뒤에 있는 사람들과 비교했을 때)
+                        if (k < subOrdered.length) {
+                            const next = subOrdered[k];
+                            const nWins = subWins.get(next);
+                            const nStats = statsArr.find(x => x.name === next);
+
+                            if (winsInSub > nWins) {
+                                reasonMap.set(nm, "H2H");
+                                detailMap.set(nm, detailMap.get(nm) + `\n└ 승자승 우세 (동률 내 ${winsInSub}승)`);
+                            } else if (headStats.setRatio > nStats.setRatio) {
+                                reasonMap.set(nm, "SR");
+                                detailMap.set(nm, detailMap.get(nm) + `\n└ 세트득실률 우세 (${(headStats.setRatio * 100).toFixed(1)}%)`);
+                            } else {
+                                reasonMap.set(nm, "SF");
+                                detailMap.set(nm, detailMap.get(nm) + `\n└ 세트다득 우세 (${headStats.setsFor})`);
+                            }
+                        } else {
+                            // 마지막 그룹인 경우 앞사람과의 비교로 이미 reason이 정해졌거나 기본값
+                            if (!reasonMap.has(nm)) reasonMap.set(nm, "TIE");
                         }
                         blocks.push({ members: chunk, type: "single" });
-                    } else if (chunk.length === 2) {
-                        // 2명만 남은 동률 chunk라면 H2H 한 번 더 시도
-                        const [a, b] = chunk;
-                        const w = headToHeadWinner(a, b);
-                        if (w) {
-                            const winner = w;
-                            const loser = (w === a) ? b : a;
-                            reasonMap.set(winner, "H2H");
-                            detailMap.set(winner, detailMap.get(winner) + `\n└ (재)승자승 우세`);
-                            detailMap.set(loser, detailMap.get(loser) + `\n└ (재)승자승 열세`);
-
-                            blocks.push({ members: [winner], type: "single" });
-                            blocks.push({ members: [loser], type: "single" });
-                        } else {
-                            const ord2 = [...chunk].sort((x, y) => x.localeCompare(y, 'ko'));
-                            ord2.forEach(n => {
-                                reasonMap.set(n, "TIE");
-                                detailMap.set(n, detailMap.get(n) + `\n└ (재)완전 동률`);
-                            });
-                            blocks.push({ members: ord2, type: "tie" });
-                        }
                     } else {
-                        // 3명 이상 완전 동률: 공동
-                        const ordN = [...chunk].sort((x, y) => x.localeCompare(y, 'ko'));
-                        ordN.forEach(n => {
-                            reasonMap.set(n, "TIE");
-                            detailMap.set(n, detailMap.get(n) + `\n└ (3자이상)완전 동률`);
+                        // 완전 동률
+                        chunk.forEach(nm => {
+                            reasonMap.set(nm, "TIE");
+                            detailMap.set(nm, detailMap.get(nm) + `\n└ 완전 동률 (비율/다득점 동일)`);
                         });
-                        blocks.push({ members: ordN, type: "tie" });
+                        blocks.push({ members: chunk, type: "tie" });
                     }
                 }
             }
 
-            // blocks -> rank 부여(competition ranking)
             const out = new Map();
             let rank = 1;
 
             for (const b of blocks) {
                 if (b.members.length === 1) {
                     const nm = b.members[0];
-                    const s = base.get(nm);
+                    const s = statsArr.find(x => x.name === nm);
                     out.set(nm, {
                         ...s,
-                        points: s.win,
                         autoRank: rank,
                         autoReason: reasonMap.get(nm) || null,
-                        autoDetail: detailMap.get(nm) || "", // 상세 설명 추가
+                        autoDetail: detailMap.get(nm) || "",
                         tieKey: null,
                         tieMembers: null,
                         tieBaseRank: null
                     });
                     rank += 1;
                 } else {
-                    // tie block
                     const baseRank = rank;
                     const members = b.members;
-                    const tieKey = `${teamId}|pts=${base.get(members[0]).win}|r=${baseRank}|d?`; // 유니크만 되면 OK
+                    const tieKey = `${teamId}|pts=${statsArr.find(x => x.name === members[0]).points}|r=${baseRank}`;
                     tieGroups.push({ tieKey, members, baseRank });
 
                     for (const nm of members) {
-                        const s = base.get(nm);
+                        const s = statsArr.find(x => x.name === nm);
                         out.set(nm, {
                             ...s,
-                            points: s.win,
-                            autoRank: baseRank,        // 공동 표시의 기준 rank
+                            autoRank: baseRank,
                             autoReason: "TIE",
-                            autoDetail: detailMap.get(nm) || "", // 상세 설명 추가
+                            autoDetail: detailMap.get(nm) || "",
                             tieKey,
                             tieMembers: members,
                             tieBaseRank: baseRank
@@ -3677,10 +3562,10 @@
                 wl.textContent = st ? `${st.win}-${st.lose}` : "0-0";
                 tr.appendChild(wl);
 
-                // 득실 (SD)
+                // 득실 (SD) - 화면에는 득실차를 표시하되 내부 로직은 비율 유지
                 const pt = document.createElement("td");
                 pt.className = "wl";
-                if (st) {
+                if (st && st.played > 0) {
                     const diff = st.setsFor - st.setsAgainst;
                     const sign = diff > 0 ? "+" : "";
                     pt.textContent = `${sign}${diff}`;
@@ -3689,7 +3574,7 @@
                         pt.style.color = "#1d4ed8"; // Blue
                         pt.style.fontWeight = "900";
                     } else if (diff < 0) {
-                        pt.style.color = "#9ca3af"; // Gray
+                        pt.style.color = "#ef4444"; // Red (Gray에서 Red로 강조 변경 가능)
                         pt.style.fontWeight = "400";
                     } else {
                         pt.style.color = "#6b7280"; // Muted
@@ -3719,7 +3604,7 @@
                     if (auto?.autoReason === "TIE" && !f?.isManual) {
                         code = "TIE";
                     } else if (auto?.autoReason && auto.autoReason !== "TIE") {
-                        // H2H/SD/SF는 단독일 때만 의미있게
+                        // H2H/SR/SF는 단독일 때만 의미있게
                         code = auto.autoReason;
                     }
 
@@ -3743,9 +3628,6 @@
 
                     if (isTieClickable || hasDetail) {
                         rk.classList.add("clickable");
-
-                        // 힌트 제거 (툴팁 대신 클릭 유도)
-                        // rk.title = ... (Removed)
 
                         rk.addEventListener("click", (e) => {
                             e.stopPropagation();
