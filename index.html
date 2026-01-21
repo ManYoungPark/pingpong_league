@@ -3038,12 +3038,23 @@
            4) 동률그룹 세트득(SF)
            5) 그래도 완전 동률이면: 공동(TIE)로 묶음 (가나다는 "표시 순서"만)
         */
+        /* ========= 자동 순위 계산 (공동 순위 포함) =========
+           규칙:
+           1) 승(승점) 내림차순
+           (동률 그룹 감지 시 재귀적 풀이)
+             -> 부분 그룹끼리 "승자승(H2H)" 다시 계산 (가장 우선)
+             -> 안 갈리면 "세트 득실(Ratio)"
+             -> 안 갈리면 "세트 다득(SetsFor)"
+             -> 그래도 안 갈리면 "공동(TIE)"
+        */
         function computeRanking(teamId, players) {
             const resMap = ensureTeamResults(teamId);
 
-            // 기본 통계 (Overall stats)
+            // ---------- 1) Overall stats ----------
             const base = new Map();
-            players.forEach(p => base.set(p, { name: p, played: 0, win: 0, lose: 0, setsFor: 0, setsAgainst: 0 }));
+            players.forEach(p =>
+                base.set(p, { name: p, played: 0, win: 0, lose: 0, setsFor: 0, setsAgainst: 0 })
+            );
 
             for (let i = 0; i < players.length; i++) {
                 for (let j = i + 1; j < players.length; j++) {
@@ -3067,11 +3078,12 @@
             }
 
             const anyPlayed = Array.from(base.values()).some(s => s.played > 0);
+
             const statsArr = Array.from(base.values()).map(s => {
-                // Calculate Ratio: For / (For + Against)
                 const denom = s.setsFor + s.setsAgainst;
-                const ratio = denom === 0 ? 0 : (s.setsFor / denom);
-                return { ...s, points: s.win, setRatio: ratio };
+                const setRatio = denom === 0 ? 0 : (s.setsFor / denom); // 표시용
+                const setDiff = s.setsFor - s.setsAgainst;              // 전체 득실(표시용)
+                return { ...s, points: s.win, setRatio, setDiff };
             });
 
             if (!anyPlayed) {
@@ -3082,6 +3094,7 @@
                         ...s,
                         points: s.win,
                         setRatio: 0,
+                        setDiff: 0,
                         autoRank: null,
                         autoReason: null,
                         autoDetail: "경기 기록 없음",
@@ -3093,46 +3106,182 @@
                 return { map: out, anyPlayed, tieGroups: [] };
             }
 
-            // Helper to get H2H Wins within a subgroup
-            function getSubgroupWins(group) {
-                const wins = new Map();
-                group.forEach(p => wins.set(p, 0));
+            // ---------- 2) Helpers ----------
+            function getStats(name) {
+                return statsArr.find(x => x.name === name);
+            }
+
+            // ★ 동률자끼리(서브그룹) 전적 통계: H2H wins / subFor / subAgainst / subDiff
+            function getSubgroupMetrics(group) {
+                const m = new Map();
+                group.forEach(p => m.set(p, { h2h: 0, subFor: 0, subAgainst: 0, subDiff: 0 }));
+
                 for (let i = 0; i < group.length; i++) {
                     for (let j = i + 1; j < group.length; j++) {
                         const A = group[i], B = group[j];
                         const k = keyPair(A, B);
                         const parsed = parseScore(resMap.get(k)?.score || "");
                         if (!parsed) continue;
+
                         const aIsFirst = k.startsWith(`${A}|||`);
                         const aScore = aIsFirst ? parsed.a : parsed.b;
                         const bScore = aIsFirst ? parsed.b : parsed.a;
-                        if (aScore > bScore) wins.set(A, wins.get(A) + 1);
-                        else if (bScore > aScore) wins.set(B, wins.get(B) + 1);
+
+                        // 누적(동률자끼리만)
+                        m.get(A).subFor += aScore;
+                        m.get(A).subAgainst += bScore;
+                        m.get(B).subFor += bScore;
+                        m.get(B).subAgainst += aScore;
+
+                        // 승자승(동률자끼리 승수)
+                        if (aScore > bScore) m.get(A).h2h += 1;
+                        else if (bScore > aScore) m.get(B).h2h += 1;
                     }
                 }
-                return wins;
+
+                group.forEach(p => {
+                    const obj = m.get(p);
+                    obj.subDiff = obj.subFor - obj.subAgainst;
+                });
+
+                return m;
             }
 
             const detailMap = new Map();
+            const reasonMap = new Map();
+
             statsArr.forEach(s => {
-                const ratio = (s.setRatio * 100).toFixed(1);
-                detailMap.set(s.name, `${s.win}승 ${s.lose}패 (세트득실률 ${ratio}%)`);
+                const ratioPct = (s.setRatio * 100).toFixed(1);
+                detailMap.set(
+                    s.name,
+                    `${s.win}승 ${s.lose}패 (득실 ${s.setDiff >= 0 ? "+" : ""}${s.setDiff}, 세트득실률 ${ratioPct}%)`
+                );
             });
 
-            const reasonMap = new Map();
+            // ---------- 3) Tie-break resolver (동률자끼리 득실/다득 적용) ----------
+            // 규칙: (동률자끼리) H2H wins -> (동률자끼리) 득실(subDiff) -> (동률자끼리) 다득(subFor) -> name
+            // + 부분 확정 후 남은 그룹 재귀
+            function resolveTie(groupNames, pts) {
+                if (groupNames.length <= 1) return [groupNames];
+
+                groupNames.forEach(nm => {
+                    detailMap.set(nm, detailMap.get(nm) + `\n└ ${groupNames.length}명 동률(${pts}승)`);
+                });
+
+                // 이 그룹 기준의 "동률자끼리" 지표 계산
+                const metrics = getSubgroupMetrics(groupNames);
+
+                // (A) H2H wins 버킷
+                const bucketsH2H = new Map(); // key: h2h -> [names]
+                groupNames.forEach(nm => {
+                    const w = metrics.get(nm).h2h;
+                    if (!bucketsH2H.has(w)) bucketsH2H.set(w, []);
+                    bucketsH2H.get(w).push(nm);
+                });
+                const h2hKeys = [...bucketsH2H.keys()].sort((a, b) => b - a);
+
+                if (h2hKeys.length > 1) {
+                    groupNames.forEach(nm => {
+                        reasonMap.set(nm, "H2H");
+                        detailMap.set(nm, detailMap.get(nm) + `\n└ (동률자끼리) 승자승 ${metrics.get(nm).h2h}승`);
+                    });
+                }
+
+                const resolved = [];
+                for (const w of h2hKeys) {
+                    const bucket = bucketsH2H.get(w);
+                    if (bucket.length === 1) {
+                        resolved.push(bucket);
+                        continue;
+                    }
+
+                    // (B) 동률자끼리 득실(subDiff)
+                    const bucketsDiff = new Map(); // key: subDiff -> [names]
+                    bucket.forEach(nm => {
+                        const d = metrics.get(nm).subDiff;
+                        if (!bucketsDiff.has(d)) bucketsDiff.set(d, []);
+                        bucketsDiff.get(d).push(nm);
+                    });
+                    const diffKeys = [...bucketsDiff.keys()].sort((a, b) => b - a);
+
+                    if (diffKeys.length > 1) {
+                        bucket.forEach(nm => {
+                            if (!reasonMap.has(nm) || reasonMap.get(nm) === "TIE") reasonMap.set(nm, "DIFF");
+                            const d = metrics.get(nm).subDiff;
+                            detailMap.set(nm, detailMap.get(nm) + `\n└ (동률자끼리) 득실 ${d >= 0 ? "+" : ""}${d}`);
+                        });
+                    }
+
+                    for (const d of diffKeys) {
+                        const bucket2 = bucketsDiff.get(d);
+                        if (bucket2.length === 1) {
+                            resolved.push(bucket2);
+                            continue;
+                        }
+
+                        // (C) 동률자끼리 다득(subFor)
+                        const bucketsFor = new Map(); // key: subFor -> [names]
+                        bucket2.forEach(nm => {
+                            const f = metrics.get(nm).subFor;
+                            if (!bucketsFor.has(f)) bucketsFor.set(f, []);
+                            bucketsFor.get(f).push(nm);
+                        });
+                        const forKeys = [...bucketsFor.keys()].sort((a, b) => b - a);
+
+                        if (forKeys.length > 1) {
+                            bucket2.forEach(nm => {
+                                if (!reasonMap.has(nm) || reasonMap.get(nm) === "TIE") reasonMap.set(nm, "SF");
+                                detailMap.set(nm, detailMap.get(nm) + `\n└ (동률자끼리) 세트다득 ${metrics.get(nm).subFor}`);
+                            });
+                        }
+
+                        for (const f of forKeys) {
+                            const bucket3 = bucketsFor.get(f);
+                            if (bucket3.length === 1) {
+                                resolved.push(bucket3);
+                                continue;
+                            }
+
+                            // (D) 여전히 동률 -> 재귀 (더 작은 그룹에서 다시 H2H부터)
+                            // 무한 루프 방지: 이 하위그룹에서 metrics가 모두 같으면 이름으로 정리 + 완전동률 처리
+                            const metrics2 = getSubgroupMetrics(bucket3);
+                            const first = bucket3[0];
+                            const allSame = bucket3.every(nm => {
+                                const a = metrics2.get(nm), b = metrics2.get(first);
+                                return a.h2h === b.h2h && a.subDiff === b.subDiff && a.subFor === b.subFor;
+                            });
+
+                            if (allSame) {
+                                const sorted = [...bucket3].sort((a, b) => a.localeCompare(b, "ko"));
+                                sorted.forEach(nm => {
+                                    reasonMap.set(nm, "TIE");
+                                    detailMap.set(nm, detailMap.get(nm) + `\n└ 완전 동률(동률자끼리 지표 동일)`);
+                                });
+                                resolved.push(sorted);
+                            } else {
+                                const deeper = resolveTie(bucket3, pts);
+                                deeper.forEach(g => resolved.push(g));
+                            }
+                        }
+                    }
+                }
+
+                return resolved;
+            }
+
+            // ---------- 4) Build ranking blocks ----------
+            statsArr.sort((x, y) => (y.points - x.points) || x.name.localeCompare(y.name, "ko"));
+
             const blocks = [];
             const tieGroups = [];
 
-            // 1차 정렬: 승수 내림차순
-            statsArr.sort((x, y) => (y.points - x.points) || x.name.localeCompare(y.name, 'ko'));
-
-            let i = 0;
-            while (i < statsArr.length) {
-                const pts = statsArr[i].points;
+            let idx = 0;
+            while (idx < statsArr.length) {
+                const pts = statsArr[idx].points;
                 const group = [];
-                while (i < statsArr.length && statsArr[i].points === pts) {
-                    group.push(statsArr[i].name);
-                    i++;
+                while (idx < statsArr.length && statsArr[idx].points === pts) {
+                    group.push(statsArr[idx].name);
+                    idx++;
                 }
 
                 if (group.length === 1) {
@@ -3140,94 +3289,27 @@
                     continue;
                 }
 
-                // 동률 발생
-                group.forEach(nm => {
-                    detailMap.set(nm, detailMap.get(nm) + `\n└ ${group.length}명 동률(${pts}승)`);
-                });
-
-                // 2. 동률 그룹 내 승자승(H2H Wins)
-                const subWins = getSubgroupWins(group);
-                const subOrdered = [...group].sort((a, b) => {
-                    const wa = subWins.get(a), wb = subWins.get(b);
-                    if (wa !== wb) return wb - wa;
-
-                    // 3. 세트 득실률 (Set Ratio)
-                    const ra = statsArr.find(x => x.name === a).setRatio;
-                    const rb = statsArr.find(x => x.name === b).setRatio;
-                    if (ra !== rb) return rb - ra;
-
-                    // 4. 세트 다득 (Set For)
-                    const fa = statsArr.find(x => x.name === a).setsFor;
-                    const fb = statsArr.find(x => x.name === b).setsFor;
-                    if (fa !== fb) return fb - fa;
-
-                    return a.localeCompare(b, 'ko');
-                });
-
-                // 정렬된 subOrdered를 돌며 실제 변별 수단 기록 및 블록화
-                let k = 0;
-                while (k < subOrdered.length) {
-                    const head = subOrdered[k];
-                    const sHeadWins = subWins.get(head);
-                    const headStats = statsArr.find(x => x.name === head);
-
-                    const chunk = [head];
-                    k++;
-                    while (k < subOrdered.length) {
-                        const cur = subOrdered[k];
-                        const sCurWins = subWins.get(cur);
-                        const curStats = statsArr.find(x => x.name === cur);
-
-                        if (sCurWins === sHeadWins &&
-                            curStats.setRatio === headStats.setRatio &&
-                            curStats.setsFor === headStats.setsFor) {
-                            chunk.push(cur);
-                            k++;
-                        } else break;
-                    }
-
-                    if (chunk.length === 1) {
-                        const nm = chunk[0];
-                        const winsInSub = subWins.get(nm);
-                        // 변별 기준 찾기 (본인보다 뒤에 있는 사람들과 비교했을 때)
-                        if (k < subOrdered.length) {
-                            const next = subOrdered[k];
-                            const nWins = subWins.get(next);
-                            const nStats = statsArr.find(x => x.name === next);
-
-                            if (winsInSub > nWins) {
-                                reasonMap.set(nm, "H2H");
-                                detailMap.set(nm, detailMap.get(nm) + `\n└ 승자승 우세 (동률 내 ${winsInSub}승)`);
-                            } else if (headStats.setRatio > nStats.setRatio) {
-                                reasonMap.set(nm, "SR");
-                                detailMap.set(nm, detailMap.get(nm) + `\n└ 세트득실률 우세 (${(headStats.setRatio * 100).toFixed(1)}%)`);
-                            } else {
-                                reasonMap.set(nm, "SF");
-                                detailMap.set(nm, detailMap.get(nm) + `\n└ 세트다득 우세 (${headStats.setsFor})`);
-                            }
-                        } else {
-                            // 마지막 그룹인 경우 앞사람과의 비교로 이미 reason이 정해졌거나 기본값
-                            if (!reasonMap.has(nm)) reasonMap.set(nm, "TIE");
-                        }
-                        blocks.push({ members: chunk, type: "single" });
+                const resolvedGroups = resolveTie(group, pts);
+                for (const g of resolvedGroups) {
+                    if (g.length === 1) {
+                        const nm = g[0];
+                        if (!reasonMap.has(nm)) reasonMap.set(nm, "TIE");
+                        blocks.push({ members: [nm], type: "single" });
                     } else {
-                        // 완전 동률
-                        chunk.forEach(nm => {
-                            reasonMap.set(nm, "TIE");
-                            detailMap.set(nm, detailMap.get(nm) + `\n└ 완전 동률 (비율/다득점 동일)`);
-                        });
-                        blocks.push({ members: chunk, type: "tie" });
+                        g.forEach(nm => { if (!reasonMap.has(nm)) reasonMap.set(nm, "TIE"); });
+                        blocks.push({ members: g, type: "tie" });
                     }
                 }
             }
 
+            // ---------- 5) Output map with ranks ----------
             const out = new Map();
             let rank = 1;
 
             for (const b of blocks) {
                 if (b.members.length === 1) {
                     const nm = b.members[0];
-                    const s = statsArr.find(x => x.name === nm);
+                    const s = getStats(nm);
                     out.set(nm, {
                         ...s,
                         autoRank: rank,
@@ -3241,11 +3323,12 @@
                 } else {
                     const baseRank = rank;
                     const members = b.members;
-                    const tieKey = `${teamId}|pts=${statsArr.find(x => x.name === members[0]).points}|r=${baseRank}`;
+
+                    const tieKey = `${teamId}|pts=${getStats(members[0]).points}|r=${baseRank}`;
                     tieGroups.push({ tieKey, members, baseRank });
 
                     for (const nm of members) {
-                        const s = statsArr.find(x => x.name === nm);
+                        const s = getStats(nm);
                         out.set(nm, {
                             ...s,
                             autoRank: baseRank,
