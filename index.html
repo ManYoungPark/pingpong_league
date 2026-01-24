@@ -1215,6 +1215,77 @@
             animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
+        /* [New] Tournament Score Portal */
+        .tm-score-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .score-box {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .score-box:hover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+            transform: translateY(-2px);
+        }
+
+        .score-box .s-val {
+            font-size: 20px;
+            font-weight: 900;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+
+        .score-box .s-desc {
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 700;
+        }
+
+        .tm-versus {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 16px;
+        }
+
+        .tm-v-player {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .tm-v-player .v-name {
+            font-size: 18px;
+            font-weight: 900;
+            color: #1e293b;
+        }
+
+        .tm-v-player.is-win .v-name {
+            color: #2563eb;
+        }
+
+        .tm-v-sep {
+            font-size: 14px;
+            font-weight: 800;
+            color: #94a3b8;
+        }
+
         .final-summary.show {
             display: block;
         }
@@ -4589,8 +4660,10 @@
                     const bEl = document.getElementById(m.b);
                     if (!aEl || !bEl) continue;
 
-                    // 승자 이름 확인
-                    const winnerName = extractName(toEl);
+                    // 승자 이름 확인 (bracketState의 객체 구조 지원)
+                    const stateVal = bracketState.get(m.to);
+                    const winnerName = (typeof stateVal === 'object') ? stateVal.winner : extractName(toEl);
+
                     const nameA = extractName(aEl);
                     const nameB = extractName(bEl);
 
@@ -4660,30 +4733,96 @@
         }
 
         function advanceWinner({ a, b, to, clickedId, engine }) {
-            const clickedEl = document.getElementById(clickedId);
-            if (!clickedEl || !hasPlayer(clickedEl)) return;
-
-            const targetEl = document.getElementById(to);
-            if (!targetEl) return;
-
-            const newValue = extractName(clickedEl);
-            const newRank = extractRankLabel(clickedEl);
-
-            const oldValue = extractName(targetEl);
-
-            if (oldValue !== "?" && oldValue !== "" && oldValue !== "BYE" && oldValue !== newValue) {
-                clearDownstream({ startId: to, engine });
+            const eA = document.getElementById(a), eB = document.getElementById(b);
+            if (!eA || !eB || !hasPlayer(eA) || !hasPlayer(eB)) {
+                // 부전승(BYE) 처리 - 기존처럼 즉시 진출
+                if (hasPlayer(document.getElementById(clickedId))) {
+                    const nm = extractName(document.getElementById(clickedId));
+                    const rk = extractRankLabel(document.getElementById(clickedId));
+                    setNodeText(to, nm, rk);
+                    engine.applyWinLoseStyles(a, b, to, clickedId);
+                    bracketState.set(to, { winner: nm, score: "BYE" });
+                    saveAllData();
+                    checkTournamentCompletion();
+                }
+                return;
             }
 
-            setNodeText(to, newValue, newRank);
-            engine.applyWinLoseStyles(a, b, to, clickedId);
+            // 일반 경기 - 팝업 띄우기
+            openTmScorePortal({
+                p1: { id: a, name: extractName(eA), rank: extractRankLabel(eA) },
+                p2: { id: b, name: extractName(eB), rank: extractRankLabel(eB) },
+                onSelect: (winnerId, score) => {
+                    const winnerEl = document.getElementById(winnerId);
+                    const winnerName = extractName(winnerEl);
+                    const winnerRank = extractRankLabel(winnerEl);
 
-            // ✅ Save State
-            bracketState.set(to, newValue);
-            saveAllData();
+                    const targetEl = document.getElementById(to);
+                    const oldWinner = extractName(targetEl);
 
-            // Check for Final Result
-            checkTournamentCompletion();
+                    if (oldWinner !== "?" && oldWinner !== "" && oldWinner !== "BYE" && oldWinner !== winnerName) {
+                        clearDownstream({ startId: to, engine });
+                    }
+
+                    setNodeText(to, winnerName, winnerRank);
+                    engine.applyWinLoseStyles(a, b, to, winnerId);
+
+                    // 정밀 데이터 저장
+                    const p1Name = extractName(eA);
+                    const p2Name = extractName(eB);
+                    const loserName = (winnerName === p1Name) ? p2Name : p1Name;
+
+                    bracketState.set(to, {
+                        winner: winnerName,
+                        loser: loserName,
+                        score: score,
+                        p1: p1Name,
+                        p2: p2Name
+                    });
+
+                    saveAllData();
+                    checkTournamentCompletion();
+                }
+            });
+        }
+
+        // --- Tournament Score Portal Logic ---
+        function openTmScorePortal({ p1, p2, onSelect }) {
+            const portal = document.getElementById("tmScorePortal");
+            document.getElementById("tm-p1-name").textContent = p1.name;
+            document.getElementById("tm-p1-rank").textContent = p1.rank;
+            document.getElementById("tm-p2-name").textContent = p2.name;
+            document.getElementById("tm-p2-rank").textContent = p2.rank;
+
+            const grid = document.getElementById("tmScoreGrid");
+            grid.innerHTML = "";
+
+            const format = matchFormatEl.value || "bo3";
+            const options = format === "bo5" ? ["3-0", "3-1", "3-2", "2-3", "1-3", "0-3"] : ["2-0", "2-1", "1-2", "0-2"];
+
+            options.forEach(opt => {
+                const [s1, s2] = opt.split("-").map(Number);
+                const winId = (s1 > s2) ? p1.id : p2.id;
+                const winName = (s1 > s2) ? p1.name : p2.name;
+
+                const box = document.createElement("div");
+                box.className = "score-box";
+                box.innerHTML = `
+                    <div class="s-val">${opt}</div>
+                    <div class="s-desc">${winName} 승</div>
+                `;
+                box.onclick = () => {
+                    onSelect(winId, opt);
+                    closeTmScorePortal();
+                };
+                grid.appendChild(box);
+            });
+
+            portal.classList.add("open");
+        }
+
+        function closeTmScorePortal() {
+            document.getElementById("tmScorePortal").classList.remove("open");
         }
 
         function autoAdvanceByes({ engine }) {
@@ -5693,9 +5832,29 @@
                 onConfirm: async () => {
                     try {
                         toggleLoading(true, "서버에 전송 중...");
+
+                        // --- [추가] 전체 데이터 스냅샷 준비 ---
+                        const serializeMap = (m) => Array.from(m.entries());
+                        const serializeDeepMap = (m) => Array.from(m.entries()).map(([k, v]) => [k, Array.from(v.entries())]);
+
+                        const fullDataSnapshot = {
+                            metadata: {
+                                date: today,
+                                title: document.getElementById("headerTitle").innerText,
+                                groupsCount: state.groupsCount,
+                                matchFormat: matchFormatEl.value
+                            },
+                            playersState: serializeMap(state),
+                            resultsByTeam: serializeDeepMap(resultsByTeam),
+                            manualRankByTeam: serializeDeepMap(manualRankByTeam),
+                            bracketState: serializeMap(bracketState),
+                            finalSummary: { upper, lower }
+                        };
+
                         const payload = {
                             date: today,
-                            results: results
+                            results: results,
+                            fullData: JSON.stringify(fullDataSnapshot) // 전체 스냅샷 추가
                         };
 
                         await fetch(url, {
@@ -5705,7 +5864,7 @@
                             body: JSON.stringify(payload)
                         });
 
-                        alert("✅ 기록이 전송되었습니다! (구글 시트 확인)");
+                        alert("✅ 기록 및 전체 자료가 전송되었습니다!");
 
                     } catch (e) {
                         console.error(e);
@@ -6129,6 +6288,43 @@
         </div>
 
         <button class="btn primary" style="width:100%; padding:10px;" onclick="closeTimeSettings()">완료</button>
+    </div>
+
+    <!-- ✅ [NEW] Tournament Score Selection Portal -->
+    <div id="tmScorePortal" class="modal-portal">
+        <div class="modal-backdrop" onclick="closeTmScorePortal()"></div>
+        <div class="modal-card" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3 class="modal-title">🏆 경기 결과 입력</h3>
+            </div>
+            <div class="modal-body">
+                <p id="tmScoreTitle"
+                    style="text-align:center; font-weight:800; color:var(--muted); margin-bottom:10px;"></p>
+
+                <div class="tm-versus">
+                    <div id="tm-p1-box" class="tm-v-player">
+                        <span id="tm-p1-name" class="v-name">-</span>
+                        <span id="tm-p1-rank" style="font-size:11px; color:var(--muted); font-weight:700;"></span>
+                    </div>
+                    <div class="tm-v-sep">VS</div>
+                    <div id="tm-p2-box" class="tm-v-player">
+                        <span id="tm-p2-name" class="v-name">-</span>
+                        <span id="tm-p2-rank" style="font-size:11px; color:var(--muted); font-weight:700;"></span>
+                    </div>
+                </div>
+
+                <div style="text-align:center; font-size:13px; font-weight:800; color:#3b82f6; margin-bottom:15px;">
+                    승자 및 스코어를 선택하세요
+                </div>
+
+                <div id="tmScoreGrid" class="tm-score-grid">
+                    <!-- 스코어 버튼들이 JS에서 동적으로 생성됩니다 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn cancel" onclick="closeTmScorePortal()">취소</button>
+            </div>
+        </div>
     </div>
 </body>
 

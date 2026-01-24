@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>과거 기록 조회 - 제 128회 정기 리그전</title>
+    <link rel="stylesheet" href="viewer_styles.css">
+</head>
+
+<body>
+    <header>
+        <h1 id="headerTitle">과거 기록 조회</h1>
+        <p id="headerDate">로딩 중...</p>
+    </header>
+
+    <main class="wrap" style="max-width:1400px; margin:0 auto;">
+
+        <!-- 1. 최종 결과 요약 카드 (index.html과 동일 구조) -->
+        <div id="final-summary-area" class="final-summary show">
+            <h2 class="summary-title">🏆 최종 결과 발표 🏆</h2>
+            <div class="summary-content">
+                <div class="summary-card upper">
+                    <div class="card-title">상위 토너먼트</div>
+                    <div class="rank-row winner">
+                        <span class="icon">🏆</span>
+                        <span class="label">우승</span>
+                        <span class="name" id="sum-u-1">-</span>
+                    </div>
+                    <div class="rank-row runner-up">
+                        <span class="icon">🥈</span>
+                        <span class="label">준우승</span>
+                        <span class="name" id="sum-u-2">-</span>
+                    </div>
+                    <div class="rank-row third">
+                        <span class="icon">🥉</span>
+                        <span class="label">3위</span>
+                        <span class="name" id="sum-u-3">-</span>
+                    </div>
+                </div>
+                <div class="summary-card lower">
+                    <div class="card-title">하위 토너먼트</div>
+                    <div class="rank-row winner">
+                        <span class="icon">🏆</span>
+                        <span class="label">우승</span>
+                        <span class="name" id="sum-l-1">-</span>
+                    </div>
+                    <div class="rank-row runner-up">
+                        <span class="icon">🥈</span>
+                        <span class="label">준우승</span>
+                        <span class="name" id="sum-l-2">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. 조별 리그 결과 -->
+        <div class="card">
+            <div class="card-hd">
+                <span class="title">📋 조별 리그 결과</span>
+            </div>
+            <div id="teams" class="teams">
+                <!-- 리그전 테이블이 여기에 렌더링됩니다 -->
+            </div>
+        </div>
+
+        <!-- 3. 토너먼트 대진표 (SVG 기반) -->
+        <div id="tournament-area" class="card" style="margin-top: 20px;">
+            <div class="card-hd">
+                <span class="title">⚔️ 본선 토너먼트 (복원됨)</span>
+            </div>
+            <div class="body" style="width:100%; padding:20px;">
+                <div class="tm-panel-row">
+                    <div class="tm-panel">
+                        <div class="tm-title" id="tm-titleUpper">상위 토너먼트 (16강)</div>
+                        <div id="tm-wrap-upper" class="tm-wrap">
+                            <svg id="tm-lines-upper" class="tm-lines"></svg>
+                        </div>
+                    </div>
+
+                    <div class="tm-panel">
+                        <div class="tm-title" id="tm-titleLower">하위 토너먼트 (16강)</div>
+                        <div id="tm-wrap-lower" class="tm-wrap">
+                            <svg id="tm-lines-lower" class="tm-lines"></svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 데이터 및 스크립트 로드 -->
+    <script src="sample_data.js"></script>
+    <script src="history_viewer.js"></script>
+</body>
+
+</html>
