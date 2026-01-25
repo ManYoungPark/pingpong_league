@@ -2297,6 +2297,7 @@
 
         // ✅ Tournament State (MatchId -> WinnerName)
         const bracketState = new Map();
+        window.lastEngines = { U: null, L: null };
 
         function saveAllData() {
             try {
@@ -5040,6 +5041,7 @@
             }
 
             const engine = createTournamentLineEngine({ wrapEl, svg, prefix, direction, rounds, nodeId });
+            window.lastEngines[prefix] = engine;
             autoAdvanceByes({ engine });
 
             wrapEl.addEventListener("click", (e) => {
@@ -5095,7 +5097,8 @@
 
             // ✅ Restore Bracket State
             setTimeout(() => {
-                bracketState.forEach((winnerName, nodeId) => {
+                bracketState.forEach((val, nodeId) => {
+                    const winnerName = (typeof val === 'object') ? val.winner : val;
                     const el = document.getElementById(nodeId);
                     if (!el || !el.id.startsWith(prefix)) return;
 
@@ -5399,59 +5402,137 @@
             }, 200);
         });
 
-        function runAutoTestScenario() {
-            if (!confirm("현재 데이터를 모두 지우고 테스트 데이터를 생성하시겠습니까?")) return;
+        function simulateTournamentGames() {
+            if (!window.lastEngines) return;
 
-            initState();
+            ["U", "L"].forEach(prefix => {
+                const engine = window.lastEngines[prefix];
+                if (!engine) return;
 
-            // 1. 3 Teams
-            createTeams(3);
+                // Gather unique rounds
+                const rounds = Array.from(new Set(engine.MATCHES.map(m => {
+                    const parts = m.a.split("-");
+                    const rPart = parts.find(p => p.startsWith("r"));
+                    return rPart ? rPart.replace("r", "") : null;
+                }).filter(r => r))).map(Number).sort((a, b) => a - b);
 
-            // 2. Assign 5 players each
-            // Ensure we have enough names
-            if (INITIAL_NAMES.length < 15) {
-                alert("이름이 부족합니다 (최소 15명 필요)");
-                return;
-            }
+                rounds.forEach(r => {
+                    const roundMatches = engine.MATCHES.filter(m => m.a.includes(`-r${r}-`));
+                    roundMatches.forEach(m => {
+                        const eA = document.getElementById(m.a);
+                        const eB = document.getElementById(m.b);
+                        const toEl = document.getElementById(m.to);
+                        if (!eA || !eB || !toEl) return;
+                        if (!hasPlayer(eA) || !hasPlayer(eB)) return;
 
-            const pools = [
-                INITIAL_NAMES.slice(0, 5),
-                INITIAL_NAMES.slice(5, 10),
-                INITIAL_NAMES.slice(10, 15)
-            ];
+                        const winner = Math.random() > 0.5 ? eA : eB;
+                        const winnerId = winner.id;
+                        const winnerName = extractName(winner);
+                        const winnerRank = extractRankLabel(winner);
 
-            pools.forEach((members, grpIdx) => {
-                const teamId = `team-${grpIdx + 1}`;
-                members.forEach(nm => {
-                    state.set(nm, { where: "team", teamId });
+                        const format = matchFormatEl.value || "bo3";
+                        const options = format === "bo5" ? ["3-0", "3-1", "3-2", "2-3", "1-3", "0-3"] : ["2-0", "2-1", "1-2", "0-2"];
+                        let score = options[Math.floor(Math.random() * options.length)];
+
+                        const [s1, s2] = score.split("-").map(Number);
+                        if (winnerId === m.a && s1 < s2) score = score.split("-").reverse().join("-");
+                        if (winnerId === m.b && s1 > s2) score = score.split("-").reverse().join("-");
+
+                        setNodeText(m.to, winnerName, winnerRank);
+                        engine.applyWinLoseStyles(m.a, m.b, m.to, winnerId);
+
+                        const p1Name = extractName(eA);
+                        const p2Name = extractName(eB);
+                        bracketState.set(m.to, {
+                            winner: winnerName,
+                            loser: (winnerName === p1Name) ? p2Name : p1Name,
+                            score: score,
+                            p1: p1Name,
+                            p2: p2Name
+                        });
+                    });
                 });
 
-                // 3. Generate Results (Perfect Rankings 1..5)
-                // members[0] wins all -> 1st
-                // members[1] wins rest -> 2nd
-                // ...
-                const resMap = ensureTeamResults(teamId);
+                const winnerMatch = engine.MATCHES.find(m => m.to === `${prefix}-winner`);
+                if (winnerMatch) {
+                    const eA = document.getElementById(winnerMatch.a);
+                    const eB = document.getElementById(winnerMatch.b);
+                    if (eA && eB && hasPlayer(eA) && hasPlayer(eB)) {
+                        const winner = Math.random() > 0.5 ? eA : eB;
+                        const winnerId = winner.id;
+                        const winnerName = extractName(winner);
+                        const winnerRank = extractRankLabel(winner);
 
-                for (let i = 0; i < members.length; i++) {
-                    for (let j = i + 1; j < members.length; j++) {
-                        const winner = members[i];
-                        const loser = members[j];
+                        const format = matchFormatEl.value || "bo3";
+                        const options = format === "bo5" ? ["3-0", "3-1", "3-2", "2-3", "1-3", "0-3"] : ["2-0", "2-1", "1-2", "0-2"];
+                        let score = options[Math.floor(Math.random() * options.length)];
+                        const [s1, s2] = score.split("-").map(Number);
+                        if (winnerId === winnerMatch.a && s1 < s2) score = score.split("-").reverse().join("-");
+                        if (winnerId === winnerMatch.b && s1 > s2) score = score.split("-").reverse().join("-");
 
-                        const k = keyPair(winner, loser);
-                        // winner is 'a' if k starts with winner
-                        const isWinnerFirst = k.startsWith(winner + "|||");
-
-                        // Score 2-0 for winner
-                        const val = isWinnerFirst ? "2-0" : "0-2";
-                        resMap.set(k, { score: val });
+                        setNodeText(`${prefix}-winner`, winnerName, winnerRank);
+                        engine.applyWinLoseStyles(winnerMatch.a, winnerMatch.b, `${prefix}-winner`, winnerId);
+                        bracketState.set(`${prefix}-winner`, {
+                            winner: winnerName,
+                            loser: (winnerName === extractName(eA)) ? extractName(eB) : extractName(eA),
+                            score: score,
+                            p1: extractName(eA),
+                            p2: extractName(eB)
+                        });
                     }
                 }
             });
+            saveAllData();
+            checkTournamentCompletion();
+        }
 
+        const SPECIFIC_TEST_DATA = { "metadata": { "date": "2026-01-16", "title": "대덕밸리동호회 금요리그", "groupsCount": 4, "matchFormat": "bo3" }, "playersState": [["김경태", { "where": "team", "teamId": "team-1" }], ["김미경", { "where": "team", "teamId": "team-1" }], ["김성호", { "where": "team", "teamId": "team-1" }], ["김세중", { "where": "team", "teamId": "team-1" }], ["김형찬", { "where": "team", "teamId": "team-1" }], ["김홍석", { "where": "team", "teamId": "team-2" }], ["류계열", { "where": "team", "teamId": "team-2" }], ["박덕례", { "where": "team", "teamId": "team-2" }], ["박만영", { "where": "team", "teamId": "team-2" }], ["박병재", { "where": "team", "teamId": "team-2" }], ["박승기", { "where": "team", "teamId": "team-2" }], ["박현신", { "where": "team", "teamId": "team-3" }], ["박혜란", { "where": "team", "teamId": "team-3" }], ["백낙천", { "where": "team", "teamId": "team-3" }], ["서상국", { "where": "team", "teamId": "team-3" }], ["송광용", { "where": "team", "teamId": "team-3" }], ["안성대", { "where": "team", "teamId": "team-3" }], ["오장진", { "where": "team", "teamId": "team-4" }], ["유호성", { "where": "team", "teamId": "team-4" }], ["윤교찬", { "where": "team", "teamId": "team-4" }], ["이교탁", { "where": "team", "teamId": "team-4" }], ["이영숙", { "where": "team", "teamId": "team-4" }], ["이정우", { "where": "pool" }], ["임규호", { "where": "pool" }], ["정경자", { "where": "pool" }], ["정선철", { "where": "pool" }], ["조복연", { "where": "pool" }], ["조상배", { "where": "pool" }], ["최매완", { "where": "pool" }], ["홍순관", { "where": "pool" }], ["홍현숙", { "where": "pool" }]], "resultsByTeam": [["team-1", [["김경태|||김미경", { "score": "0-2" }], ["김경태|||김성호", { "score": "1-2" }], ["김경태|||김세중", { "score": "2-0" }], ["김경태|||김형찬", { "score": "1-2" }], ["김미경|||김성호", { "score": "2-1" }], ["김미경|||김세중", { "score": "2-0" }], ["김미경|||김형찬", { "score": "2-1" }], ["김성호|||김세중", { "score": "1-2" }], ["김성호|||김형찬", { "score": "2-0" }], ["김세중|||김형찬", { "score": "2-1" }]]], ["team-2", [["김홍석|||류계열", { "score": "0-2" }], ["김홍석|||박덕례", { "score": "1-2" }], ["김홍석|||박만영", { "score": "2-0" }], ["김홍석|||박병재", { "score": "0-2" }], ["김홍석|||박승기", { "score": "0-2" }], ["류계열|||박덕례", { "score": "2-1" }], ["류계열|||박만영", { "score": "2-1" }], ["류계열|||박병재", { "score": "2-0" }], ["류계열|||박승기", { "score": "2-1" }], ["박덕례|||박만영", { "score": "0-2" }], ["박덕례|||박병재", { "score": "1-2" }], ["박덕례|||박승기", { "score": "2-1" }], ["박만영|||박병재", { "score": "1-2" }], ["박만영|||박승기", { "score": "0-2" }], ["박병재|||박승기", { "score": "0-2" }]]], ["team-3", [["박현신|||박혜란", { "score": "2-0" }], ["박현신|||백낙천", { "score": "2-1" }], ["박현신|||서상국", { "score": "0-2" }], ["박현신|||송광용", { "score": "2-0" }], ["박현신|||안성대", { "score": "1-2" }], ["박혜란|||백낙천", { "score": "0-2" }], ["박혜란|||서상국", { "score": "1-2" }], ["박혜란|||송광용", { "score": "0-2" }], ["박혜란|||안성대", { "score": "0-2" }], ["백낙천|||서상국", { "score": "2-1" }], ["백낙천|||송광용", { "score": "2-1" }], ["백낙천|||안성대", { "score": "2-0" }], ["서상국|||송광용", { "score": "2-1" }], ["서상국|||안성대", { "score": "2-0" }], ["송광용|||안성대", { "score": "2-1" }]]], ["team-4", [["오장진|||유호성", { "score": "0-2" }], ["오장진|||윤교찬", { "score": "2-1" }], ["오장진|||이교탁", { "score": "1-2" }], ["오장진|||이영숙", { "score": "1-2" }], ["유호성|||윤교찬", { "score": "2-1" }], ["유호성|||이교탁", { "score": "0-2" }], ["유호성|||이영숙", { "score": "2-0" }], ["윤교찬|||이교탁", { "score": "2-1" }], ["윤교찬|||이영숙", { "score": "1-2" }], ["이교탁|||이영숙", { "score": "0-2" }]]]], "manualRankByTeam": [["team-1", []], ["team-2", []], ["team-3", []], ["team-4", []]], "bracketState": [["U-r2-2", { "winner": "서상국", "loser": "김성호", "score": "2-0", "p1": "서상국", "p2": "김성호" }], ["U-r3-2", { "winner": "박승기", "loser": "유호성", "score": "2-0", "p1": "박승기", "p2": "유호성" }], ["U-r2-3", { "winner": "박승기", "loser": "이교탁", "score": "2-0", "p1": "박승기", "p2": "이교탁" }], ["U-r3-1", { "winner": "김미경", "loser": "서상국", "score": "2-0", "p1": "김미경", "p2": "서상국" }], ["U-r2-6", { "winner": "김세중", "loser": "박현신", "score": "2-0", "p1": "김세중", "p2": "박현신" }], ["U-r2-7", { "winner": "박병재", "loser": "이영숙", "score": "1-2", "p1": "이영숙", "p2": "박병재" }], ["U-r3-4", { "winner": "박병재", "loser": "류계열", "score": "2-0", "p1": "박병재", "p2": "류계열" }], ["U-r3-3", { "winner": "백낙천", "loser": "김세중", "score": "2-0", "p1": "백낙천", "p2": "김세중" }], ["U-r4-1", { "winner": "김미경", "loser": "박승기", "score": "2-0", "p1": "김미경", "p2": "박승기" }], ["U-r4-2", { "winner": "백낙천", "loser": "박병재", "score": "2-0", "p1": "백낙천", "p2": "박병재" }], ["U-winner", { "winner": "김미경", "loser": "백낙천", "score": "2-0", "p1": "김미경", "p2": "백낙천" }], ["L-r2-2", { "winner": "안성대", "loser": "박만영", "score": "2-1", "p1": "안성대", "p2": "박만영" }], ["L-r2-7", { "winner": "윤교찬", "loser": "박혜란", "score": "2-1", "p1": "윤교찬", "p2": "박혜란" }], ["L-r3-4", { "winner": "박덕례", "loser": "윤교찬", "score": "0-2", "p1": "윤교찬", "p2": "박덕례" }], ["L-r3-3", { "winner": "송광용", "loser": "김경태", "score": "2-1", "p1": "송광용", "p2": "김경태" }], ["L-r3-2", { "winner": "김홍석", "loser": "오장진", "score": "2-1", "p1": "김홍석", "p2": "오장진" }], ["L-r3-1", { "winner": "김형찬", "loser": "안성대", "score": "2-1", "p1": "김형찬", "p2": "안성대" }], ["L-r4-1", { "winner": "김형찬", "loser": "김홍석", "score": "2-1", "p1": "김형찬", "p2": "김홍석" }], ["L-winner", { "winner": "김형찬", "loser": "박덕례", "score": "2-1", "p1": "김형찬", "p2": "박덕례" }], ["L-r4-2", { "winner": "박덕례", "loser": "송광용", "score": "0-2", "p1": "송광용", "p2": "박덕례" }]], "finalSummary": { "upper": { "winner": "김미경", "runnerUp": "백낙천", "semiFinalists": ["박승기", "박병재"] }, "lower": { "winner": "김형찬", "runnerUp": "박덕례", "semiFinalists": ["김홍석", "송광용"] } } };
+
+        function runAutoTestScenario() {
+            if (!confirm("현재 데이터를 모두 지우고 사용자 제공 테스트 데이터를 생성하시겠습니까?")) return;
+
+            initState();
+            const data = SPECIFIC_TEST_DATA;
+
+            // 1. Metadata Restore
+            if (data.metadata) {
+                state.groupsCount = data.metadata.groupsCount;
+                matchFormatEl.value = data.metadata.matchFormat;
+                document.getElementById("headerTitle").value = data.metadata.title.replace("대덕밸리동호회 ", "");
+                document.getElementById("datePicker").value = data.metadata.date;
+            }
+
+            // 2. playersState Restore
+            state.clear();
+            (new Map(data.playersState)).forEach((v, k) => state.set(k, v));
+
+            // 3. resultsByTeam Restore
+            resultsByTeam.clear();
+            (new Map(data.resultsByTeam)).forEach((v, k) => {
+                resultsByTeam.set(k, new Map(v));
+            });
+
+            // 4. manualRankByTeam Restore
+            manualRankByTeam.clear();
+            (new Map(data.manualRankByTeam)).forEach((v, k) => {
+                manualRankByTeam.set(k, new Map(v));
+            });
+
+            // 5. bracketState Restore
+            bracketState.clear();
+            (new Map(data.bracketState)).forEach((v, k) => {
+                bracketState.set(k, v);
+            });
+
+            // UI Sync
+            createTeams(state.groupsCount);
+            renderPool();
             renderAllTeams();
 
-            // 4. Draw Tournament
-            setTimeout(runTournamentGeneration, 100);
+            // 6. Draw Tournament (Restoration Mode)
+            setTimeout(() => {
+                runTournamentGeneration(true);
+            }, 100);
         }
 
         function runAutoTestScenario4Groups() {
@@ -5510,8 +5591,11 @@
 
             renderAllTeams();
 
-            // 4. Draw Tournament
-            setTimeout(runTournamentGeneration, 100);
+            // 4. Draw Tournament and Simulate Games
+            setTimeout(() => {
+                runTournamentGeneration();
+                setTimeout(simulateTournamentGames, 1000);
+            }, 100);
         }
 
         function runAutoTestScenarioMixed() {
@@ -5566,8 +5650,11 @@
 
             renderAllTeams();
 
-            // 4. Draw Tournament
-            setTimeout(runTournamentGeneration, 100);
+            // 4. Draw Tournament and Simulate Games
+            setTimeout(() => {
+                runTournamentGeneration();
+                setTimeout(simulateTournamentGames, 1000);
+            }, 100);
         }
 
         /*

@@ -102,9 +102,10 @@
     <main class="wrap" style="max-width:1400px; margin:0 auto; padding-top:20px;">
 
         <!-- 1. 최종 결과 요약 카드 (index.html과 동일 구조) -->
-        <div id="final-summary-area" class="final-summary show">
-            <h2 class="summary-title">🏆 최종 결과 발표 🏆</h2>
+        <div id="final-summary" class="final-summary">
+            <div class="summary-title">🏆 최종 결과 발표 🏆</div>
             <div class="summary-content">
+                <!-- Upper Result -->
                 <div class="summary-card upper">
                     <div class="card-title">상위 토너먼트</div>
                     <div class="rank-row winner">
@@ -123,6 +124,7 @@
                         <span class="name" id="sum-u-3">-</span>
                     </div>
                 </div>
+                <!-- Lower Result -->
                 <div class="summary-card lower">
                     <div class="card-title">하위 토너먼트</div>
                     <div class="rank-row winner">
@@ -149,25 +151,25 @@
             </div>
         </div>
 
-        <!-- 3. 토너먼트 대진표 (SVG 기반) -->
-        <div id="tournament-area" class="card" style="margin-top: 20px;">
-            <div class="card-hd">
-                <span class="title">⚔️ 본선 토너먼트 (복원됨)</span>
+        <!-- 3. 토너먼트 대진표 (SVG 기반, index.html structure) -->
+        <div id="tournament-area" style="margin-top: 40px;">
+            <div class="tm-controls">
+                <h2 class="tm-title">🏆 본선 토너먼트</h2>
+                <!-- Buttons are intentionally omitted as per requirement -->
             </div>
-            <div class="body" style="width:100%; padding:20px;">
-                <div class="tm-panel-row">
-                    <div class="tm-panel">
-                        <div class="tm-title" id="tm-titleUpper">상위 토너먼트 (16강)</div>
-                        <div id="tm-wrap-upper" class="tm-wrap">
-                            <svg id="tm-lines-upper" class="tm-lines"></svg>
-                        </div>
-                    </div>
 
-                    <div class="tm-panel">
-                        <div class="tm-title" id="tm-titleLower">하위 토너먼트 (16강)</div>
-                        <div id="tm-wrap-lower" class="tm-wrap">
-                            <svg id="tm-lines-lower" class="tm-lines"></svg>
-                        </div>
+            <div class="tm-panel-row">
+                <div class="tm-panel">
+                    <div class="tm-title" id="tm-titleUpper">상위 토너먼트</div>
+                    <div id="tm-wrap-upper" class="tm-wrap">
+                        <svg id="tm-lines-upper" class="tm-lines"></svg>
+                    </div>
+                </div>
+
+                <div class="tm-panel">
+                    <div class="tm-title" id="tm-titleLower">하위 토너먼트</div>
+                    <div id="tm-wrap-lower" class="tm-wrap">
+                        <svg id="tm-lines-lower" class="tm-lines"></svg>
                     </div>
                 </div>
             </div>

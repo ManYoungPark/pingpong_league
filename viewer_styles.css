@@ -104,44 +104,96 @@ header p {
     border: 1px solid var(--border);
     border-radius: 12px;
     background: #fff;
+    margin-bottom: 20px;
 }
 
 table.rr {
     border-collapse: collapse;
-    width: 100%;
+    width: auto;
+    min-width: 100%;
+    table-layout: auto;
     font-size: 12px;
 }
 
 .rr th,
 .rr td {
     border: 1px solid var(--border);
-    padding: 6px 8px;
+    padding: 4px 6px;
     text-align: center;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.rr th {
-    background: #f1f5f9;
+.rr th.sticky {
+    position: sticky;
+    top: 0;
+    background: #e2e8f0;
+    z-index: 2;
     font-weight: 800;
+    box-shadow: 0 1px 0 #94a3b8;
+}
+
+.rr th.leftsticky {
+    position: sticky;
+    left: 0;
+    background: #e2e8f0;
+    z-index: 1;
+    text-align: left;
+    font-weight: 800;
+    box-shadow: 1px 0 0 #94a3b8;
+}
+
+.rr th.corner {
+    position: sticky;
+    left: 0;
+    top: 0;
+    z-index: 3;
+    background: #cbd5e1;
+    text-align: left;
+    box-shadow: 1px 1px 0 #94a3b8;
 }
 
 .rr td.diag {
-    background: #f8fafc;
-    color: #cbd5e1;
+    background: #f1f5f9;
+    color: #94a3b8;
     font-weight: 900;
 }
 
-.rr td.wl {
+.rr td.wl,
+.rr th.wl {
     background: #fbfbfc;
     font-weight: 900;
-    width: 60px;
+    width: 50px !important;
+    min-width: 50px !important;
+    padding: 4px 2px;
+    font-size: 11px;
 }
 
-.rr td.rank {
+.rr td.rank,
+.rr th.rank {
     background: #fbfbfc;
     font-weight: 900;
-    width: 60px;
-    color: #1d4ed8;
+    width: 40px !important;
+    min-width: 40px !important;
+    padding: 4px 2px;
+    font-size: 11px;
+}
+
+.rank .crown {
+    margin-right: 4px;
+}
+
+.rank .code {
+    margin-left: 2px;
+    font-size: 9px;
+    color: var(--muted);
+    font-weight: 900;
+    border: 1px solid var(--border);
+    background: #fff;
+    padding: 0 4px;
+    border-radius: 999px;
+    letter-spacing: -0.5px;
 }
 
 .grade-badge {
@@ -150,7 +202,24 @@ table.rr {
     color: #475569;
     padding: 1px 4px;
     border-radius: 4px;
-    margin-left: 4px;
+    font-weight: 700;
+    vertical-align: middle;
+    margin-left: 2px;
+}
+
+.manual {
+    margin-left: 6px;
+    font-size: 11px;
+    color: #1d4ed8;
+    font-weight: 900;
+    border: 1px solid #dbeafe;
+    background: #eff6ff;
+    padding: 1px 6px;
+    border-radius: 999px;
+}
+
+.score-cell div {
+    font-weight: bold;
 }
 
 /* Tournament Styles from index.html */
@@ -291,16 +360,35 @@ table.rr {
     color: #e74c3c;
 }
 
-/* Final Summary Card */
+/* Final Summary Section (Synchronized) */
 .final-summary {
     width: min(800px, 95vw);
     background: linear-gradient(135deg, #fff 0%, #fef9c3 100%);
     border: 2px solid #fbbf24;
     border-radius: 16px;
-    padding: 24px;
+    padding: 20px;
     margin: 0 auto 40px;
     box-shadow: 0 10px 25px -5px rgba(251, 191, 36, 0.3);
     text-align: center;
+    display: none;
+    /* Hidden if no data */
+    animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.final-summary.show {
+    display: block;
+}
+
+@keyframes popIn {
+    from {
+        opacity: 0;
+        transform: scale(0.8) translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
 }
 
 .summary-title {
@@ -308,6 +396,8 @@ table.rr {
     font-weight: 900;
     color: #b45309;
     margin-bottom: 20px;
+    text-shadow: 1px 1px 0 #fff;
+    letter-spacing: -0.5px;
 }
 
 .summary-content {
@@ -339,8 +429,16 @@ table.rr {
     font-size: 16px;
     font-weight: 800;
     margin-bottom: 12px;
-    border-bottom: 2px solid rgba(0, 0, 0, 0.05);
     padding-bottom: 8px;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.05);
+}
+
+.summary-card.upper .card-title {
+    color: #b45309;
+}
+
+.summary-card.lower .card-title {
+    color: #0369a1;
 }
 
 .rank-row {
@@ -349,23 +447,57 @@ table.rr {
     margin-bottom: 8px;
     font-size: 14px;
     font-weight: 700;
-    padding: 4px 8px;
-    border-radius: 6px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(0, 0, 0, 0.03);
 }
 
 .rank-row.winner {
-    background: rgba(251, 191, 36, 0.1);
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.15);
+    border-color: #fde68a;
     font-size: 16px;
+}
+
+.rank-row .icon {
+    font-size: 18px;
+    margin-right: 10px;
+}
+
+.rank-row .label {
+    width: 50px;
+    color: #64748b;
+    font-size: 12px;
 }
 
 .rank-row .name {
     flex: 1;
     text-align: left;
-    font-weight: 800;
+    font-weight: 900;
+    color: #1e293b;
 }
 
-.rank-row .label {
-    width: 60px;
-    text-align: left;
-    opacity: 0.7;
+/* Tournament Controls/Title row */
+.tm-controls {
+    display: flex;
+    gap: 12px;
+    margin: 30px 0 20px;
+    align-items: center;
+    max-width: 1400px;
+}
+
+.tm-controls h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 900;
+}
+
+.tm-pill {
+    background: #eef2ff;
+    color: #4f46e5;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
 }
