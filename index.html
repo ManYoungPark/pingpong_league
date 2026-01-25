@@ -1643,9 +1643,63 @@
             font-size: 13px;
         }
 
-        .m-res.win {
-            color: #ef4444;
+        .m-res.lose {
+            color: #64748b;
+        }
+
+        /* [New] History Navigation Styles */
+        .nav-header {
+            background: #fff;
+            padding: 15px;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            margin-bottom: 20px;
+            border-radius: 12px;
+        }
+
+        .nav-btn {
+            background: #fff;
+            border: 1px solid #cbd5e1;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background: #f8fafc;
+            border-color: #3b82f6;
+            color: #3b82f6;
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .history-selector {
+            border: 1px solid #3b82f6;
+            background: #eff6ff;
+            color: #1e40af;
             font-weight: 800;
+            padding: 8px 24px;
+            border-radius: 10px;
+            font-size: 15px;
+            cursor: pointer;
+            outline: none;
+            text-align: center;
         }
 
         .m-res.lose {
@@ -1704,6 +1758,7 @@
 
                         <button type="button" class="btn" onclick="openReset()">🔄 초기화</button>
                         <button type="button" class="btn" onclick="runAutoTestScenario()">🧪 테스트(3조)</button>
+                        <button type="button" class="btn" onclick="runRealDataTest()">📡 최신 데이터 테스트</button>
                         <button type="button" class="btn" onclick="runAutoTestScenario4Groups()">🎲 테스트(4조 랜덤)</button>
                         <button type="button" class="btn" onclick="runAutoTestScenarioMixed()">🧩 테스트(혼합 22명)</button>
                         <!-- <button type="button" class="btn primary" id="btn-gen-tournament">🏆 본선 토너먼트 생성</button> -->
@@ -1879,9 +1934,88 @@
             </div>
         </div><!-- /tab-match -->
 
-        <!-- 2. History Tab -->
+        <!-- 2. History Tab (Integrated Viewer) -->
         <div id="tab-history" class="tab-content">
-            <div id="history-list" class="history-list"></div>
+            <div id="h-loading-overlay" class="loading-overlay" style="display:none;">
+                <div class="spinner"></div>
+                <div class="loading-text">기록을 불러오는 중...</div>
+            </div>
+
+            <!-- Navigation Header -->
+            <div class="nav-header">
+                <button id="h-prevBtn" class="nav-btn" onclick="h_goPrev()">◀ 이전 대회</button>
+                <select id="h-historySelect" class="history-selector" onchange="h_loadSpecific(this.value)">
+                    <option value="">로딩 중...</option>
+                </select>
+                <button id="h-nextBtn" class="nav-btn" onclick="h_goNext()">다음 대회 ▶</button>
+            </div>
+
+            <div id="h-viewer-area" style="padding-top:20px;">
+                <!-- 1. 최종 결과 요약 -->
+                <div id="h-final-summary" class="final-summary">
+                    <div class="summary-title">🏆 최종 결과 발표 🏆</div>
+                    <div class="summary-content">
+                        <div class="summary-card upper">
+                            <div class="card-title">상위 토너먼트</div>
+                            <div class="rank-row winner">
+                                <span class="icon">🏆</span>
+                                <span class="label">우승</span>
+                                <span class="name" id="h-sum-u-1">-</span>
+                            </div>
+                            <div class="rank-row runner-up">
+                                <span class="icon">🥈</span>
+                                <span class="label">준우승</span>
+                                <span class="name" id="h-sum-u-2">-</span>
+                            </div>
+                            <div class="rank-row third">
+                                <span class="icon">🥉</span>
+                                <span class="label">3위</span>
+                                <span class="name" id="h-sum-u-3">-</span>
+                            </div>
+                        </div>
+                        <div class="summary-card lower">
+                            <div class="card-title">하위 토너먼트</div>
+                            <div class="rank-row winner">
+                                <span class="icon">🏆</span>
+                                <span class="label">우승</span>
+                                <span class="name" id="h-sum-l-1">-</span>
+                            </div>
+                            <div class="rank-row runner-up">
+                                <span class="icon">🥈</span>
+                                <span class="label">준우승</span>
+                                <span class="name" id="h-sum-l-2">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. 조별 리그 -->
+                <div class="card" style="margin-bottom:30px;">
+                    <div class="card-hd"><span class="title">📋 조별 리그 결과</span></div>
+                    <div id="h-teams" class="teams"></div>
+                </div>
+
+                <!-- 3. 본선 토너먼트 -->
+                <div id="h-tournament-area" style="margin-top: 40px;">
+                    <div class="tm-controls">
+                        <h2 class="tm-title">🏆 본선 토너먼트</h2>
+                    </div>
+                    <div class="tm-panel-row">
+                        <div class="tm-panel">
+                            <div class="tm-title" id="h-tm-titleUpper">상위 토너먼트</div>
+                            <div id="h-tm-wrap-upper" class="tm-wrap">
+                                <svg id="h-tm-lines-upper" class="tm-lines"></svg>
+                            </div>
+                        </div>
+                        <div class="tm-panel">
+                            <div class="tm-title" id="h-tm-titleLower">하위 토너먼트</div>
+                            <div id="h-tm-wrap-lower" class="tm-wrap">
+                                <svg id="h-tm-lines-lower" class="tm-lines"></svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- 3. Dashboard Tab -->
@@ -2452,6 +2586,8 @@
             bo5: ["", "3-0", "3-1", "3-2", "2-3", "1-3", "0-3"]
         };
 
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbybkNRimOGBcCYH7HAbiT6lhlqtT9SzVZ0QjDxkD6By1ePgtv5XS8-eGSIIRocNpdJn/exec";
+
         const state = new Map();               // name -> {where:"pool"} or {where:"team", teamId}
         state.groupsCount = 0;
 
@@ -2459,6 +2595,15 @@
 
         // ✅ 사용자가 확정한 순위: teamId -> Map(name -> finalRankNumber)
         const manualRankByTeam = new Map();
+
+        // --- Integrated Viewer State ---
+        const h_state = new Map();
+        h_state.groupsCount = 0;
+        const h_resultsByTeam = new Map();
+        const h_manualRankByTeam = new Map();
+        const h_bracketState = new Map();
+        let h_historyList = [];
+        let h_currentIndex = -1;
         function ensureManual(teamId) {
             if (!manualRankByTeam.has(teamId)) manualRankByTeam.set(teamId, new Map());
             return manualRankByTeam.get(teamId);
@@ -4555,8 +4700,20 @@
         }
 
         /* 
-           UI & Engine 
+           UI & Engine Helpers
         */
+        function safeGetText(elOrId) {
+            if (!elOrId) return "";
+            const el = (typeof elOrId === 'string') ? document.getElementById(elOrId) : elOrId;
+            if (!el) return "";
+            return (el.innerText || el.textContent || "").trim();
+        }
+
+        function safeGetValue(id) {
+            const el = document.getElementById(id);
+            return el ? el.value.trim() : "";
+        }
+
         function isBye(el) {
             if (!el) return false;
             if (el.classList.contains("bye")) return true;
@@ -4572,8 +4729,8 @@
             if (!el) return false;
             if (isBye(el)) return false;
             if (isEmpty(el)) return false;
-            // Check inner text ignoring small tag
-            const t = el.innerText.replace(/\n.+/, "").trim();
+            // Check inner text ignoring small tag or rank label
+            const t = safeGetText(el).split('\n')[0].trim();
             return t !== "" && t !== "?" && t !== "BYE";
         }
 
@@ -4775,27 +4932,31 @@
             // 1. Check wrapper
             const wrap = el.querySelector(".tm-nm-wrap");
             if (wrap) {
-                for (let i = 0; i < wrap.childNodes.length; i++) {
-                    if (wrap.childNodes[i].nodeType === Node.TEXT_NODE) {
-                        return wrap.childNodes[i].textContent.trim();
+                if (wrap.childNodes.length > 0) {
+                    for (let i = 0; i < wrap.childNodes.length; i++) {
+                        if (wrap.childNodes[i].nodeType === Node.TEXT_NODE) {
+                            return wrap.childNodes[i].textContent.trim();
+                        }
                     }
                 }
-                return wrap.innerText.trim();
+                return safeGetText(wrap).split('\n')[0].trim();
             }
 
             // 2. Find first text node (Legacy/Direct)
-            for (let i = 0; i < el.childNodes.length; i++) {
-                if (el.childNodes[i].nodeType === Node.TEXT_NODE) {
-                    return el.childNodes[i].textContent.trim();
+            if (el.childNodes.length > 0) {
+                for (let i = 0; i < el.childNodes.length; i++) {
+                    if (el.childNodes[i].nodeType === Node.TEXT_NODE) {
+                        return el.childNodes[i].textContent.trim();
+                    }
                 }
             }
             // fallback
-            return el.innerText.split('\n')[0].trim();
+            return safeGetText(el).split('\n')[0].trim();
         }
 
         function extractRankLabel(el) {
             const s = el.querySelector("small");
-            return s ? s.innerText : "";
+            return safeGetText(s);
         }
 
         function advanceWinner({ a, b, to, clickedId, engine }) {
@@ -5486,13 +5647,13 @@
             checkTournamentCompletion();
         }
 
-        const SPECIFIC_TEST_DATA = { "metadata": { "date": "2026-01-16", "title": "대덕밸리동호회 금요리그", "groupsCount": 4, "matchFormat": "bo3" }, "playersState": [["김경태", { "where": "team", "teamId": "team-1" }], ["김미경", { "where": "team", "teamId": "team-1" }], ["김성호", { "where": "team", "teamId": "team-1" }], ["김세중", { "where": "team", "teamId": "team-1" }], ["김형찬", { "where": "team", "teamId": "team-1" }], ["김홍석", { "where": "team", "teamId": "team-2" }], ["류계열", { "where": "team", "teamId": "team-2" }], ["박덕례", { "where": "team", "teamId": "team-2" }], ["박만영", { "where": "team", "teamId": "team-2" }], ["박병재", { "where": "team", "teamId": "team-2" }], ["박승기", { "where": "team", "teamId": "team-2" }], ["박현신", { "where": "team", "teamId": "team-3" }], ["박혜란", { "where": "team", "teamId": "team-3" }], ["백낙천", { "where": "team", "teamId": "team-3" }], ["서상국", { "where": "team", "teamId": "team-3" }], ["송광용", { "where": "team", "teamId": "team-3" }], ["안성대", { "where": "team", "teamId": "team-3" }], ["오장진", { "where": "team", "teamId": "team-4" }], ["유호성", { "where": "team", "teamId": "team-4" }], ["윤교찬", { "where": "team", "teamId": "team-4" }], ["이교탁", { "where": "team", "teamId": "team-4" }], ["이영숙", { "where": "team", "teamId": "team-4" }], ["이정우", { "where": "pool" }], ["임규호", { "where": "pool" }], ["정경자", { "where": "pool" }], ["정선철", { "where": "pool" }], ["조복연", { "where": "pool" }], ["조상배", { "where": "pool" }], ["최매완", { "where": "pool" }], ["홍순관", { "where": "pool" }], ["홍현숙", { "where": "pool" }]], "resultsByTeam": [["team-1", [["김경태|||김미경", { "score": "0-2" }], ["김경태|||김성호", { "score": "1-2" }], ["김경태|||김세중", { "score": "2-0" }], ["김경태|||김형찬", { "score": "1-2" }], ["김미경|||김성호", { "score": "2-1" }], ["김미경|||김세중", { "score": "2-0" }], ["김미경|||김형찬", { "score": "2-1" }], ["김성호|||김세중", { "score": "1-2" }], ["김성호|||김형찬", { "score": "2-0" }], ["김세중|||김형찬", { "score": "2-1" }]]], ["team-2", [["김홍석|||류계열", { "score": "0-2" }], ["김홍석|||박덕례", { "score": "1-2" }], ["김홍석|||박만영", { "score": "2-0" }], ["김홍석|||박병재", { "score": "0-2" }], ["김홍석|||박승기", { "score": "0-2" }], ["류계열|||박덕례", { "score": "2-1" }], ["류계열|||박만영", { "score": "2-1" }], ["류계열|||박병재", { "score": "2-0" }], ["류계열|||박승기", { "score": "2-1" }], ["박덕례|||박만영", { "score": "0-2" }], ["박덕례|||박병재", { "score": "1-2" }], ["박덕례|||박승기", { "score": "2-1" }], ["박만영|||박병재", { "score": "1-2" }], ["박만영|||박승기", { "score": "0-2" }], ["박병재|||박승기", { "score": "0-2" }]]], ["team-3", [["박현신|||박혜란", { "score": "2-0" }], ["박현신|||백낙천", { "score": "2-1" }], ["박현신|||서상국", { "score": "0-2" }], ["박현신|||송광용", { "score": "2-0" }], ["박현신|||안성대", { "score": "1-2" }], ["박혜란|||백낙천", { "score": "0-2" }], ["박혜란|||서상국", { "score": "1-2" }], ["박혜란|||송광용", { "score": "0-2" }], ["박혜란|||안성대", { "score": "0-2" }], ["백낙천|||서상국", { "score": "2-1" }], ["백낙천|||송광용", { "score": "2-1" }], ["백낙천|||안성대", { "score": "2-0" }], ["서상국|||송광용", { "score": "2-1" }], ["서상국|||안성대", { "score": "2-0" }], ["송광용|||안성대", { "score": "2-1" }]]], ["team-4", [["오장진|||유호성", { "score": "0-2" }], ["오장진|||윤교찬", { "score": "2-1" }], ["오장진|||이교탁", { "score": "1-2" }], ["오장진|||이영숙", { "score": "1-2" }], ["유호성|||윤교찬", { "score": "2-1" }], ["유호성|||이교탁", { "score": "0-2" }], ["유호성|||이영숙", { "score": "2-0" }], ["윤교찬|||이교탁", { "score": "2-1" }], ["윤교찬|||이영숙", { "score": "1-2" }], ["이교탁|||이영숙", { "score": "0-2" }]]]], "manualRankByTeam": [["team-1", []], ["team-2", []], ["team-3", []], ["team-4", []]], "bracketState": [["U-r2-2", { "winner": "서상국", "loser": "김성호", "score": "2-0", "p1": "서상국", "p2": "김성호" }], ["U-r3-2", { "winner": "박승기", "loser": "유호성", "score": "2-0", "p1": "박승기", "p2": "유호성" }], ["U-r2-3", { "winner": "박승기", "loser": "이교탁", "score": "2-0", "p1": "박승기", "p2": "이교탁" }], ["U-r3-1", { "winner": "김미경", "loser": "서상국", "score": "2-0", "p1": "김미경", "p2": "서상국" }], ["U-r2-6", { "winner": "김세중", "loser": "박현신", "score": "2-0", "p1": "김세중", "p2": "박현신" }], ["U-r2-7", { "winner": "박병재", "loser": "이영숙", "score": "1-2", "p1": "이영숙", "p2": "박병재" }], ["U-r3-4", { "winner": "박병재", "loser": "류계열", "score": "2-0", "p1": "박병재", "p2": "류계열" }], ["U-r3-3", { "winner": "백낙천", "loser": "김세중", "score": "2-0", "p1": "백낙천", "p2": "김세중" }], ["U-r4-1", { "winner": "김미경", "loser": "박승기", "score": "2-0", "p1": "김미경", "p2": "박승기" }], ["U-r4-2", { "winner": "백낙천", "loser": "박병재", "score": "2-0", "p1": "백낙천", "p2": "박병재" }], ["U-winner", { "winner": "김미경", "loser": "백낙천", "score": "2-0", "p1": "김미경", "p2": "백낙천" }], ["L-r2-2", { "winner": "안성대", "loser": "박만영", "score": "2-1", "p1": "안성대", "p2": "박만영" }], ["L-r2-7", { "winner": "윤교찬", "loser": "박혜란", "score": "2-1", "p1": "윤교찬", "p2": "박혜란" }], ["L-r3-4", { "winner": "박덕례", "loser": "윤교찬", "score": "0-2", "p1": "윤교찬", "p2": "박덕례" }], ["L-r3-3", { "winner": "송광용", "loser": "김경태", "score": "2-1", "p1": "송광용", "p2": "김경태" }], ["L-r3-2", { "winner": "김홍석", "loser": "오장진", "score": "2-1", "p1": "김홍석", "p2": "오장진" }], ["L-r3-1", { "winner": "김형찬", "loser": "안성대", "score": "2-1", "p1": "김형찬", "p2": "안성대" }], ["L-r4-1", { "winner": "김형찬", "loser": "김홍석", "score": "2-1", "p1": "김형찬", "p2": "김홍석" }], ["L-winner", { "winner": "김형찬", "loser": "박덕례", "score": "2-1", "p1": "김형찬", "p2": "박덕례" }], ["L-r4-2", { "winner": "박덕례", "loser": "송광용", "score": "0-2", "p1": "송광용", "p2": "박덕례" }]], "finalSummary": { "upper": { "winner": "김미경", "runnerUp": "백낙천", "semiFinalists": ["박승기", "박병재"] }, "lower": { "winner": "김형찬", "runnerUp": "박덕례", "semiFinalists": ["김홍석", "송광용"] } } };
+        let SPECIFIC_TEST_DATA = { "metadata": { "date": "2026-01-16", "title": "대덕밸리동호회 금요리그", "groupsCount": 4, "matchFormat": "bo3" }, "playersState": [["김경태", { "where": "team", "teamId": "team-1" }], ["김미경", { "where": "team", "teamId": "team-1" }], ["김성호", { "where": "team", "teamId": "team-1" }], ["김세중", { "where": "team", "teamId": "team-1" }], ["김형찬", { "where": "team", "teamId": "team-1" }], ["김홍석", { "where": "team", "teamId": "team-2" }], ["류계열", { "where": "team", "teamId": "team-2" }], ["박덕례", { "where": "team", "teamId": "team-2" }], ["박만영", { "where": "team", "teamId": "team-2" }], ["박병재", { "where": "team", "teamId": "team-2" }], ["박승기", { "where": "team", "teamId": "team-2" }], ["박현신", { "where": "team", "teamId": "team-3" }], ["박혜란", { "where": "team", "teamId": "team-3" }], ["백낙천", { "where": "team", "teamId": "team-3" }], ["서상국", { "where": "team", "teamId": "team-3" }], ["송광용", { "where": "team", "teamId": "team-3" }], ["안성대", { "where": "team", "teamId": "team-3" }], ["오장진", { "where": "team", "teamId": "team-4" }], ["유호성", { "where": "team", "teamId": "team-4" }], ["윤교찬", { "where": "team", "teamId": "team-4" }], ["이교탁", { "where": "team", "teamId": "team-4" }], ["이영숙", { "where": "team", "teamId": "team-4" }], ["이정우", { "where": "pool" }], ["임규호", { "where": "pool" }], ["정경자", { "where": "pool" }], ["정선철", { "where": "pool" }], ["조복연", { "where": "pool" }], ["조상배", { "where": "pool" }], ["최매완", { "where": "pool" }], ["홍순관", { "where": "pool" }], ["홍현숙", { "where": "pool" }]], "resultsByTeam": [["team-1", [["김경태|||김미경", { "score": "0-2" }], ["김경태|||김성호", { "score": "1-2" }], ["김경태|||김세중", { "score": "2-0" }], ["김경태|||김형찬", { "score": "1-2" }], ["김미경|||김성호", { "score": "2-1" }], ["김미경|||김세중", { "score": "2-0" }], ["김미경|||김형찬", { "score": "2-1" }], ["김성호|||김세중", { "score": "1-2" }], ["김성호|||김형찬", { "score": "2-0" }], ["김세중|||김형찬", { "score": "2-1" }]]], ["team-2", [["김홍석|||류계열", { "score": "0-2" }], ["김홍석|||박덕례", { "score": "1-2" }], ["김홍석|||박만영", { "score": "2-0" }], ["김홍석|||박병재", { "score": "0-2" }], ["김홍석|||박승기", { "score": "0-2" }], ["류계열|||박덕례", { "score": "2-1" }], ["류계열|||박만영", { "score": "2-1" }], ["류계열|||박병재", { "score": "2-0" }], ["류계열|||박승기", { "score": "2-1" }], ["박덕례|||박만영", { "score": "0-2" }], ["박덕례|||박병재", { "score": "1-2" }], ["박덕례|||박승기", { "score": "2-1" }], ["박만영|||박병재", { "score": "1-2" }], ["박만영|||박승기", { "score": "0-2" }], ["박병재|||박승기", { "score": "0-2" }]]], ["team-3", [["박현신|||박혜란", { "score": "2-0" }], ["박현신|||백낙천", { "score": "2-1" }], ["박현신|||서상국", { "score": "0-2" }], ["박현신|||송광용", { "score": "2-0" }], ["박현신|||안성대", { "score": "1-2" }], ["박혜란|||백낙천", { "score": "0-2" }], ["박혜란|||서상국", { "score": "1-2" }], ["박혜란|||송광용", { "score": "0-2" }], ["박혜란|||안성대", { "score": "0-2" }], ["백낙천|||서상국", { "score": "2-1" }], ["백낙천|||송광용", { "score": "2-1" }], ["백낙천|||안성대", { "score": "2-0" }], ["서상국|||송광용", { "score": "2-1" }], ["서상국|||안성대", { "score": "2-0" }], ["송광용|||안성대", { "score": "2-1" }]]], ["team-4", [["오장진|||유호성", { "score": "0-2" }], ["오장진|||윤교찬", { "score": "2-1" }], ["오장진|||이교탁", { "score": "1-2" }], ["오장진|||이영숙", { "score": "1-2" }], ["유호성|||윤교찬", { "score": "2-1" }], ["유호성|||이교탁", { "score": "0-2" }], ["유호성|||이영숙", { "score": "2-0" }], ["윤교찬|||이교탁", { "score": "2-1" }], ["윤교찬|||이영숙", { "score": "1-2" }], ["이교탁|||이영숙", { "score": "0-2" }]]]], "manualRankByTeam": [["team-1", []], ["team-2", []], ["team-3", []], ["team-4", []]], "bracketState": [["U-r2-2", { "winner": "서상국", "loser": "김성호", "score": "2-0", "p1": "서상국", "p2": "김성호" }], ["U-r3-2", { "winner": "박승기", "loser": "유호성", "score": "2-0", "p1": "박승기", "p2": "유호성" }], ["U-r2-3", { "winner": "박승기", "loser": "이교탁", "score": "2-0", "p1": "박승기", "p2": "이교탁" }], ["U-r3-1", { "winner": "김미경", "loser": "서상국", "score": "2-0", "p1": "김미경", "p2": "서상국" }], ["U-r2-6", { "winner": "김세중", "loser": "박현신", "score": "2-0", "p1": "김세중", "p2": "박현신" }], ["U-r2-7", { "winner": "박병재", "loser": "이영숙", "score": "1-2", "p1": "이영숙", "p2": "박병재" }], ["U-r3-4", { "winner": "박병재", "loser": "류계열", "score": "2-0", "p1": "박병재", "p2": "류계열" }], ["U-r3-3", { "winner": "백낙천", "loser": "김세중", "score": "2-0", "p1": "백낙천", "p2": "김세중" }], ["U-r4-1", { "winner": "김미경", "loser": "박승기", "score": "2-0", "p1": "김미경", "p2": "박승기" }], ["U-r4-2", { "winner": "백낙천", "loser": "박병재", "score": "2-0", "p1": "백낙천", "p2": "박병재" }], ["U-winner", { "winner": "김미경", "loser": "백낙천", "score": "2-0", "p1": "김미경", "p2": "백낙천" }], ["L-r2-2", { "winner": "안성대", "loser": "박만영", "score": "2-1", "p1": "안성대", "p2": "박만영" }], ["L-r2-7", { "winner": "윤교찬", "loser": "박혜란", "score": "2-1", "p1": "윤교찬", "p2": "박혜란" }], ["L-r3-4", { "winner": "박덕례", "loser": "윤교찬", "score": "0-2", "p1": "윤교찬", "p2": "박덕례" }], ["L-r3-3", { "winner": "송광용", "loser": "김경태", "score": "2-1", "p1": "송광용", "p2": "김경태" }], ["L-r3-2", { "winner": "김홍석", "loser": "오장진", "score": "2-1", "p1": "김홍석", "p2": "오장진" }], ["L-r3-1", { "winner": "김형찬", "loser": "안성대", "score": "2-1", "p1": "김형찬", "p2": "안성대" }], ["L-r4-1", { "winner": "김형찬", "loser": "김홍석", "score": "2-1", "p1": "김형찬", "p2": "김홍석" }], ["L-winner", { "winner": "김형찬", "loser": "박덕례", "score": "2-1", "p1": "김형찬", "p2": "박덕례" }], ["L-r4-2", { "winner": "박덕례", "loser": "송광용", "score": "0-2", "p1": "송광용", "p2": "박덕례" }]], "finalSummary": { "upper": { "winner": "김미경", "runnerUp": "백낙천", "semiFinalists": ["박승기", "박병재"] }, "lower": { "winner": "김형찬", "runnerUp": "박덕례", "semiFinalists": ["김홍석", "송광용"] } } };
 
-        function runAutoTestScenario() {
-            if (!confirm("현재 데이터를 모두 지우고 사용자 제공 테스트 데이터를 생성하시겠습니까?")) return;
+        function runAutoTestScenario(customData) {
+            if (!customData && !confirm("현재 데이터를 모두 지우고 사용자 제공 테스트 데이터를 생성하시겠습니까?")) return;
 
             initState();
-            const data = SPECIFIC_TEST_DATA;
+            const data = customData || SPECIFIC_TEST_DATA;
 
             // 1. Metadata Restore
             if (data.metadata) {
@@ -5533,6 +5694,45 @@
             setTimeout(() => {
                 runTournamentGeneration(true);
             }, 100);
+        }
+
+        async function runRealDataTest() {
+            if (!confirm("구글 시트의 가장 최신 대회를 불러와서 '현재 경기' 탭에 테스트용으로 자동 입력하시겠습니까?")) return;
+
+            const overlay = document.getElementById("h-loading-overlay");
+            if (overlay) overlay.style.display = "flex";
+
+            try {
+                // 1. Get Latest record
+                const listRes = await fetch(`${GAS_URL}?action=getList`);
+                const listData = await listRes.json();
+                if (!listData.success || !listData.list || listData.list.length === 0) {
+                    alert("가져올 기록이 없습니다.");
+                    return;
+                }
+
+                const item = listData.list[0]; // Latest
+
+                // 2. Get Full Data
+                const dataRes = await fetch(`${GAS_URL}?action=getData&date=${encodeURIComponent(item.date)}&title=${encodeURIComponent(item.title)}`);
+                const dataFull = await dataRes.json();
+                if (!dataFull.success) {
+                    alert("데이터를 가져오지 못했습니다: " + (dataFull.msg || ""));
+                    return;
+                }
+
+                const parsed = typeof dataFull.fullData === 'string' ? JSON.parse(dataFull.fullData) : dataFull.fullData;
+
+                // 3. Populate Live State
+                runAutoTestScenario(parsed);
+                alert(`최신 데이터 [${item.date} - ${item.title}]를 라이브 대시보드에 불러왔습니다.`);
+
+            } catch (err) {
+                console.error("Real data test error:", err);
+                alert("불러오기 실패: " + err.message);
+            } finally {
+                if (overlay) overlay.style.display = "none";
+            }
         }
 
         function runAutoTestScenario4Groups() {
@@ -5885,7 +6085,7 @@
             // Shared logic to find rankers
             function analyzeBracket(prefix) {
                 let maxR = 0;
-                for (let r = 1; r <= 6; r++) if (document.getElementById(`${prefix}-r${r}-1`)) maxR = r;
+                for (let r = 1; r <= 8; r++) if (document.getElementById(`${prefix}-r${r}-1`)) maxR = r;
                 if (maxR === 0) return { winner: '미정', runnerUp: '미정', semiFinalists: [] };
 
                 // Winner
@@ -5894,18 +6094,19 @@
 
                 // Runner Up
                 let runnerUp = '미정';
-                const f1 = document.getElementById(`${prefix}-r${maxR}-1`);
-                const f2 = document.getElementById(`${prefix}-r${maxR}-2`);
+                const finalistIds = [`${prefix}-r${maxR}-1`, `${prefix}-r${maxR}-2`];
                 const finalists = [];
-                if (f1 && hasPlayer(f1)) finalists.push(extractName(f1));
-                if (f2 && hasPlayer(f2)) finalists.push(extractName(f2));
+                finalistIds.forEach(id => {
+                    const fEl = document.getElementById(id);
+                    if (fEl && hasPlayer(fEl)) finalists.push(extractName(fEl));
+                });
 
                 if (winner !== '미정') {
                     const found = finalists.find(n => n !== winner);
                     if (found) runnerUp = found;
                 }
 
-                // Semi-Finalists (Joint 3rd) - exclude finalists
+                // Semi-Finalists (Joint 3rd)
                 const semiFinalists = [];
                 if (maxR > 1) {
                     const semiR = maxR - 1;
@@ -5913,7 +6114,7 @@
                         const sEl = document.getElementById(`${prefix}-r${semiR}-${k}`);
                         if (sEl && hasPlayer(sEl)) {
                             const name = extractName(sEl);
-                            if (!finalists.includes(name)) {
+                            if (name && !finalists.includes(name)) {
                                 semiFinalists.push(name);
                             }
                         }
@@ -5990,14 +6191,14 @@
                         const serializeMap = (m) => Array.from(m.entries());
                         const serializeDeepMap = (m) => Array.from(m.entries()).map(([k, v]) => [k, Array.from(v.entries())]);
 
-                        const finalSelectedDate = document.getElementById("datePicker").value || new Date().toISOString().split('T')[0];
+                        const finalSelectedDate = safeGetValue("datePicker") || new Date().toISOString().split('T')[0];
 
                         const fullDataSnapshot = {
                             metadata: {
                                 date: finalSelectedDate,
-                                title: "대덕밸리동호회 " + document.getElementById("headerTitle").value,
+                                title: "대덕밸리동호회 " + safeGetValue("headerTitle"),
                                 groupsCount: state.groupsCount,
-                                matchFormat: matchFormatEl.value
+                                matchFormat: safeGetValue("matchFormat")
                             },
                             playersState: serializeMap(state),
                             resultsByTeam: serializeDeepMap(resultsByTeam),
@@ -6388,17 +6589,383 @@
             let txt = `⏱️ 예상: `;
             if (totalH > 0) txt += `${totalH}시간 `;
             txt += `${totalM}분`;
-
-            // Add Remaining Info
             txt += ` (남음: `;
             if (remainH > 0) txt += `${remainH}시간 `;
             txt += `${remainM}분, `;
-
-            // txt += `[T:${roundsByTable}/P:${maxPlayerRemaining}] `; // Debug
-
             txt += `${remainingMatches}/${totalMatches}경기)`;
 
             el.textContent = txt;
+        }
+
+        async function h_fetchHistoryList() {
+            const select = document.getElementById("h-historySelect");
+            if (!select) return;
+
+            // If already loaded some items, don't show loading unless empty
+            if (select.options.length > 1) return;
+
+            select.innerHTML = '<option value="">서버에서 목록을 가져오는 중...</option>';
+
+            try {
+                const response = await fetch(`${GAS_URL}?action=getList`);
+                const data = await response.json();
+                if (data.success) {
+                    h_historyList = data.list || [];
+                    select.innerHTML = "";
+                    if (h_historyList.length === 0) {
+                        select.innerHTML = '<option value="">기록이 없습니다</option>';
+                        return;
+                    }
+                    h_historyList.forEach((item, idx) => {
+                        const opt = document.createElement("option");
+                        opt.value = idx;
+                        opt.textContent = `${item.date} - ${item.title}`;
+                        select.appendChild(opt);
+                    });
+
+                    if (h_currentIndex === -1) {
+                        h_currentIndex = 0;
+                        h_loadSpecific(0);
+                    }
+                } else {
+                    select.innerHTML = `<option value="">데이터 오류: ${data.msg || '알수없음'}</option>`;
+                }
+            } catch (err) {
+                console.error("History list fetch error:", err);
+                select.innerHTML = '<option value="">불러오기 실패 (URL 확인)</option>';
+            }
+        }
+
+        async function h_loadSpecific(idx) {
+            if (idx === "") return;
+            const index = parseInt(idx);
+            h_currentIndex = index;
+            const item = h_historyList[index];
+            if (!item) return;
+
+            const overlay = document.getElementById("h-loading-overlay");
+            if (overlay) overlay.style.display = "flex";
+
+            try {
+                const response = await fetch(`${GAS_URL}?action=getData&date=${encodeURIComponent(item.date)}&title=${encodeURIComponent(item.title)}`);
+                const data = await response.json();
+                if (data.success) {
+                    // fullData might be stringified JSON
+                    const parsedData = typeof data.fullData === 'string' ? JSON.parse(data.fullData) : data.fullData;
+                    h_initViewer(parsedData);
+                } else {
+                    alert("기록 조회 실패: " + (data.msg || "알 수 없는 오류"));
+                }
+            } catch (err) {
+                console.error("Full data fetch error:", err);
+                alert("기록을 불러오지 못했습니다.");
+            } finally {
+                if (overlay) overlay.style.display = "none";
+                h_updateNavButtons();
+            }
+        }
+
+        function h_updateNavButtons() {
+            document.getElementById("h-prevBtn").disabled = (h_currentIndex >= h_historyList.length - 1);
+            document.getElementById("h-nextBtn").disabled = (h_currentIndex <= 0);
+        }
+
+        function h_goPrev() { if (h_currentIndex < h_historyList.length - 1) h_loadSpecific(h_currentIndex + 1); }
+        function h_goNext() { if (h_currentIndex > 0) h_loadSpecific(h_currentIndex - 1); }
+
+        function h_initViewer(data) {
+            const { metadata, playersState, resultsByTeam: results, manualRankByTeam: manuals, bracketState: brackets, finalSummary } = data;
+
+            h_state.clear();
+            new Map(playersState).forEach((v, k) => h_state.set(k, v));
+            h_state.groupsCount = metadata.groupsCount || 4;
+
+            h_resultsByTeam.clear();
+            if (results) new Map(results).forEach((v, k) => h_resultsByTeam.set(k, new Map(v)));
+
+            h_manualRankByTeam.clear();
+            if (manuals) new Map(manuals).forEach((v, k) => h_manualRankByTeam.set(k, new Map(v)));
+
+            h_bracketState.clear();
+            if (brackets) new Map(brackets).forEach((v, k) => h_bracketState.set(k, v));
+
+            // Render Results Summary
+            const sumEl = document.getElementById("h-final-summary");
+            if (finalSummary) {
+                sumEl.classList.add("show");
+                const set = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = Array.isArray(val) ? val.join(", ") : (val || "-");
+                };
+                set("h-sum-u-1", finalSummary.upper.winner);
+                set("h-sum-u-2", finalSummary.upper.runnerUp);
+                set("h-sum-u-3", finalSummary.upper.third || finalSummary.upper.semiFinalists);
+                set("h-sum-l-1", finalSummary.lower.winner);
+                set("h-sum-l-2", finalSummary.lower.runnerUp);
+            } else {
+                sumEl.classList.remove("show");
+            }
+
+            h_renderHistoryUI();
+        }
+
+        function h_renderHistoryUI() {
+            const teamsEl = document.getElementById("h-teams");
+            teamsEl.innerHTML = "";
+            const teamIds = new Set();
+            h_state.forEach(v => { if (v.where === "team" && v.teamId) teamIds.add(v.teamId); });
+            const sortedTeamIds = Array.from(teamIds).sort((a, b) => parseInt(a.split('-')[1]) - parseInt(b.split('-')[1]));
+
+            sortedTeamIds.forEach(teamId => {
+                const players = Array.from(h_state.entries())
+                    .filter(([_, v]) => v.where === "team" && v.teamId === teamId)
+                    .map(([k, _]) => k);
+
+                const idx = parseInt(teamId.split("-")[1]);
+                const teamDiv = document.createElement("div");
+                teamDiv.className = "team";
+                teamDiv.innerHTML = `
+            <div class="hd"><div class="tname">${idx}조</div><div class="count">${players.length}명</div></div>
+            <div class="body"><div class="rr-host"></div></div>
+        `;
+                teamsEl.appendChild(teamDiv);
+                h_renderRoundRobin(teamDiv, teamId, players);
+            });
+            h_renderBrackets();
+        }
+
+        function h_renderRoundRobin(teamBox, teamId, players) {
+            const host = teamBox.querySelector(".rr-host");
+            host.innerHTML = "";
+            const wrap = document.createElement("div");
+            wrap.className = "rr-wrap";
+
+            const autoPack = computeRanking_h(teamId, players);
+            const finalPack = resolveFinalRanks_h(teamId, autoPack);
+
+            const scroll = document.createElement("div");
+            scroll.className = "table-scroll";
+            const tbl = document.createElement("table");
+            tbl.className = "rr";
+            tbl.style.setProperty("--cols", String(players.length + 4.5));
+
+            const thead = document.createElement("thead");
+            const hr = document.createElement("tr");
+            const corner = document.createElement("th");
+            corner.className = "corner sticky"; corner.textContent = "선수"; hr.appendChild(corner);
+            players.forEach(p => {
+                const th = document.createElement("th"); th.className = "sticky";
+                th.innerHTML = `${p}<span class="grade-badge">${PLAYER_INFO.get(p)?.grade || ""}</span>`;
+                hr.appendChild(th);
+            });
+            ["승-패", "득실", "순위"].forEach(txt => {
+                const th = document.createElement("th"); th.className = "sticky wl"; th.textContent = txt; hr.appendChild(th);
+            });
+            thead.appendChild(hr); tbl.appendChild(thead);
+
+            const tbody = document.createElement("tbody");
+            players.forEach((rowP, i) => {
+                const tr = document.createElement("tr");
+                const left = document.createElement("th"); left.className = "leftsticky";
+                left.innerHTML = `${rowP}<span class="grade-badge">${PLAYER_INFO.get(rowP)?.grade || ""}</span>`; tr.appendChild(left);
+
+                players.forEach((colP, j) => {
+                    const td = document.createElement("td");
+                    if (i === j) { td.className = "diag"; td.textContent = "—"; }
+                    else {
+                        const k = (rowP.localeCompare(colP, 'ko') <= 0) ? `${rowP}|||${colP}` : `${colP}|||${rowP}`;
+                        const res = (h_resultsByTeam.get(teamId) || new Map()).get(k);
+                        const score = res?.score || "-";
+                        if (score !== "-") {
+                            const pts = score.split("-");
+                            const myScore = k.startsWith(rowP) ? parseInt(pts[0]) : parseInt(pts[1]);
+                            const opScore = k.startsWith(rowP) ? parseInt(pts[1]) : parseInt(pts[0]);
+                            td.innerHTML = `<div style="color:${myScore > opScore ? '#000' : '#ef4444'}; font-weight:${myScore > opScore ? '900' : '400'}">${myScore}</div>`;
+                        } else td.textContent = "-";
+                    }
+                    tr.appendChild(td);
+                });
+
+                const st = autoPack.map.get(rowP);
+                const f = finalPack.get(rowP);
+                const wlTd = document.createElement("td"); wlTd.className = "wl"; wlTd.textContent = autoPack.anyPlayed ? `${st.win}-${st.lose}` : "-"; tr.appendChild(wlTd);
+                const diffTd = document.createElement("td"); diffTd.className = "wl"; diffTd.textContent = autoPack.anyPlayed ? (st.setDiff >= 0 ? "+" + st.setDiff : st.setDiff) : "-"; tr.appendChild(diffTd);
+                const rkTd = document.createElement("td"); rkTd.className = "rank";
+                if (autoPack.anyPlayed && f.finalRank === 1) rkTd.innerHTML = `<span class="crown">👑</span>1위`;
+                else rkTd.innerHTML = f.finalLabel || "-";
+                tbody.appendChild(tr);
+            });
+            tbl.appendChild(tbody); scroll.appendChild(tbl); wrap.appendChild(scroll); host.appendChild(wrap);
+        }
+
+        function computeRanking_h(teamId, players) {
+            const resMap = h_resultsByTeam.get(teamId) || new Map();
+            const base = new Map();
+            players.forEach(p => base.set(p, { name: p, played: 0, win: 0, lose: 0, setsFor: 0, setsAgainst: 0 }));
+
+            for (let i = 0; i < players.length; i++) {
+                for (let j = i + 1; j < players.length; j++) {
+                    const A = players[i], B = players[j];
+                    const k = (A.localeCompare(B, 'ko') <= 0) ? `${A}|||${B}` : `${B}|||${A}`;
+                    const res = resMap.get(k);
+                    const pts = res?.score ? res.score.split("-") : null;
+                    if (!pts || pts.length !== 2) continue;
+
+                    const aScore = k.startsWith(A) ? parseInt(pts[0]) : parseInt(pts[1]);
+                    const bScore = k.startsWith(A) ? parseInt(pts[1]) : parseInt(pts[0]);
+                    const sA = base.get(A), sB = base.get(B);
+                    sA.played++; sB.played++;
+                    sA.setsFor += aScore; sA.setsAgainst += bScore;
+                    sB.setsFor += bScore; sB.setsAgainst += aScore;
+                    if (aScore > bScore) { sA.win++; sB.lose++; } else if (aScore < bScore) { sB.win++; sA.lose++; }
+                }
+            }
+
+            const anyPlayed = Array.from(base.values()).some(s => s.played > 0);
+            const statsArr = Array.from(base.values()).map(s => ({ ...s, points: s.win, setDiff: s.setsFor - s.setsAgainst }));
+            const sorted = statsArr.sort((x, y) => (y.win - x.win) || (y.setDiff - x.setDiff) || (y.setsFor - x.setsFor));
+
+            const out = new Map();
+            sorted.forEach((s, idx) => out.set(s.name, { ...s, autoRank: idx + 1 }));
+            return { map: out, anyPlayed };
+        }
+
+        function resolveFinalRanks_h(teamId, autoPack) {
+            const final = new Map();
+            const manual = h_manualRankByTeam.get(teamId) || new Map();
+            autoPack.map.forEach((st, nm) => {
+                const r = manual.get(nm) || st.autoRank;
+                final.set(nm, { finalRank: r, finalLabel: autoPack.anyPlayed ? `${r}위` : "" });
+            });
+            return final;
+        }
+
+        function h_renderBrackets() {
+            function check16(prefix) {
+                for (let i = 9; i <= 16; i++) if (h_bracketState.has(`${prefix}-r1-${i}`)) return true;
+                for (let i = 5; i <= 8; i++) if (h_bracketState.has(`${prefix}-r2-${i}`)) return true;
+                return false;
+            }
+            const Bu = check16("U") ? 16 : 8, Bl = check16("L") ? 16 : 8;
+
+            const process = (prefix, B) => {
+                const slots = new Array(B).fill(null);
+                for (let i = 1; i <= B; i++) {
+                    const val = h_bracketState.get(`${prefix}-r1-${i}`);
+                    if (typeof val === 'string') slots[i - 1] = val;
+                }
+                const r2Count = B / 2;
+                for (let i = 1; i <= r2Count; i++) {
+                    const match = h_bracketState.get(`${prefix}-r2-${i}`);
+                    if (match && typeof match === 'object') {
+                        if (slots[(i - 1) * 2] === null) slots[(i - 1) * 2] = match.p1;
+                        if (slots[(i - 1) * 2 + 1] === null) slots[(i - 1) * 2 + 1] = match.p2;
+                    }
+                }
+                return slots;
+            };
+
+            h_createBracketUI("h-tm-wrap-upper", "h-tm-lines-upper", "U", 1, Bu, process("U", Bu), "h-tm-titleUpper", "상위 토너먼트");
+            h_createBracketUI("h-tm-wrap-lower", "h-tm-lines-lower", "L", -1, Bl, process("L", Bl), "h-tm-titleLower", "하위 토너먼트");
+        }
+
+        function h_createBracketUI(wrapId, svgId, prefix, direction, B, slots, titleId, titleText) {
+            const wrap = document.getElementById(wrapId), svg = document.getElementById(svgId), title = document.getElementById(titleId);
+            wrap.querySelectorAll(".tm-player, .tm-champ-label").forEach(el => el.remove());
+            svg.innerHTML = "";
+            const byeCount = slots.filter(x => !x || x === "BYE").length;
+            title.textContent = `${titleText} (${B}강, BYE ${byeCount}개)`;
+            wrap.style.height = `${Math.max(500, B * 40 + 60)}px`;
+
+            const W = wrap.clientWidth, H = wrap.clientHeight, rounds = Math.log2(B), boxW = 85, boxH = 34, champW = 110, padX = 20, padY = 20;
+            const step = (W - padX * 2 - champW) / rounds, usableH = H - padY * 2;
+            const nodeId = (r, i) => `h-${prefix}-r${r}-${i}`;
+
+            for (let r = 1; r <= rounds; r++) {
+                const count = B / Math.pow(2, r - 1), spacing = usableH / count;
+                for (let i = 1; i <= count; i++) {
+                    const div = document.createElement("div"); div.className = "tm-player empty"; div.id = nodeId(r, i);
+                    const x = (direction === 1) ? padX + (r - 1) * step : W - padX - (r - 1) * step - boxW;
+                    const y = padY + (i - 0.5) * spacing - boxH / 2;
+                    div.style.left = `${x}px`; div.style.top = `${y}px`;
+                    wrap.appendChild(div);
+                }
+            }
+            const champ = document.createElement("div"); champ.className = "tm-champ-label";
+            champ.style.top = `${H / 2 - 55}px`; champ.style.left = (direction === 1) ? `${W - padX - champW}px` : `${padX}px`;
+            champ.innerHTML = `<div class="label">CHAMPION</div><div id="h-${prefix}-winner" class="tm-player empty tm-winner-box" style="position:static">?</div>`;
+            wrap.appendChild(champ);
+
+            // Populate slots
+            for (let i = 1; i <= B; i++) {
+                const el = document.getElementById(nodeId(1, i)), p = slots[i - 1];
+                if (!p || p === "BYE") { el.textContent = "BYE"; el.classList.add("bye"); }
+                else {
+                    const rank = h_getRankLabel(p);
+                    el.innerHTML = `<span class="tm-nm-wrap">${p}<span class="grade-badge">${PLAYER_INFO.get(p)?.grade || ""}</span></span>${rank ? `<small>${rank}</small>` : ""}`;
+                    el.classList.remove("empty");
+                }
+            }
+            // Restore winners
+            h_bracketState.forEach((val, id) => {
+                if (!id.startsWith(prefix)) return;
+                const el = document.getElementById("h-" + id); if (!el) return;
+                const name = (typeof val === 'object') ? val.winner : val;
+                if (name && name !== "BYE") {
+                    const rank = h_getRankLabel(name);
+                    el.innerHTML = `<span class="tm-nm-wrap">${name}<span class="grade-badge">${PLAYER_INFO.get(name)?.grade || ""}</span></span>${rank ? `<small>${rank}</small>` : ""}`;
+                    el.classList.remove("empty"); el.classList.remove("bye");
+                } else if (name === "BYE") { el.textContent = "BYE"; el.classList.add("bye"); el.classList.add("empty"); }
+            });
+
+            h_drawBracketLines(wrap, svg, prefix, direction, rounds, nodeId);
+        }
+
+        function h_getRankLabel(name) {
+            const p = h_state.get(name); if (!p || !p.teamId) return "";
+            const teamId = p.teamId;
+            const players = Array.from(h_state.entries()).filter(([_, v]) => v.teamId === teamId).map(([k, _]) => k);
+            const auto = computeRanking_h(teamId, players);
+            const final = resolveFinalRanks_h(teamId, auto);
+            const f = final.get(name); const gNum = parseInt(teamId.split("-")[1]);
+            return (f && f.finalRank) ? `${gNum}조 ${f.finalRank}위` : "";
+        }
+
+        function h_extractBracketName(el) {
+            if (!el) return "";
+            const wrap = el.querySelector(".tm-nm-wrap");
+            if (wrap) return safeGetText(wrap).split('\n')[0].trim();
+            return safeGetText(el).split('\n')[0].trim();
+        }
+
+        function h_drawBracketLines(wrapEl, svg, prefix, direction, rounds, nodeId) {
+            const MATCHES = [];
+            for (let r = 1; r <= rounds; r++) {
+                const count = Math.pow(2, rounds - r + 1);
+                if (r === rounds) MATCHES.push({ a: nodeId(r, 1), b: nodeId(r, 2), to: `h-${prefix}-winner` });
+                else for (let i = 1; i <= count; i += 2) MATCHES.push({ a: nodeId(r, i), b: nodeId(r, i + 1), to: nodeId(r + 1, Math.ceil(i / 2)) });
+            }
+            MATCHES.forEach(m => {
+                const e1 = document.getElementById(m.a), e2 = document.getElementById(m.b), et = document.getElementById(m.to);
+                if (!e1 || !e2 || !et) return;
+                const wr = wrapEl.getBoundingClientRect(), r1 = e1.getBoundingClientRect(), r2 = e2.getBoundingClientRect(), rt = et.getBoundingClientRect();
+                const x1 = (direction === 1 ? r1.right : r1.left) - wr.left, y1 = (r1.top + r1.height / 2) - wr.top;
+                const x2 = (direction === 1 ? r2.right : r2.left) - wr.left, y2 = (r2.top + r2.height / 2) - wr.top;
+                const xt = (direction === 1 ? rt.left : rt.right) - wr.left, yt = (rt.top + rt.height / 2) - wr.top;
+                const topY = Math.min(y1, y2), botY = Math.max(y1, y2), joinY = Math.max(topY, Math.min(yt, botY)), maxX = direction === 1 ? Math.max(x1, x2) : Math.min(x1, x2), joinX = (maxX + xt) / 2;
+                const mkPath = (d, seg) => { const p = document.createElementNS("http://www.w3.org/2000/svg", "path"); p.setAttribute("d", d); p.dataset.seg = seg; svg.appendChild(p); return p; };
+                const p1 = mkPath(`M ${x1} ${y1} H ${joinX}`, 'in'), p2 = mkPath(`M ${x2} ${y2} H ${joinX}`, 'in'), vt = mkPath(`M ${joinX} ${topY} V ${joinY}`, 'vTop'), vb = mkPath(`M ${joinX} ${joinY} V ${botY}`, 'vBot'), ho = mkPath(`M ${joinX} ${joinY} H ${xt}`, 'hOut');
+
+                const toE = document.getElementById(m.to); if (!toE || toE.classList.contains("empty")) return;
+                const wName = h_extractBracketName(toE);
+                const n1 = h_extractBracketName(e1);
+                const n2 = h_extractBracketName(e2);
+                const is1 = (wName === n1), is2 = (wName === n2);
+                if (is1 || is2) {
+                    ho.classList.add("win"); if (is1) { p1.classList.add("win"); p2.classList.add("lose"); e1.classList.add("winner"); e2.classList.remove("winner"); if (y1 < y2) vt.classList.add("win"), vb.classList.add("lose"); else vb.classList.add("win"), vt.classList.add("lose"); }
+                    else { p2.classList.add("win"); p1.classList.add("lose"); e2.classList.add("winner"); e1.classList.remove("winner"); if (y2 < y1) vt.classList.add("win"), vb.classList.add("lose"); else vb.classList.add("win"), vt.classList.add("lose"); }
+                }
+            });
         }
     </script>
     <!-- New: Time Settings Modal (Moved to root) -->

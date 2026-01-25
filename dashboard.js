@@ -32,7 +32,9 @@ function initTabs() {
             document.getElementById(targetId).classList.add("active");
 
             // Refresh data if needed
-            if (targetId === "tab-history") renderHistory();
+            if (targetId === "tab-history") {
+                if (typeof h_fetchHistoryList === "function") h_fetchHistoryList();
+            }
             if (targetId === "tab-dashboard-view") {
                 // ✅ Give browser a moment to calc layout before rendering chart
                 setTimeout(() => {
