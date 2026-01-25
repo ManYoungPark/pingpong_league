@@ -1,65 +1,147 @@
-/**
- * history_viewer.js
- * index.html의 렌더링 엔진을 그대로 이식한 고정용(Read-only) 뷰어
- */
+const GAS_URL = "https://script.google.com/macros/s/AKfycbybkNRimOGBcCYH7HAbiT6lhlqtT9SzVZ0QjDxkD6By1ePgtv5XS8-eGSIIRocNpdJn/exec";
 
 // --- 글로벌 상태 (Viewer 전용) ---
+let currentHistoryList = [];
+let currentIndex = -1;
+
 const state = new Map();
 const resultsByTeam = new Map();
 const manualRankByTeam = new Map();
 const bracketState = new Map();
 const PLAYER_INFO = new Map();
-const resizeHandlers = {};
-
-// Default Players (index.html에서 복사)
-const DEFAULT_PLAYERS = [
-    { id: "p001", name: "박만영", grade: 1 }, { id: "p002", name: "이정우", grade: 5 },
-    { id: "p003", name: "김경태", grade: 2 }, { id: "p004", name: "박병재", grade: 1 },
-    { id: "p005", name: "안성대", grade: 6 }, { id: "p006", name: "유호성", grade: 2 },
-    { id: "p007", name: "조복연", grade: 4 }, { id: "p009", name: "김미경", grade: 7 },
-    { id: "p010", name: "김성호", grade: 6 }, { id: "p011", name: "김세중", grade: 6 },
-    { id: "p013", name: "김형찬", grade: 1 }, { id: "p014", name: "김홍석", grade: 6 },
-    { id: "p015", name: "류계열", grade: 5 }, { id: "p016", name: "박덕례", grade: 6 },
-    { id: "p017", name: "박혜란", grade: 6 }, { id: "p018", name: "백낙천", grade: 3 },
-    { id: "p019", name: "서상국", grade: 4 }, { id: "p020", name: "송광용", grade: 5 },
-    { id: "p022", name: "오장진", grade: 4 }, { id: "p023", name: "윤교찬", grade: 6 },
-    { id: "p024", name: "이교탁", grade: 7 }, { id: "p025", name: "이영숙", grade: 4 },
-    { id: "p026", name: "임규호", grade: 6 }, { id: "p027", name: "정경자", grade: 5 },
-    { id: "p028", name: "정선철", grade: 5 }, { id: "p029", name: "조상배", grade: 5 },
-    { id: "p030", name: "최매완", grade: 4 }, { id: "p031", name: "박현신", grade: 6 },
-    { id: "p032", name: "홍순관", grade: 6 }, { id: "p033", name: "홍현숙", grade: 7 },
-    { id: "p034", name: "박승기", grade: 6 }
-];
-DEFAULT_PLAYERS.forEach(p => PLAYER_INFO.set(p.name, p));
-
-let matchFormat = "bo3";
+let currentGroupsCount = 4; // 글로벌 상태 추가
 
 // --- 초기화 ---
-window.addEventListener("DOMContentLoaded", () => {
-    if (window.SAMPLE_HISTORY_DATA) {
-        initViewer(window.SAMPLE_HISTORY_DATA);
-    }
+window.addEventListener("DOMContentLoaded", async () => {
+    await fetchHistoryList();
 });
 
+async function fetchHistoryList() {
+    toggleLoader(true);
+    try {
+        const res = await fetch(`${GAS_URL}?action=getList`);
+        if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+        const data = await res.json();
+        if (data.success && data.list.length > 0) {
+            currentHistoryList = data.list;
+            renderSelector();
+            loadSpecific(currentHistoryList[0].date);
+        } else {
+            throw new Error(data.message || "기록 목록을 불러올 수 없습니다.");
+        }
+    } catch (e) {
+        console.error("Fetch failed", e);
+        // 사용자에게 구체적인 오류 원인 힌트 제공
+        const errorMsg = e.message.includes("fetch") ? "네트워크 오류 또는 CORS 정책 위반" : e.message;
+        console.log("상세 오류:", errorMsg);
+
+        // Fallback: 샘플 데이터 로드
+        currentHistoryList = [{ date: "window.SAMPLE_HISTORY_DATA", title: `샘플 데이터 (연결 실패: ${errorMsg})` }];
+        renderSelector();
+        if (window.SAMPLE_HISTORY_DATA) initViewer(window.SAMPLE_HISTORY_DATA);
+    } finally {
+        toggleLoader(false);
+    }
+}
+
+function renderSelector() {
+    const selector = document.getElementById("historySelect");
+    if (currentHistoryList.length === 0) {
+        selector.innerHTML = `<option value="">데이터 없음</option>`;
+        return;
+    }
+    selector.innerHTML = currentHistoryList.map((item, idx) => {
+        if (item.date === "window.SAMPLE_HISTORY_DATA") {
+            return `<option value="${item.date}">${item.title}</option>`;
+        }
+        const d = new Date(item.date);
+        const label = `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()} - ${item.title}`;
+        return `<option value="${item.date}">${label}</option>`;
+    }).join("");
+}
+
+async function loadSpecific(date) {
+    toggleLoader(true);
+    try {
+        const res = await fetch(`${GAS_URL}?action=getData&date=${encodeURIComponent(date)}`);
+        const data = await res.json();
+        if (data.success) {
+            console.log("Fetched raw fullData:", data.fullData);
+            let fullData;
+            if (typeof data.fullData === 'string') {
+                fullData = JSON.parse(data.fullData);
+            } else {
+                fullData = data.fullData;
+            }
+            initViewer(fullData);
+            currentIndex = currentHistoryList.findIndex(item => String(item.date) === String(date));
+            updateNavButtons();
+            document.getElementById("historySelect").value = date;
+        } else {
+            console.error("Server returned success:false", data.msg);
+        }
+    } catch (e) {
+        console.error("Data load failed", e);
+    } finally {
+        toggleLoader(false);
+    }
+}
+
+function updateNavButtons() {
+    document.getElementById("prevBtn").disabled = (currentIndex >= currentHistoryList.length - 1);
+    document.getElementById("nextBtn").disabled = (currentIndex <= 0);
+}
+
+function goPrev() { if (currentIndex < currentHistoryList.length - 1) loadSpecific(currentHistoryList[currentIndex + 1].date); }
+function goNext() { if (currentIndex > 0) loadSpecific(currentHistoryList[currentIndex - 1].date); }
+
+function toggleLoader(show) {
+    document.getElementById("loadingCover").classList.toggle("active", show);
+}
+
 function initViewer(fullData) {
+    if (!fullData || !fullData.metadata) {
+        console.error("Invalid fullData structure", fullData);
+        alert("데이터 형식이 올바르지 않습니다.");
+        return;
+    }
     const { metadata, playersState, resultsByTeam: results, manualRankByTeam: manuals, bracketState: brackets, finalSummary } = fullData;
 
-    matchFormat = metadata.matchFormat || "bo3";
-    document.title = `기록 조회: ${metadata.title}`;
+    currentGroupsCount = metadata.groupsCount || 4; // 그룹 수 저장
+
+    document.title = `${metadata.title} - 기록 조회`;
     document.getElementById("headerTitle").textContent = metadata.title;
     document.getElementById("headerDate").textContent = metadata.date;
 
+    // PLAYER_INFO 복원
+    PLAYER_INFO.clear();
+    const pStateRaw = playersState || [];
+    const pStateMap = new Map(pStateRaw);
+    pStateMap.forEach((v, name) => {
+        if (v.grade) PLAYER_INFO.set(name, { name, grade: v.grade });
+    });
+
     state.clear();
-    new Map(playersState).forEach((v, k) => state.set(k, v));
+    pStateMap.forEach((v, k) => state.set(k, v));
+
     resultsByTeam.clear();
-    new Map(results).forEach((v, k) => resultsByTeam.set(k, new Map(v)));
+    if (results) (new Map(results)).forEach((v, k) => resultsByTeam.set(k, new Map(v)));
+
     manualRankByTeam.clear();
-    new Map(manuals).forEach((v, k) => manualRankByTeam.set(k, new Map(v)));
+    if (manuals) (new Map(manuals)).forEach((v, k) => manualRankByTeam.set(k, new Map(v)));
+
     bracketState.clear();
-    new Map(brackets).forEach((v, k) => bracketState.set(k, v));
+    if (brackets) (new Map(brackets)).forEach((v, k) => bracketState.set(k, v));
 
     renderHistoryUI();
     if (finalSummary) renderFinalSummary(finalSummary);
+    else {
+        // finalSummary가 없을 경우 초기화
+        ["sum-u-1", "sum-u-2", "sum-u-3", "sum-l-1", "sum-l-2"].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = "-";
+        });
+    }
 }
 
 function renderFinalSummary(data) {
@@ -70,9 +152,16 @@ function renderFinalSummary(data) {
     };
     set("sum-u-1", data.upper.winner);
     set("sum-u-2", data.upper.runnerUp);
-    set("sum-u-3", data.upper.third);
+
+    // 지원: third 또는 semiFinalists 속성 모두 대응
+    const upper3rd = data.upper.third || data.upper.semiFinalists;
+    set("sum-u-3", upper3rd);
+
     set("sum-l-1", data.lower.winner);
     set("sum-l-2", data.lower.runnerUp);
+
+    const lower3rd = data.lower.third || data.lower.semiFinalists;
+    if (document.getElementById("sum-l-3")) set("sum-l-3", lower3rd);
 }
 
 function renderHistoryUI() {
@@ -160,6 +249,20 @@ function resolveFinalRanks(teamId, autoPack) {
         final.set(nm, { finalRank: r, finalLabel: r === 999 ? "" : `${r}위`, isManual: !!m });
     });
     return final;
+}
+
+function getPlayerRankLabel(name) {
+    const p = state.get(name);
+    if (!p || p.where !== "team" || !p.teamId) return "";
+    const teamId = p.teamId;
+    const playersInTeam = Array.from(state.entries())
+        .filter(([_, v]) => v.where === "team" && v.teamId === teamId)
+        .map(([k, _]) => k);
+    const autoPack = computeRanking(teamId, playersInTeam);
+    const final = resolveFinalRanks(teamId, autoPack);
+    const f = final.get(name);
+    const gNum = parseInt(teamId.split("-")[1]) + 1;
+    return f && f.finalRank !== 999 ? `${gNum}조 ${f.finalRank}위` : "";
 }
 
 function renderRoundRobin(teamBox, teamId, players) {
@@ -269,9 +372,15 @@ function createTournamentLineEngine({ wrapEl, svg, prefix, direction, rounds, no
         for (const m of MATCHES) drawBracketLine(m.a, m.b, m.to);
         // Restore Highlights
         MATCHES.forEach(m => {
-            const toE = document.getElementById(m.to);
-            if (!toE || isEmpty(toE)) return;
-            const wName = extractName(toE), nA = extractName(document.getElementById(m.a)), nB = extractName(document.getElementById(m.b));
+            const eA = document.getElementById(m.a), eB = document.getElementById(m.b), toE = document.getElementById(m.to);
+            if (!toE) return;
+
+            // 만약 어느 한쪽이 BYE라면 해당 경로는 즉시 소급 적용 (lose 스타일)
+            if (isBye(eA)) applyStyles(m.a, m.b, m.to, m.b); // b가 승자라고 가정하거나 적어도 a는 lose
+            if (isBye(eB)) applyStyles(m.a, m.b, m.to, m.a);
+
+            if (isEmpty(toE)) return;
+            const wName = extractName(toE), nA = extractName(eA), nB = extractName(eB);
             if (wName === nA) applyStyles(m.a, m.b, m.to, m.a);
             else if (wName === nB) applyStyles(m.a, m.b, m.to, m.b);
         });
@@ -283,17 +392,29 @@ function createBracketUI({ wrapId, svgId, prefix, direction, B, slots, titleElId
     const wrap = document.getElementById(wrapId), svg = document.getElementById(svgId), title = document.getElementById(titleElId);
     wrap.querySelectorAll(".tm-player, .tm-champ-label").forEach(el => el.remove());
     svg.innerHTML = "";
-    title.textContent = `${titleText} (${B}강)`;
+
+    const byeCount = slots.filter(x => x === null).length;
+    title.textContent = `${titleText} (${B}강, BYE ${byeCount}개)`;
+
+    // ✅ Dynamic Height: Prevent overlap
+    const minH = Math.max(500, B * 40 + 60);
+    wrap.style.height = `${minH}px`;
+
+    const W = wrap.clientWidth, H = wrap.clientHeight;
     const rounds = Math.log2(B), boxW = 85, boxH = 34, champW = 110;
-    const W = wrap.clientWidth, step = (W - 40 - champW) / rounds;
+    const padX = 20, padY = 20;
+    const champX = W - padX - champW;
+    const step = (champX - padX) / rounds;
+    const usableH = H - padY * 2;
     const nodeId = (r, i) => `${prefix}-r${r}-${i}`;
 
     for (let r = 1; r <= rounds; r++) {
-        const count = B / Math.pow(2, r - 1), spacing = (wrap.clientHeight - 40) / count;
+        const count = B / Math.pow(2, r - 1), spacing = usableH / count;
         for (let i = 1; i <= count; i++) {
             const div = document.createElement("div"); div.className = "tm-player empty"; div.id = nodeId(r, i);
-            const x = (direction === 1) ? 20 + (r - 1) * step : W - 20 - (r - 1) * step - boxW;
-            div.style.left = `${x}px`; div.style.top = `${20 + (i - 0.5) * spacing - boxH / 2}px`;
+            const x = (direction === 1) ? padX + (r - 1) * step : W - padX - (r - 1) * step - boxW;
+            const y = padY + (i - 0.5) * spacing - boxH / 2;
+            div.style.left = `${x}px`; div.style.top = `${y}px`;
             wrap.appendChild(div);
         }
     }
@@ -305,40 +426,135 @@ function createBracketUI({ wrapId, svgId, prefix, direction, B, slots, titleElId
     // Initial Slots
     for (let i = 1; i <= B; i++) {
         const el = document.getElementById(nodeId(1, i)), pName = slots[i - 1];
-        if (!pName) { el.textContent = "BYE"; el.classList.add("bye"); }
-        else { el.innerHTML = `<span class="tm-nm-wrap">${pName}${getGradeBadgeHTML(pName)}</span>`; el.classList.remove("empty"); }
+        if (!pName) {
+            el.textContent = "BYE";
+            el.classList.add("bye");
+        } else {
+            const label = getPlayerRankLabel(pName);
+            el.innerHTML = `<span class="tm-nm-wrap">${pName}${getGradeBadgeHTML(pName)}</span>${label ? `<small>${label}</small>` : ""}`;
+            el.classList.remove("empty");
+            el.classList.remove("bye");
+        }
     }
 
     // Restore Winners from bracketState
-    bracketState.forEach((name, id) => {
+    bracketState.forEach((val, id) => {
         if (!id.startsWith(prefix)) return;
         const el = document.getElementById(id);
         if (!el) return;
-        el.innerHTML = `<span class="tm-nm-wrap">${name}${getGradeBadgeHTML(name)}</span>`;
-        el.classList.remove("empty");
+
+        let name = "";
+        if (typeof val === 'string') {
+            name = val;
+        } else if (val && val.winner) {
+            name = val.winner;
+        }
+
+        if (name && name !== "BYE") {
+            const label = getPlayerRankLabel(name);
+            el.innerHTML = `<span class="tm-nm-wrap">${name}${getGradeBadgeHTML(name)}</span>${label ? `<small>${label}</small>` : ""}`;
+            el.classList.remove("empty");
+            el.classList.remove("bye");
+        } else if (name === "BYE") {
+            el.textContent = "BYE";
+            el.classList.add("bye");
+            el.classList.add("empty");
+        }
     });
 
     createTournamentLineEngine({ wrapEl: wrap, svg, prefix, direction, rounds, nodeId }).initLines();
 }
 
+
 function renderBrackets() {
-    // 상위 토너먼트 (스크린샷 기반 16강)
-    const upperSlots = [
-        "김형찬", null, "박혜란", "김미경", "박덕례", "오장진", "이교탁", null,
-        "백낙천", null, "김성호", "송광용", "윤교찬", "박병재", "박만영", null
-    ];
+    function nextPow2(n) { if (n <= 1) return 1; let p = 1; while (p < n) p *= 2; return Math.max(p, 2); }
+
+    function calculateB() {
+        // 1. [최우선] 실제 대진표 데이터(bracketState) 스캔 (9~16번 슬롯 유무)
+        function check16(prefix) {
+            for (let i = 9; i <= 16; i++) if (bracketState.has(`${prefix}-r1-${i}`)) return true;
+            for (let i = 5; i <= 8; i++) if (bracketState.has(`${prefix}-r2-${i}`)) return true;
+            const winner = bracketState.get(`${prefix}-winner`);
+            if (winner && typeof winner === 'object' && (winner.p1 || winner.p2)) {
+                // 상위 라운드에서 9~16번 시드 출신이 있는지 확인 (r4-2, r3-3/4 등)
+                // (이 부분은 복잡하므로 r1, r2 체크로 충분할 수 있음)
+            }
+            return false;
+        }
+
+        const isU16 = check16("U");
+        const isL16 = check16("L");
+
+        // 2. [보조] 조별 인원 파악 (신규 데이터용)
+        const teams = new Map();
+        state.forEach(v => {
+            if (v.where === "team" && v.teamId) {
+                teams.set(v.teamId, (teams.get(v.teamId) || 0) + 1);
+            }
+        });
+
+        let totalUpper = 0, totalLower = 0;
+        teams.forEach(n => {
+            totalUpper += Math.round(n / 2);
+            totalLower += (n - Math.round(n / 2));
+        });
+
+        return {
+            Bu: isU16 ? 16 : (totalUpper > 8 ? 16 : 8),
+            Bl: isL16 ? 16 : (totalLower > 8 ? 16 : 8)
+        };
+    }
+
+    const { Bu, Bl } = calculateB();
+
+    function processBrackets(prefix, B) {
+        // 1. Implied Winners Backfilling (r5/r4 -> r3 -> r2)
+        // 상위 라운드의 p1, p2를 하위 라운드 승자로 채움
+        const rounds = Math.log2(B);
+        const totalRounds = rounds + 1;
+        for (let r = totalRounds; r >= 2; r--) {
+            const currentRoundCount = Math.pow(2, totalRounds - r);
+            for (let i = 1; i <= currentRoundCount; i++) {
+                const matchId = (r === totalRounds) ? `${prefix}-winner` : `${prefix}-r${r}-${i}`;
+                const match = bracketState.get(matchId);
+                if (match && typeof match === 'object' && (match.p1 || match.p2)) {
+                    const p1Id = `${prefix}-r${r - 1}-${i * 2 - 1}`;
+                    const p2Id = `${prefix}-r${r - 1}-${i * 2}`;
+                    if (match.p1 && !bracketState.has(p1Id)) bracketState.set(p1Id, match.p1);
+                    if (match.p2 && !bracketState.has(p2Id)) bracketState.set(p2Id, match.p2);
+                }
+            }
+        }
+
+        // 2. r1 Slots Reconstruction (r2 매치 데이터 기반)
+        const slots = new Array(B).fill(null);
+        const r2Count = B / 2;
+        for (let i = 1; i <= r2Count; i++) {
+            const match = bracketState.get(`${prefix}-r2-${i}`);
+            if (match && typeof match === 'object') {
+                slots[(i - 1) * 2] = match.p1 || null;
+                slots[(i - 1) * 2 + 1] = match.p2 || null;
+            }
+        }
+        // 만약 r1 데이터가 직접 있으면 덮어쓰기
+        for (let i = 1; i <= B; i++) {
+            const val = bracketState.get(`${prefix}-r1-${i}`);
+            if (typeof val === 'string') slots[i - 1] = val;
+        }
+        return slots;
+    }
+
+    const upperSlots = processBrackets("U", Bu);
     createBracketUI({
         wrapId: "tm-wrap-upper", svgId: "tm-lines-upper", prefix: "U", direction: 1,
-        B: 16, slots: upperSlots, titleElId: "tm-titleUpper", titleText: "상위 토너먼트"
+        B: Bu, slots: upperSlots, titleElId: "tm-titleUpper",
+        titleText: "상위 토너먼트"
     });
 
-    // 하위 토너먼트 (스크린샷 기반 16강)
-    const lowerSlots = [
-        "김경태", null, "박현신", "박승기", "이영숙", null, "안성대", null,
-        "김세중", "유호성", "서상국", "김홍석", null, "류계열", "조복연", null
-    ];
+    const lowerSlots = processBrackets("L", Bl);
     createBracketUI({
         wrapId: "tm-wrap-lower", svgId: "tm-lines-lower", prefix: "L", direction: 0,
-        B: 16, slots: lowerSlots, titleElId: "tm-titleLower", titleText: "하위 토너먼트"
+        B: Bl, slots: lowerSlots, titleElId: "tm-titleLower",
+        titleText: "하위 토너먼트"
     });
 }

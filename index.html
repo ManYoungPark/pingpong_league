@@ -38,9 +38,54 @@
         }
 
         header h1 {
-            margin: 0 0 8px;
+            margin: 0 0 10px;
             font-size: 20px;
-            font-weight: 800;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        /* [New] Header Input Styles */
+        .title-select,
+        .date-input {
+            border: none;
+            background: transparent;
+            font-family: inherit;
+            color: inherit;
+            font-weight: inherit;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 6px;
+            transition: background 0.2s;
+            outline: none;
+            border-bottom: 1px dashed #cbd5e1;
+        }
+
+        .title-select:hover,
+        .date-input:hover {
+            background: rgba(0, 0, 0, 0.03);
+            border-bottom-color: #3b82f6;
+        }
+
+        .title-select {
+            font-size: 20px;
+            appearance: none;
+            /* Hide default arrow */
+            -webkit-appearance: none;
+        }
+
+        .date-input {
+            font-size: 14px;
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        .date-input::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            opacity: 0.6;
         }
 
         header p {
@@ -1615,9 +1660,15 @@
 
 <body>
     <header>
-        <h1>대덕밸리 대진표 <span id="headerDate" contenteditable="true"
-                style="font-size: 15px; font-weight: 500; color: #6b7280; margin-left: 8px; cursor: pointer; border-bottom: 1px dashed #d1d5db;"
-                title="클릭하여 날짜 수정"></span></h1>
+        <h1>
+            <span style="color:#111827; margin-right:4px;">대덕밸리동호회</span>
+            <select id="headerTitle" class="title-select" title="클릭하여 대회 종류 변경">
+                <option value="금요리그">금요리그</option>
+                <option value="월례대회">월례대회</option>
+                <option value="번외경기">번외경기</option>
+            </select>
+            <input type="date" id="datePicker" class="date-input" title="클릭하여 날짜 변경">
+        </h1>
 
         <!-- [New] Tab Navigation -->
         <nav class="tabs">
@@ -2098,17 +2149,31 @@
         var estTableCount = 6;
         var estMinsPerMatch = 12;
 
-        (function initDate() {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = today.getMonth() + 1;
-            const date = today.getDate();
-            const days = ["일", "월", "화", "수", "목", "금", "토"];
-            const dayName = days[today.getDay()];
+        function updateTournamentType(dateStr) {
+            const dateObj = new Date(dateStr);
+            const day = dateObj.getDay(); // 0(일) ~ 6(토)
+            const titleEl = document.getElementById("headerTitle");
 
-            const dateStr = `${year}년 ${month}월 ${date}일 (${dayName})`;
-            const el = document.getElementById("headerDate");
-            if (el) el.textContent = dateStr;
+            if (day === 5) titleEl.value = "금요리그";
+            else if (day === 6) titleEl.value = "월례대회";
+            else titleEl.value = "번외경기";
+        }
+
+        (function initHeader() {
+            const picker = document.getElementById("datePicker");
+            const today = new Date().toISOString().split('T')[0];
+            picker.value = today;
+
+            // 자동 대회명 설정
+            updateTournamentType(today);
+
+            // 날짜 변경 이벤트
+            picker.onchange = (e) => {
+                updateTournamentType(e.target.value);
+                saveAllData();
+            };
+
+            document.getElementById("headerTitle").onchange = () => saveAllData();
         })();
 
         // ✅ Load Names: LocalStorage -> names.json (Async) -> Default Fallback
@@ -5704,7 +5769,8 @@
             const url = "https://script.google.com/macros/s/AKfycbybkNRimOGBcCYH7HAbiT6lhlqtT9SzVZ0QjDxkD6By1ePgtv5XS8-eGSIIRocNpdJn/exec";
 
             // 1. Calculate Points
-            const today = new Date().toISOString().split('T')[0];
+            const selectedDate = document.getElementById("datePicker").value;
+            const today = selectedDate || new Date().toISOString().split('T')[0];
             const pointMap = new Map(); // name -> {points, type, details[]}
 
             // (1) Attendance (+2)
@@ -5837,10 +5903,12 @@
                         const serializeMap = (m) => Array.from(m.entries());
                         const serializeDeepMap = (m) => Array.from(m.entries()).map(([k, v]) => [k, Array.from(v.entries())]);
 
+                        const finalSelectedDate = document.getElementById("datePicker").value || new Date().toISOString().split('T')[0];
+
                         const fullDataSnapshot = {
                             metadata: {
-                                date: today,
-                                title: document.getElementById("headerTitle").innerText,
+                                date: finalSelectedDate,
+                                title: "대덕밸리동호회 " + document.getElementById("headerTitle").value,
                                 groupsCount: state.groupsCount,
                                 matchFormat: matchFormatEl.value
                             },
@@ -5852,7 +5920,7 @@
                         };
 
                         const payload = {
-                            date: today,
+                            date: finalSelectedDate,
                             results: results,
                             fullData: JSON.stringify(fullDataSnapshot) // 전체 스냅샷 추가
                         };

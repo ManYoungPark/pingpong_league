@@ -215,10 +215,30 @@ table.rr {
     margin-top: 2px;
 }
 
+.tm-player.empty {
+    border: 1px dashed #cbd5e1;
+    color: #94a3b8;
+    cursor: default;
+    background: #fff;
+}
+
+.tm-player.bye {
+    border: 1px dashed #cbd5e1;
+    color: #cbd5e1;
+    cursor: default;
+    background: #fdfdfd;
+}
+
 .tm-player.winner {
     background: #fffbeb !important;
     border-color: #f59e0b !important;
     color: #b45309 !important;
+    box-shadow: 0 0 0 1px #f59e0b;
+    z-index: 20;
+}
+
+.tm-player.winner small {
+    color: #d97706 !important;
 }
 
 .tm-winner-box {
@@ -246,6 +266,15 @@ table.rr {
 .tm-lines path.win {
     stroke: #e74c3c !important;
     stroke-width: 4 !important;
+    stroke-dasharray: none !important;
+    opacity: 1;
+}
+
+.tm-lines path.lose {
+    stroke: #94a3b8 !important;
+    stroke-width: 2 !important;
+    stroke-dasharray: 6 6 !important;
+    opacity: 0.9;
 }
 
 .tm-champ-label {
