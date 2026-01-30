@@ -4472,6 +4472,7 @@
 
         function makeSeedList(entries, groupCount) {
             const normalized = normalizeTournamentRanks(entries);
+            const totalEntries = normalized.length;
 
             const byRank = new Map();
             for (const q of normalized) {
@@ -4482,16 +4483,26 @@
             const ranks = Array.from(byRank.keys()).sort((a, b) => a - b);
             const seedList = [];
 
+            // Simple Snake Seeding:
+            // Rank 1: 1, 2, 3... (Ascending)
+            // Rank 2: N, N-1, ... (Descending)
+            // Rank 3: 1, 2, 3... (Ascending)
+            // This generally provides good separation for standard brackets (Top/Bottom half distribution)
+            // especially for 5-group (16-slot) scenarios.
+
             for (const r of ranks) {
                 const arr = byRank.get(r);
-                // 1st place group order: 1, 2, 3 ...
-                // 2nd place group order: optimized for 4-group to separate same-group meeting until Final
-                // [2, 1, 4, 3] order puts G1-2nd in opposite half of G1-1st, etc.
                 let groupOrder;
+
+                // Dedicated Logic for 4 Groups (Specific Optimization)
                 if (r === 2 && groupCount === 4) {
                     groupOrder = [2, 1, 4, 3];
+                }
+                // General Snake Logic (Ascending for Odd Ranks, Descending for Even Ranks)
+                else if (r % 2 === 0) {
+                    groupOrder = Array.from({ length: groupCount }, (_, i) => groupCount - i); // [5, 4, 3, 2, 1]
                 } else {
-                    groupOrder = Array.from({ length: groupCount }, (_, i) => i + 1);
+                    groupOrder = Array.from({ length: groupCount }, (_, i) => i + 1); // [1, 2, 3, 4, 5]
                 }
 
                 const byGroup = new Map(arr.map(x => [x.group, x]));
@@ -5403,7 +5414,7 @@
         }
 
         // Expose button logic
-        document.getElementById("btn-gen-tournament").addEventListener("click", runTournamentGeneration);
+        document.getElementById("btn-gen-tournament").addEventListener("click", () => runTournamentGeneration(false));
 
         // ============================================
         //  🏆 Final Result Summary Logic
