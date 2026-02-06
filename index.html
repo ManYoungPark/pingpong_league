@@ -1898,6 +1898,30 @@
                 </div>
             </div>
 
+            <!-- 🎴 Hwatu Card Modal -->
+            <div id="hwatuBackdrop"
+                style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:10000;">
+            </div>
+            <div id="hwatuPop"
+                style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding:32px; border-radius:20px; box-shadow:0 20px 60px rgba(0,0,0,0.5); z-index:10001; text-align:center; min-width:320px; border:3px solid #e94560;">
+                <h3 style="margin:0 0 8px; color:#fff; font-size:20px;">🎴 <span id="hwatuPlayerName">선수</span>님의 조 뽑기!
+                </h3>
+                <p style="margin:0 0 24px; color:#a0a0a0; font-size:13px;">카드가 멈추면 조가 결정됩니다</p>
+                <div id="hwatuCardContainer" style="display:flex; justify-content:center; margin-bottom:24px;">
+                    <img id="hwatuCard" src="images/hwatu_1.png" alt="화투"
+                        style="width:120px; height:auto; border-radius:8px; box-shadow:0 8px 32px rgba(233,69,96,0.4); transition:transform 0.1s;">
+                </div>
+                <div id="hwatuResult" style="display:none; margin-bottom:20px;">
+                    <span
+                        style="font-size:28px; font-weight:900; color:#ffd700; text-shadow:0 0 20px rgba(255,215,0,0.5);">🎉
+                        <span id="hwatuResultNum">3</span>조 당첨! 🎉</span>
+                </div>
+                <button id="hwatuConfirmBtn" class="gbtn"
+                    style="display:none; padding:12px 40px; font-size:16px; background:linear-gradient(135deg, #e94560, #ff6b6b); color:#fff; border:none; border-radius:10px; cursor:pointer; font-weight:700;"
+                    onclick="confirmHwatu()">확인</button>
+                <p id="hwatuSpinText" style="color:#ffd700; font-size:14px; margin:0;">🎰 돌아가는 중...</p>
+            </div>
+
 
             <!-- TOURNAMENT SECTION (Restored) -->
             <div id="tournament-area" style="display:none !important;">
@@ -3405,7 +3429,7 @@
             // ✅ 전체 영역 클릭 시 조 선택
             div.addEventListener("click", (e) => {
                 e.stopPropagation();
-                if (div.classList.contains("dragging")) return; // 드래그 직후 클릭 방지(보통 브라우저가 막아주지만 안전하게)
+                if (div.classList.contains("dragging")) return; // 드래그 직후 클릭 방지
 
                 if (isAssignOpen() && currentAssignName === name && currentAssignAnchor === div) {
                     closeAssign(); return;
@@ -7068,18 +7092,26 @@
                 return;
             }
 
-            closeRandomAssignModal();
-
-            // Generate distribution first (preview only)
-            const previewResult = generateDistributionPreview(groupCount, selectedNames);
-
-            // Show preview alert
-            if (!confirm(previewResult.previewText)) {
-                return; // User cancelled
+            if (!confirm(`${selectedNames.length}명을 ${groupCount}개 조에 화투 뽑기로 배정합니다!\n계속하시겠습니까?`)) {
+                return;
             }
 
-            // Apply the distribution
-            applyDistribution(previewResult.newGroups, selectedNames.length, groupCount);
+            closeRandomAssignModal();
+
+            // Initialize groups first
+            state.groupsCount = groupCount;
+            INITIAL_NAMES.forEach(name => state.set(name, { where: 'pool' }));
+            createTeams(groupCount);
+
+            // Shuffle players for fun randomness
+            const shuffled = selectedNames.slice();
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+
+            // Start sequential hwatu animation
+            startSequentialHwatu(shuffled, groupCount);
         }
 
         function generateDistributionPreview(groupCount, targetNameList) {
@@ -7146,6 +7178,157 @@
             saveAllData();
 
             alert(`✅ ${totalCount}명이 ${groupCount}개 조에 배정되었습니다!`);
+        }
+
+        // ============================================
+        // 🎴 Hwatu Sequential Card Drawing Functions
+        // ============================================
+        let hwatuQueue = [];           // 배정할 선수 목록
+        let hwatuGroupCount = 0;       // 조 개수
+        let hwatuCurrentIndex = 0;     // 현재 배정 중인 인덱스
+        let hwatuSpinInterval = null;
+        let hwatuGroupAssignments = []; // 미리 섞인 조 배정 순서
+
+        function startSequentialHwatu(playerList, groupCount) {
+            console.log('🎴 Starting hwatu animation', playerList, groupCount);
+            hwatuQueue = playerList;
+            hwatuGroupCount = groupCount;
+            hwatuCurrentIndex = 0;
+
+            // 균형 배정이지만 랜덤 순서로! 각 라운드마다 조 순서 섞기
+            hwatuGroupAssignments = [];
+            const totalRounds = Math.ceil(playerList.length / groupCount);
+            for (let round = 0; round < totalRounds; round++) {
+                // 1~groupCount 배열 만들고 셔플
+                const roundGroups = [];
+                for (let g = 1; g <= groupCount; g++) roundGroups.push(g);
+                // Fisher-Yates shuffle
+                for (let i = roundGroups.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [roundGroups[i], roundGroups[j]] = [roundGroups[j], roundGroups[i]];
+                }
+                hwatuGroupAssignments.push(...roundGroups);
+            }
+            console.log('🎴 Group order:', hwatuGroupAssignments);
+
+            // Show modal
+            document.getElementById('hwatuBackdrop').style.display = 'block';
+            document.getElementById('hwatuPop').style.display = 'block';
+
+            // Start with first player
+            processNextPlayer();
+        }
+
+        function processNextPlayer() {
+            if (hwatuCurrentIndex >= hwatuQueue.length) {
+                // All players assigned - finish!
+                finishAllHwatu();
+                return;
+            }
+
+            const name = hwatuQueue[hwatuCurrentIndex];
+            // 미리 섞어둔 조 번호 사용 (예측 불가!)
+            const targetGroup = hwatuGroupAssignments[hwatuCurrentIndex];
+
+            // Update UI
+            document.getElementById('hwatuPlayerName').textContent = `${name} (${hwatuCurrentIndex + 1}/${hwatuQueue.length})`;
+            document.getElementById('hwatuCard').src = 'images/hwatu_1.png';
+            document.getElementById('hwatuCard').style.boxShadow = '0 8px 32px rgba(233,69,96,0.4)';
+            document.getElementById('hwatuResult').style.display = 'none';
+            document.getElementById('hwatuConfirmBtn').style.display = 'none';
+            document.getElementById('hwatuSpinText').style.display = 'block';
+            document.getElementById('hwatuSpinText').textContent = '🎰 돌아가는 중...';
+
+            // Run spin animation
+            runSequentialSpin(name, targetGroup);
+        }
+
+        function runSequentialSpin(playerName, targetGroup) {
+            const card = document.getElementById('hwatuCard');
+            let spinCount = 0;
+            const totalSpins = 12 + Math.floor(Math.random() * 5); // 빠르게 12-17회
+
+            hwatuSpinInterval = setInterval(() => {
+                spinCount++;
+                const displayNum = (spinCount % hwatuGroupCount) + 1;
+                card.src = `images/hwatu_${displayNum}.png`;
+                card.style.transform = `rotate(${(Math.random() - 0.5) * 10}deg) scale(${1 + Math.random() * 0.05})`;
+
+                if (spinCount >= totalSpins) {
+                    clearInterval(hwatuSpinInterval);
+                    // Slow finish
+                    slowFinishSpin(playerName, targetGroup, spinCount);
+                }
+            }, 60);
+        }
+
+        function slowFinishSpin(playerName, targetGroup, currentCount) {
+            const card = document.getElementById('hwatuCard');
+            let count = currentCount;
+            const extraSpins = 3 + Math.floor(Math.random() * 3);
+
+            const slowInterval = setInterval(() => {
+                count++;
+                card.src = `images/hwatu_${(count % hwatuGroupCount) + 1}.png`;
+                card.style.transform = `rotate(${(Math.random() - 0.5) * 3}deg)`;
+
+                if (count >= currentCount + extraSpins) {
+                    clearInterval(slowInterval);
+                    // Show final result (the predetermined balanced group)
+                    showPlayerResult(playerName, targetGroup);
+                }
+            }, 120 + (count - currentCount) * 40);
+        }
+
+        function showPlayerResult(playerName, targetGroup) {
+            const card = document.getElementById('hwatuCard');
+            card.src = `images/hwatu_${targetGroup}.png`;
+            card.style.transform = 'rotate(0deg) scale(1.1)';
+            card.style.boxShadow = '0 0 40px rgba(255, 215, 0, 0.8)';
+
+            document.getElementById('hwatuResultNum').textContent = targetGroup;
+            document.getElementById('hwatuResult').style.display = 'block';
+            document.getElementById('hwatuSpinText').style.display = 'none';
+
+            // Assign player to team
+            const teamId = `team-${targetGroup}`;
+            state.set(playerName, { where: 'team', teamId: teamId });
+
+            // Update UI immediately
+            renderAllTeams();
+            renderPool();
+
+            // Move to next player after short delay
+            hwatuCurrentIndex++;
+
+            if (hwatuCurrentIndex < hwatuQueue.length) {
+                document.getElementById('hwatuSpinText').textContent = '다음 선수...';
+                document.getElementById('hwatuSpinText').style.display = 'block';
+                setTimeout(() => processNextPlayer(), 800);
+            } else {
+                // Show finish button
+                document.getElementById('hwatuConfirmBtn').style.display = 'inline-block';
+                document.getElementById('hwatuConfirmBtn').textContent = '🎉 완료!';
+            }
+        }
+
+        function finishAllHwatu() {
+            saveAllData();
+            alert(`✅ ${hwatuQueue.length}명이 ${hwatuGroupCount}개 조에 배정되었습니다!`);
+            closeHwatuModal();
+        }
+
+        function confirmHwatu() {
+            finishAllHwatu();
+        }
+
+        function closeHwatuModal() {
+            if (hwatuSpinInterval) clearInterval(hwatuSpinInterval);
+            document.getElementById('hwatuBackdrop').style.display = 'none';
+            document.getElementById('hwatuPop').style.display = 'none';
+            document.getElementById('hwatuCard').style.boxShadow = '0 8px 32px rgba(233,69,96,0.4)';
+            hwatuQueue = [];
+            hwatuCurrentIndex = 0;
         }
 
     </script>
