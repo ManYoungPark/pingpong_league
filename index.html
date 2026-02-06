@@ -1782,6 +1782,9 @@
                                 style="padding:4px 8px; font-size:11px; background:#f0fdf4; color:#15803d; border-color:#bbf7d0; margin-left:auto;"
                                 onclick="addPlayer()">+ 이름 추가</button>
                             <button type="button" class="btn"
+                                style="padding:4px 8px; font-size:11px; background:#f0f9ff; color:#0369a1; border-color:#bae6fd;"
+                                onclick="openRandomAssignModal()">🎲 랜덤 배정</button>
+                            <button type="button" class="btn"
                                 style="padding:4px 8px; font-size:11px; background:#f0fdf4; color:#15803d; border-color:#bbf7d0;"
                                 onclick="downloadNamesJSON()" title="현재 명단을 names.json으로 다운로드">💾 저장</button>
                         </div>
@@ -1865,6 +1868,35 @@
                     onclick="closeMonthlySelector()">취소</button>
             </div>
 
+            <!-- Random Assignment Modal -->
+            <div id="randomAssignBackdrop"
+                style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9998;"
+                onclick="closeRandomAssignModal()"></div>
+            <div id="randomAssignPop"
+                style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:24px; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,0.2); z-index:9999; width:90%; max-width:420px; max-height:80vh; overflow:hidden;">
+                <div style="margin-bottom:16px;">
+                    <h3 style="margin:0 0 4px; color:#374151;">🎲 오늘의 참가자 선택</h3>
+                    <p style="margin:0; font-size:13px; color:#6b7280;">출석한 선수를 체크해주세요. (체크된 인원만 배정)</p>
+                </div>
+                <div
+                    style="margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; gap:10px; background:#f8fafc; padding:10px; border-radius:8px;">
+                    <span style="font-size:14px; font-weight:700; color:#4b5563;">조 개수:</span>
+                    <input type="number" id="ra-group-count" value="4" min="2" max="16"
+                        style="width:60px; text-align:center; padding:4px; border:1px solid #cbd5e1; border-radius:6px; font-weight:800; font-size:14px;">
+                    <span style="font-size:13px; color:#94a3b8;" id="ra-count-display">(0명 선택)</span>
+                </div>
+                <button type="button" class="btn" onclick="toggleAllRandomAssignCheck()"
+                    style="width:100%; margin-bottom:10px; padding:6px; font-size:12px;">전체 선택/해제</button>
+                <div id="ra-list-container"
+                    style="max-height:300px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; padding:8px; display:grid; grid-template-columns:repeat(auto-fill, minmax(110px, 1fr)); gap:6px;">
+                </div>
+                <div style="margin-top:20px; display:flex; gap:10px;">
+                    <button class="gbtn" style="flex:1; background:#f1f5f9; color:#64748b;"
+                        onclick="closeRandomAssignModal()">취소</button>
+                    <button class="gbtn" style="flex:2; background:#ede9fe; color:#7c3aed; border-color:#ddd6fe;"
+                        onclick="confirmRandomAssign()">🚀 배정 시작</button>
+                </div>
+            </div>
 
 
             <!-- TOURNAMENT SECTION (Restored) -->
@@ -6978,6 +7010,144 @@
                 }
             });
         }
+
+        // ============================================
+        // ✅ Random Assignment Modal Functions
+        // ============================================
+        function openRandomAssignModal() {
+            const container = document.getElementById('ra-list-container');
+            const backdrop = document.getElementById('randomAssignBackdrop');
+            const pop = document.getElementById('randomAssignPop');
+
+            // Clear previous list
+            container.innerHTML = '';
+
+            // Populate with all players from INITIAL_NAMES
+            INITIAL_NAMES.forEach(name => {
+                const info = PLAYER_INFO.get(name) || { grade: 0 };
+                const label = document.createElement('label');
+                label.style.cssText = 'display:flex; align-items:center; gap:6px; padding:4px 6px; border:1px solid #e2e8f0; border-radius:6px; cursor:pointer; font-size:12px; background:#f8fafc;';
+                label.innerHTML = `
+                    <input type="checkbox" value="${name}" onchange="updateRaCount()" style="margin:0; width:14px; height:14px;">
+                    <span style="font-weight:600;">${name}</span>
+                    <span style="font-size:10px; color:#94a3b8;">(${info.grade || '?'}부)</span>
+                `;
+                container.appendChild(label);
+            });
+
+            updateRaCount();
+            backdrop.style.display = 'block';
+            pop.style.display = 'block';
+        }
+
+        function closeRandomAssignModal() {
+            document.getElementById('randomAssignBackdrop').style.display = 'none';
+            document.getElementById('randomAssignPop').style.display = 'none';
+        }
+
+        function updateRaCount() {
+            const checkboxes = document.querySelectorAll('#ra-list-container input[type="checkbox"]');
+            const checkedCount = Array.from(checkboxes).filter(c => c.checked).length;
+            document.getElementById('ra-count-display').textContent = `(${checkedCount}명 선택)`;
+        }
+
+        function toggleAllRandomAssignCheck() {
+            const checkboxes = document.querySelectorAll('#ra-list-container input[type="checkbox"]');
+            const allChecked = Array.from(checkboxes).every(c => c.checked);
+            checkboxes.forEach(c => c.checked = !allChecked);
+            updateRaCount();
+        }
+
+        function confirmRandomAssign() {
+            const groupCount = parseInt(document.getElementById('ra-group-count').value, 10);
+            const checkboxes = document.querySelectorAll('#ra-list-container input[type="checkbox"]:checked');
+            const selectedNames = Array.from(checkboxes).map(c => c.value);
+
+            if (selectedNames.length < groupCount) {
+                alert(`선택된 인원(${selectedNames.length}명)이 조 개수(${groupCount}개)보다 적습니다.`);
+                return;
+            }
+
+            closeRandomAssignModal();
+
+            // Generate distribution first (preview only)
+            const previewResult = generateDistributionPreview(groupCount, selectedNames);
+
+            // Show preview alert
+            if (!confirm(previewResult.previewText)) {
+                return; // User cancelled
+            }
+
+            // Apply the distribution
+            applyDistribution(previewResult.newGroups, selectedNames.length, groupCount);
+        }
+
+        function generateDistributionPreview(groupCount, targetNameList) {
+            // 1. Shuffle randomly (Fisher-Yates algorithm)
+            const shuffled = targetNameList.slice();
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+
+            // 2. Create empty groups
+            const newGroups = new Map();
+            for (let i = 1; i <= groupCount; i++) {
+                newGroups.set(i, []);
+            }
+
+            // 3. Simple sequential distribution
+            shuffled.forEach((name, idx) => {
+                const groupNum = (idx % groupCount) + 1;
+                newGroups.get(groupNum).push(name);
+            });
+
+            // 4. Generate preview text
+            let previewText = `🎲 랜덤 배정 결과 (${targetNameList.length}명 → ${groupCount}개 조)\n`;
+            previewText += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+            newGroups.forEach((members, gNum) => {
+                const memberList = members.map(n => {
+                    const info = PLAYER_INFO.get(n);
+                    return `${n}(${info?.grade || '?'}부)`;
+                }).join(', ');
+                previewText += `📌 ${gNum}조 (${members.length}명): ${memberList}\n\n`;
+            });
+
+            previewText += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+            previewText += `✅ 확인을 누르면 조 테이블에 적용됩니다.`;
+
+            return { newGroups, previewText };
+        }
+
+        function applyDistribution(newGroups, totalCount, groupCount) {
+            // 1. Update group count
+            state.groupsCount = groupCount;
+
+            // 2. Reset all players to pool first
+            INITIAL_NAMES.forEach(name => {
+                state.set(name, { where: 'pool' });
+            });
+
+            // 3. Assign selected players to teams (correct format: where:'team', teamId:'team-X')
+            newGroups.forEach((members, gNum) => {
+                const teamId = `team-${gNum}`;
+                members.forEach(name => {
+                    state.set(name, { where: 'team', teamId: teamId });
+                });
+            });
+
+            // 4. Recreate teams UI and render
+            createTeams(groupCount);
+            renderAllTeams();
+            renderPool();
+
+            // 5. Save data
+            saveAllData();
+
+            alert(`✅ ${totalCount}명이 ${groupCount}개 조에 배정되었습니다!`);
+        }
+
     </script>
     <!-- New: Time Settings Modal (Moved to root) -->
     <div id="timeSettingsBackdrop"
