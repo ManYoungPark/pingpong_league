@@ -5026,7 +5026,7 @@
             return safeGetText(s);
         }
 
-        function advanceWinner({ a, b, to, clickedId, engine }) {
+        function advanceWinner({ a, b, to, clickedId, clickedActionId, engine }) {
             const eA = document.getElementById(a), eB = document.getElementById(b);
             if (!eA || !eB || !hasPlayer(eA) || !hasPlayer(eB)) {
                 // 부전승(BYE) 처리 - 기존처럼 즉시 진출
@@ -5046,6 +5046,7 @@
             openTmScorePortal({
                 p1: { id: a, name: extractName(eA), rank: extractRankLabel(eA) },
                 p2: { id: b, name: extractName(eB), rank: extractRankLabel(eB) },
+                clickedActionId: clickedActionId || clickedId, // 전달받은 inferredActionId 사용
                 onSelect: (winnerId, score) => {
                     const winnerEl = document.getElementById(winnerId);
                     const winnerName = extractName(winnerEl);
@@ -5081,12 +5082,23 @@
         }
 
         // --- Tournament Score Portal Logic ---
-        function openTmScorePortal({ p1, p2, onSelect }) {
+        function openTmScorePortal({ p1, p2, clickedActionId, onSelect }) {
+            let dP1 = p1;
+            let dP2 = p2;
+            let isSwapped = false;
+
+            // 클릭한 플레이어가 우측(b)에 해당하는 경우, 좌/우 순서를 바꿈
+            if (clickedActionId === p2.id) {
+                dP1 = p2;
+                dP2 = p1;
+                isSwapped = true;
+            }
+
             const portal = document.getElementById("tmScorePortal");
-            document.getElementById("tm-p1-name").textContent = p1.name;
-            document.getElementById("tm-p1-rank").textContent = p1.rank;
-            document.getElementById("tm-p2-name").textContent = p2.name;
-            document.getElementById("tm-p2-rank").textContent = p2.rank;
+            document.getElementById("tm-p1-name").textContent = dP1.name;
+            document.getElementById("tm-p1-rank").textContent = dP1.rank;
+            document.getElementById("tm-p2-name").textContent = dP2.name;
+            document.getElementById("tm-p2-rank").textContent = dP2.rank;
 
             const grid = document.getElementById("tmScoreGrid");
             grid.innerHTML = "";
@@ -5096,8 +5108,11 @@
 
             options.forEach(opt => {
                 const [s1, s2] = opt.split("-").map(Number);
-                const winId = (s1 > s2) ? p1.id : p2.id;
-                const winName = (s1 > s2) ? p1.name : p2.name;
+                const winId = (s1 > s2) ? dP1.id : dP2.id;
+                const winName = (s1 > s2) ? dP1.name : dP2.name;
+
+                // 스왑되었을 경우, bracketState에 저장할 때는 본래(a vs b)의 스코어 방향으로 돌려주어야 함
+                const actualScoreToSave = isSwapped ? `${s2}-${s1}` : opt;
 
                 const box = document.createElement("div");
                 box.className = "score-box";
@@ -5106,7 +5121,7 @@
                     <div class="s-desc">${winName} 승</div>
                 `;
                 box.onclick = () => {
-                    onSelect(winId, opt);
+                    onSelect(winId, actualScoreToSave);
                     closeTmScorePortal();
                 };
                 grid.appendChild(box);
@@ -5309,7 +5324,21 @@
                 if (isEmpty(box) || isBye(box)) return;
                 if (!a || !b || !to) return;
 
-                advanceWinner({ a, b, to, clickedId: box.id, engine });
+                let inferredActionId = a; // 기본 왼쪽
+                const currentName = extractName(box);
+                const fa = document.getElementById(a);
+                const fb = document.getElementById(b);
+                if (fa && fb) {
+                    const aName = extractName(fa);
+                    const bName = extractName(fb);
+                    if (currentName === bName) {
+                        inferredActionId = b;
+                    } else if (currentName === aName) {
+                        inferredActionId = a;
+                    }
+                }
+
+                advanceWinner({ a, b, to, clickedId: box.id, clickedActionId: inferredActionId, engine });
                 autoAdvanceByes({ engine });
             }, { passive: true });
 
