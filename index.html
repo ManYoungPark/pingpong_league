@@ -938,6 +938,15 @@
             color: #d97706 !important;
         }
 
+        /* Loser Highlight (Eliminated) */
+        .tm-player.loser {
+            background: #f8fafc !important;
+            border-color: #cbd5e1 !important;
+            color: #94a3b8 !important;
+            opacity: 0.5;
+            box-shadow: none;
+        }
+
         .tm-winner-box {
             border: 2px solid #e74c3c;
             color: #e74c3c;
@@ -4954,13 +4963,19 @@
                 svg.querySelectorAll(`path[data-to="${toId}"]`)
                     .forEach(p => p.classList.remove("win", "lose"));
 
-                // Remove winner highlight from source nodes targeting this toId
+                // Remove winner/loser highlight from source nodes targeting this toId
                 const relevant = MATCHES.filter(m => m.to === toId);
                 relevant.forEach(m => {
                     const elA = document.getElementById(m.a);
                     const elB = document.getElementById(m.b);
-                    if (elA) elA.classList.remove("winner");
-                    if (elB) elB.classList.remove("winner");
+                    if (elA) {
+                        elA.classList.remove("winner");
+                        elA.classList.remove("loser");
+                    }
+                    if (elB) {
+                        elB.classList.remove("winner");
+                        elB.classList.remove("loser");
+                    }
                 });
             }
 
@@ -4984,8 +4999,14 @@
                 // Node Highlight
                 const winEl = document.getElementById(winnerFrom);
                 const loseEl = document.getElementById(loserFrom);
-                if (winEl) winEl.classList.add("winner");
-                if (loseEl) loseEl.classList.remove("winner");
+                if (winEl) {
+                    winEl.classList.add("winner");
+                    winEl.classList.remove("loser");
+                }
+                if (loseEl) {
+                    loseEl.classList.remove("winner");
+                    loseEl.classList.add("loser");
+                }
 
                 const winnerIsTop = centerYOf(winnerFrom) < centerYOf(loserFrom);
 
@@ -7233,8 +7254,26 @@
                 const n2 = h_extractBracketName(e2);
                 const is1 = (wName === n1), is2 = (wName === n2);
                 if (is1 || is2) {
-                    ho.classList.add("win"); if (is1) { p1.classList.add("win"); p2.classList.add("lose"); e1.classList.add("winner"); e2.classList.remove("winner"); if (y1 < y2) vt.classList.add("win"), vb.classList.add("lose"); else vb.classList.add("win"), vt.classList.add("lose"); }
-                    else { p2.classList.add("win"); p1.classList.add("lose"); e2.classList.add("winner"); e1.classList.remove("winner"); if (y2 < y1) vt.classList.add("win"), vb.classList.add("lose"); else vb.classList.add("win"), vt.classList.add("lose"); }
+                    ho.classList.add("win");
+                    if (is1) {
+                        p1.classList.add("win");
+                        p2.classList.add("lose");
+                        e1.classList.add("winner");
+                        e1.classList.remove("loser");
+                        e2.classList.add("loser");
+                        e2.classList.remove("winner");
+                        if (y1 < y2) { vt.classList.add("win"); vb.classList.add("lose"); }
+                        else { vb.classList.add("win"); vt.classList.add("lose"); }
+                    } else {
+                        p2.classList.add("win");
+                        p1.classList.add("lose");
+                        e2.classList.add("winner");
+                        e2.classList.remove("loser");
+                        e1.classList.add("loser");
+                        e1.classList.remove("winner");
+                        if (y2 < y1) { vt.classList.add("win"); vb.classList.add("lose"); }
+                        else { vb.classList.add("win"); vt.classList.add("lose"); }
+                    }
                 }
             });
         }

@@ -427,8 +427,14 @@ function createTournamentLineEngine({ wrapEl, svg, prefix, direction, rounds, no
 
         const winEl = document.getElementById(winId);
         const loseEl = document.getElementById(loseId);
-        if (winEl) winEl.classList.add("winner");
-        if (loseEl) loseEl.classList.remove("winner");
+        if (winEl) {
+            winEl.classList.add("winner");
+            winEl.classList.remove("loser");
+        }
+        if (loseEl) {
+            loseEl.classList.add("loser");
+            loseEl.classList.remove("winner");
+        }
 
         const winIsTop = winEl && loseEl && winEl.getBoundingClientRect().top < loseEl.getBoundingClientRect().top;
         const vT = svg.querySelector(`path[data-seg="vTop"][data-to="${to}"]`), vB = svg.querySelector(`path[data-seg="vBot"][data-to="${to}"]`), hO = svg.querySelector(`path[data-seg="hOut"][data-to="${to}"]`);

@@ -310,6 +310,15 @@ table.rr {
     color: #d97706 !important;
 }
 
+/* Loser Highlight (Eliminated) */
+.tm-player.loser {
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+    color: #94a3b8 !important;
+    opacity: 0.5;
+    box-shadow: none;
+}
+
 .tm-winner-box {
     border: 2px solid #e74c3c;
     color: #e74c3c;
