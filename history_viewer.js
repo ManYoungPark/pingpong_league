@@ -476,15 +476,19 @@ function createBracketUI({ wrapId, svgId, prefix, direction, B, slots, titleElId
     svg.innerHTML = "";
 
     const byeCount = slots.filter(x => x === null || x === "BYE").length;
-    title.textContent = `${titleText} (${B}강, BYE ${byeCount}개)`;
+    const baseText = `${titleText} (${B}강, BYE ${byeCount}개)`;
+
+    const winnerVal = bracketState.get(`${prefix}-winner`);
+    const isFinished = winnerVal && (typeof winnerVal === 'object' ? winnerVal.winner : winnerVal) !== "?";
+    const badgeClass = isFinished ? "finished" : "ongoing";
+    const badgeText = isFinished ? "종료" : "진행";
+    title.innerHTML = `<span class="tm-status-badge ${badgeClass}">${badgeText}</span> <span>${baseText}</span>`;
 
     // ✅ Dynamic Height: Prevent overlap
     const minH = Math.max(500, B * 40 + 60);
     wrap.style.height = `${minH}px`;
 
-    const W = wrap.clientWidth, H = wrap.clientHeight;
-    const rounds = Math.log2(B), boxW = 85, boxH = 34, champW = 110;
-    const padX = 20, padY = 20;
+    const W = wrap.clientWidth, H = wrap.clientHeight, rounds = Math.log2(B), boxW = 85, boxH = 34, champW = 110, padX = 55, padY = 20;
     const champX = W - padX - champW;
     const step = (champX - padX) / rounds;
     const usableH = H - padY * 2;
@@ -534,6 +538,116 @@ function createBracketUI({ wrapId, svgId, prefix, direction, B, slots, titleElId
 
     const engine = createTournamentLineEngine({ wrapEl: wrap, svg, prefix, direction, rounds, nodeId });
     engine.initLines();
+
+    // ✅ Render Result Badges (1위, 2위, 4강 등)
+    renderResultBadges(prefix, wrap, B, direction);
+}
+
+function renderResultBadges(prefix, wrapEl, B, direction) {
+    if (!wrapEl) return;
+    wrapEl.querySelectorAll(".tm-result-badge").forEach(el => el.remove());
+
+    // Reset final highlights
+    wrapEl.querySelectorAll(".winner-final, .runner-up-final").forEach(el => {
+        el.classList.remove("winner-final", "runner-up-final");
+    });
+
+    const winnerEl = document.getElementById(`${prefix}-winner`);
+    const isFinished = winnerEl && extractName(winnerEl) !== "?" && extractName(winnerEl) !== "";
+    if (!isFinished) return;
+
+    const rounds = Math.log2(B);
+    const boxH = 34;
+    const badgeH = 20;
+    const badgeW = 38;
+
+    const getName = (id) => {
+        const el = document.getElementById(id);
+        return (el && extractName(el) !== "?" && extractName(el) !== "") ? extractName(el) : null;
+    };
+
+    for (let i = 1; i <= B; i++) {
+        const nodeId = (r, idx) => `${prefix}-r${r}-${idx}`;
+        const el = document.getElementById(nodeId(1, i));
+        if (!el || extractName(el) === "BYE" || extractName(el) === "") continue;
+
+        const pName = extractName(el);
+        let label = "";
+
+        const wName = getName(`${prefix}-winner`);
+        if (wName && wName === pName) {
+            label = "우승";
+        } else {
+            for (let r = rounds; r >= 1; r--) {
+                const count = B / Math.pow(2, r - 1);
+                let found = false;
+                for (let k = 1; k <= count; k++) {
+                    if (getName(nodeId(r, k)) === pName) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (found) {
+                    if (r === rounds) {
+                        label = "준우승";
+                    } else {
+                        const gap = rounds - r;
+                        if (gap === 1) label = "4강";
+                        else if (gap === 2) label = "8강";
+                        else if (gap === 3) label = "16강";
+                        else if (gap === 4) label = "32강";
+                        else if (gap === 5) label = "64강";
+                        else label = `${Math.pow(2, gap + 1)}강`;
+                    }
+                    break;
+                }
+            }
+        }
+
+        if (label) {
+            const badge = document.createElement("div");
+            let colorClass = "rank-other";
+            if (label === "우승") colorClass = "rank-1";
+            else if (label === "준우승") colorClass = "rank-2";
+            else if (label === "4강") colorClass = "rank-4";
+
+            badge.className = `tm-result-badge ${colorClass}`;
+            badge.textContent = label;
+
+            const elLeft = parseFloat(el.style.left);
+            const elTop = parseFloat(el.style.top);
+            badge.style.position = "absolute";
+            badge.style.top = (elTop + (boxH - badgeH) / 2) + "px";
+            if (direction === 1) {
+                badge.style.left = (elLeft - badgeW - 6) + "px";
+            } else {
+                badge.style.left = (elLeft + 85 + 6) + "px";
+            }
+            wrapEl.appendChild(badge);
+        }
+    }
+
+    // Apply winner-final & runner-up-final classes to all nodes of winner / runner-up
+    const wName = getName(`${prefix}-winner`);
+    let runnerUpName = "";
+    if (wName) {
+        const finalMatchVal = bracketState.get(`${prefix}-r${rounds}-1`);
+        if (finalMatchVal && typeof finalMatchVal === 'object') {
+            if (finalMatchVal.p1 && finalMatchVal.p1 !== wName) runnerUpName = finalMatchVal.p1;
+            if (finalMatchVal.p2 && finalMatchVal.p2 !== wName) runnerUpName = finalMatchVal.p2;
+        }
+    }
+
+    wrapEl.querySelectorAll(".tm-player").forEach(el => {
+        const p = extractName(el);
+        if (p && p !== "BYE") {
+            if (wName && p === wName) {
+                el.classList.add("winner-final");
+            } else if (runnerUpName && p === runnerUpName) {
+                el.classList.add("runner-up-final");
+            }
+        }
+    });
 }
 
 
