@@ -2658,23 +2658,36 @@
 
             const raw = localStorage.getItem(BACKUP_KEY);
             if (raw) {
-                if (confirm("이전 작업 데이터가 발견되었습니다.\n불러오시겠습니까?")) {
-                    if (loadAllData()) {
-                        console.log("Data restored.");
-                        // UI Regeneration
-                        createTeams(state.groupsCount);
-                        renderAllTeams();
+                try {
+                    const data = JSON.parse(raw);
+                    const timestamp = data.timestamp;
+                    const oneHourInMs = 60 * 60 * 1000;
+                    if (timestamp && (Date.now() - timestamp < oneHourInMs)) {
+                        if (confirm("이전 작업 데이터가 발견되었습니다.\n불러오시겠습니까?")) {
+                            if (loadAllData()) {
+                                console.log("Data restored.");
+                                // UI Regeneration
+                                createTeams(state.groupsCount);
+                                renderAllTeams();
 
-                        // If tournament was active, try to show it
-                        if (bracketState.size > 0) {
-                            setTimeout(() => {
-                                runTournamentGeneration(true);
-                            }, 100);
+                                // If tournament was active, try to show it
+                                if (bracketState.size > 0) {
+                                    setTimeout(() => {
+                                        runTournamentGeneration(true);
+                                    }, 100);
+                                }
+                                return;
+                            }
+                        } else {
+                            // User chose NOT to load -> Clear backup
+                            localStorage.removeItem(BACKUP_KEY);
                         }
-                        return;
+                    } else {
+                        // 1시간이 지난 오래된 백업은 정리합니다.
+                        localStorage.removeItem(BACKUP_KEY);
                     }
-                } else {
-                    // User chose NOT to load -> Clear backup
+                } catch (e) {
+                    console.error("Backup data parsing error", e);
                     localStorage.removeItem(BACKUP_KEY);
                 }
             }
