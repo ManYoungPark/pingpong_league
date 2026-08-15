@@ -862,11 +862,15 @@
             color: #ffffff !important;
             line-height: 1.2;
         }
+
         .tm-status-badge.ongoing {
-            background-color: #3b82f6; /* Blue for ongoing */
+            background-color: #3b82f6;
+            /* Blue for ongoing */
         }
+
         .tm-status-badge.finished {
-            background-color: #64748b; /* Slate Gray for finished */
+            background-color: #64748b;
+            /* Slate Gray for finished */
         }
 
         /* Result Badge Styles (Eliminated Round Results) */
@@ -880,27 +884,36 @@
             line-height: 19px;
             border-radius: 4px;
             z-index: 15;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             box-sizing: border-box;
         }
+
         .tm-result-badge.rank-1 {
-            background-color: #ef4444; /* Red */
+            background-color: #ef4444;
+            /* Red */
             color: #ffffff !important;
             border: 1px solid #b91c1c;
         }
+
         .tm-result-badge.rank-2 {
-            background-color: #f97316; /* Orange */
+            background-color: #f97316;
+            /* Orange */
             color: #ffffff !important;
             border: 1px solid #c2410c;
         }
+
         .tm-result-badge.rank-4 {
-            background-color: #94a3b8; /* Grey */
+            background-color: #94a3b8;
+            /* Grey */
             color: #ffffff !important;
             border: 1px solid #64748b;
         }
+
         .tm-result-badge.rank-other {
-            background-color: #f1f5f9; /* Slate 100 */
-            color: #475569 !important; /* Slate 600 */
+            background-color: #f1f5f9;
+            /* Slate 100 */
+            color: #475569 !important;
+            /* Slate 600 */
             border: 1px solid #cbd5e1;
         }
 
@@ -1008,27 +1021,37 @@
         }
 
         /* 🏆 Final Winner Box (Champion Box & Player Node) */
-        .tm-winner-box, .tm-player.winner-final {
-            background: #fef08a !important; /* Bright Gold Yellow background */
-            border: 3.5px solid #1e3a8a !important; /* Thick Navy border */
-            color: #1e3a8a !important; /* Navy text */
+        .tm-winner-box,
+        .tm-player.winner-final {
+            background: #fef08a !important;
+            /* Bright Gold Yellow background */
+            border: 3.5px solid #1e3a8a !important;
+            /* Thick Navy border */
+            color: #1e3a8a !important;
+            /* Navy text */
             font-weight: 900 !important;
             box-shadow: 0 0 12px rgba(30, 58, 138, 0.4) !important;
             z-index: 25 !important;
         }
-        .tm-winner-box small, .tm-player.winner-final small {
+
+        .tm-winner-box small,
+        .tm-player.winner-final small {
             color: #3b82f6 !important;
         }
 
         /* 🥈 Final Runner-Up Box (Player Node) */
         .tm-player.runner-up-final {
-            background: #f1f5f9 !important; /* Silver Light Gray background */
-            border: 2px solid #1e3a8a !important; /* Navy border */
-            color: #1e3a8a !important; /* Navy text */
+            background: #f1f5f9 !important;
+            /* Silver Light Gray background */
+            border: 2px solid #1e3a8a !important;
+            /* Navy border */
+            color: #1e3a8a !important;
+            /* Navy text */
             font-weight: 900 !important;
             box-shadow: 0 0 8px rgba(30, 58, 138, 0.25) !important;
             z-index: 24 !important;
         }
+
         .tm-player.runner-up-final small {
             color: #475569 !important;
         }
@@ -1902,7 +1925,8 @@
                             · SF · TIE(공동))</button>
                     </div>
                     <div class="teams" id="teams"></div>
-                    <div style="padding:12px; display:flex; flex-direction:column; gap:8px; border-top:1px solid var(--border);">
+                    <div
+                        style="padding:12px; display:flex; flex-direction:column; gap:8px; border-top:1px solid var(--border);">
                         <div style="display:flex; gap:8px; width:100%;">
                             <button type="button" class="btn primary" id="btn-gen-tournament"
                                 style="flex:1; padding: 12px; font-size:15px;">🏆 상/하위 토너먼트 생성</button>
@@ -2476,13 +2500,13 @@
             //   { id: "p012", name: "김순동", grade: 5 },
             { id: "p013", name: "김형찬", grade: 1 },
             { id: "p014", name: "김홍석", grade: 6 },
-            { id: "p015", name: "류계열", grade: 5 },
+            { id: "p015", name: "류계열", grade: 4 },
             { id: "p016", name: "박덕례", grade: 6 },
             { id: "p017", name: "박혜란", grade: 6 },
             { id: "p018", name: "백낙천", grade: 3 },
             { id: "p019", name: "서상국", grade: 4 },
             { id: "p020", name: "송광용", grade: 5 },
-            //   { id: "p021", name: "김종탁", grade: 4 },
+            { id: "p021", name: "김종탁", grade: 5 },
             { id: "p022", name: "오장진", grade: 4 },
             { id: "p023", name: "윤교찬", grade: 6 },
             { id: "p024", name: "이교탁", grade: 7 },
@@ -2495,9 +2519,10 @@
             { id: "p031", name: "박현신", grade: 6 },
             { id: "p032", name: "홍순관", grade: 6 },
             { id: "p033", name: "홍현숙", grade: 6 },
-            { id: "p034", name: "박승기", grade: 6 },
+            { id: "p034", name: "박승기", grade: 5 },
             { id: "p035", name: "전영주", grade: 6 },
-            { id: "p036", name: "최병희", grade: 1 }
+            { id: "p036", name: "최병희", grade: 1 },
+            { id: "p037", name: "조창수", grade: 3 }
         ];
 
         // Player Info Lookup (name -> {id, grade})
@@ -7506,7 +7531,7 @@
             svg.innerHTML = "";
             const byeCount = slots.filter(x => !x || x === "BYE").length;
             const baseText = `${titleText} (${B}강, BYE ${byeCount}개)`;
-            
+
             const hWinnerVal = h_bracketState.get(`${prefix}-winner`);
             const isFinished = hWinnerVal && (typeof hWinnerVal === 'object' ? hWinnerVal.winner : hWinnerVal) !== "?";
             const badgeClass = isFinished ? "finished" : "ongoing";
