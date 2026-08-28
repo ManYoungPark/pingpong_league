@@ -2712,14 +2712,10 @@
                     const oneHourInMs = 60 * 60 * 1000;
 
                     if (timestamp && (Date.now() - timestamp < oneHourInMs)) {
-                        let promptMsg = "";
+                        // 날짜가 다르면 묻지 않고 이전 백업 삭제 후 통과
                         if (backupDate && currentDate && backupDate !== currentDate) {
-                            promptMsg = `[${backupDate}] 날짜의 이전 작업 데이터가 발견되었습니다.\n불러오시겠습니까? (현재 선택 날짜: ${currentDate})`;
-                        } else {
-                            promptMsg = "이전 작업 데이터가 발견되었습니다.\n불러오시겠습니까?";
-                        }
-
-                        if (confirm(promptMsg)) {
+                            localStorage.removeItem(BACKUP_KEY);
+                        } else if (confirm("이전 작업 데이터가 발견되었습니다.\n불러오시겠습니까?")) {
                             if (loadAllData()) {
                                 console.log("Data restored.");
                                 // UI Regeneration
