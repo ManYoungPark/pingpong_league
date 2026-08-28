@@ -2618,6 +2618,9 @@
                 const serializeMap = (map) => Array.from(map.entries());
                 const serializeDeepMap = (map) => Array.from(map.entries()).map(([k, v]) => [k, Array.from(v.entries())]);
 
+                const datePickerEl = document.getElementById("datePicker");
+                const currentDate = datePickerEl ? datePickerEl.value : "";
+
                 const data = {
                     groupsCount: state.groupsCount,
                     matchFormat: matchFormatEl.value,
@@ -2626,7 +2629,8 @@
                     manualRanks: serializeDeepMap(manualRankByTeam),
                     bracketState: serializeMap(bracketState),
                     tournamentType: tournamentType,
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    date: currentDate
                 };
                 localStorage.setItem(BACKUP_KEY, JSON.stringify(data));
                 // console.log("Auto-saved");
@@ -2641,6 +2645,14 @@
 
                 if (data.groupsCount) state.groupsCount = data.groupsCount;
                 if (data.matchFormat) matchFormatEl.value = data.matchFormat;
+
+                if (data.date) {
+                    const datePickerEl = document.getElementById("datePicker");
+                    if (datePickerEl) {
+                        datePickerEl.value = data.date;
+                        updateTournamentType(data.date);
+                    }
+                }
 
                 if (data.playersState) {
                     state.clear();
@@ -2688,14 +2700,26 @@
             const monthlyArea = document.getElementById("monthly-team-area");
             if (monthlyArea) monthlyArea.style.setProperty('display', 'none', 'important');
 
+            const datePickerEl = document.getElementById("datePicker");
+            const currentDate = datePickerEl ? datePickerEl.value : "";
+
             const raw = localStorage.getItem(BACKUP_KEY);
             if (raw) {
                 try {
                     const data = JSON.parse(raw);
                     const timestamp = data.timestamp;
+                    const backupDate = data.date;
                     const oneHourInMs = 60 * 60 * 1000;
+
                     if (timestamp && (Date.now() - timestamp < oneHourInMs)) {
-                        if (confirm("이전 작업 데이터가 발견되었습니다.\n불러오시겠습니까?")) {
+                        let promptMsg = "";
+                        if (backupDate && currentDate && backupDate !== currentDate) {
+                            promptMsg = `[${backupDate}] 날짜의 이전 작업 데이터가 발견되었습니다.\n불러오시겠습니까? (현재 선택 날짜: ${currentDate})`;
+                        } else {
+                            promptMsg = "이전 작업 데이터가 발견되었습니다.\n불러오시겠습니까?";
+                        }
+
+                        if (confirm(promptMsg)) {
                             if (loadAllData()) {
                                 console.log("Data restored.");
                                 // UI Regeneration
@@ -6196,13 +6220,13 @@
         }
 
         async function runRealDataTest() {
-            if (!confirm("구글 시트의 가장 최신 대회를 불러와서 '현재 경기' 탭에 테스트용으로 자동 입력하시겠습니까?")) return;
+            if (!confirm("구글 시트의 대회를 불러와서 '현재 경기' 탭에 테스트용으로 자동 입력하시겠습니까?")) return;
 
             const overlay = document.getElementById("h-loading-overlay");
             if (overlay) overlay.style.display = "flex";
 
             try {
-                // 1. Get Latest record
+                // 1. Get Latest record list
                 const listRes = await fetch(`${GAS_URL}?action=getList`);
                 const listData = await listRes.json();
                 if (!listData.success || !listData.list || listData.list.length === 0) {
@@ -6210,7 +6234,14 @@
                     return;
                 }
 
-                const item = listData.list[0]; // Latest
+                const currentDate = document.getElementById("datePicker") ? document.getElementById("datePicker").value : "";
+                let item = listData.list.find(i => i.date === currentDate);
+                if (!item) {
+                    item = listData.list[0]; // fallback to latest
+                    if (!confirm(`선택한 날짜[${currentDate}]의 기록이 없어 가장 최근 기록[${item.date} - ${item.title}]을 불러옵니다. 계속하시겠습니까?`)) {
+                        return;
+                    }
+                }
 
                 // 2. Get Full Data
                 const dataRes = await fetch(`${GAS_URL}?action=getData&date=${encodeURIComponent(item.date)}&title=${encodeURIComponent(item.title)}`);
@@ -7140,8 +7171,12 @@
                     });
 
                     if (h_currentIndex === -1) {
-                        h_currentIndex = 0;
-                        h_loadSpecific(0);
+                        const currentDate = document.getElementById("datePicker") ? document.getElementById("datePicker").value : "";
+                        const matchedIdx = h_historyList.findIndex(item => item.date === currentDate);
+                        const targetIdx = matchedIdx !== -1 ? matchedIdx : 0;
+                        h_currentIndex = targetIdx;
+                        select.value = targetIdx;
+                        h_loadSpecific(targetIdx);
                     }
                 } else {
                     select.innerHTML = `<option value="">데이터 오류: ${data.msg || '알수없음'}</option>`;
