@@ -203,7 +203,7 @@ function parseScore(s) {
 function getGradeBadgeHTML(name) {
     if (!name || name === "BYE" || name === "?") return "";
     const p = PLAYER_INFO.get(name);
-    return p && p.grade ? `<span class="grade-badge">${p.grade}</span>` : "";
+    return p && p.grade ? `<span class="grade-badge" data-grade="${p.grade}">${p.grade}</span>` : "";
 }
 
 function placePop(popEl, anchorEl) {

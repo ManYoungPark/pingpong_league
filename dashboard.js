@@ -980,6 +980,22 @@ function setPlayerAnalyticsSort(sortMode) {
     filterPlayerAnalyticsList();
 }
 
+function renderStyledGradeBadge(grade, isLarge = false) {
+    if (!grade) return "";
+    const gStr = String(grade).includes("부") || String(grade).includes("희망") ? String(grade) : `${grade}부`;
+    const num = parseInt(String(grade), 10);
+    let bg = "#eef2ff", fg = "#4338ca", bd = "#c7d2fe";
+    if (num === 1) { bg = "#ffe4e6"; fg = "#be123c"; bd = "#fecdd3"; }
+    else if (num === 2) { bg = "#ffedd5"; fg = "#c2410c"; bd = "#fed7aa"; }
+    else if (num === 3) { bg = "#dcfce7"; fg = "#15803d"; bd = "#bbf7d0"; }
+    else if (num === 4) { bg = "#e0f2fe"; fg = "#0369a1"; bd = "#bae6fd"; }
+    else if (num === 5) { bg = "#eef2ff"; fg = "#4338ca"; bd = "#c7d2fe"; }
+    else if (num >= 6) { bg = "#f3e8ff"; fg = "#7e22ce"; bd = "#e9d5ff"; }
+    const pad = isLarge ? "4px 10px" : "2px 6px";
+    const fz = isLarge ? "12px" : "10px";
+    return `<span style="background:${bg}; color:${fg}; border:1px solid ${bd}; padding:${pad}; border-radius:999px; font-size:${fz}; font-weight:800; display:inline-flex; align-items:center;">${gStr}</span>`;
+}
+
 function filterPlayerAnalyticsList() {
     if (!dashAnalytics) return;
     const listEl = document.getElementById("pa-player-list");
@@ -1014,22 +1030,24 @@ function filterPlayerAnalyticsList() {
         card.dataset.playerName = p.name;
         card.style.cssText = `
             display: flex; align-items: center; justify-content: space-between;
-            padding: 9px 12px; border-radius: 10px; cursor: pointer;
+            padding: 10px 12px; border-radius: 12px; cursor: pointer;
             border: ${isSelected ? "2px solid #2563eb" : "1px solid #e2e8f0"};
-            background: ${isSelected ? "#eff6ff" : "#ffffff"};
-            transition: all 0.15s;
+            background: ${isSelected ? "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)" : "#ffffff"};
+            box-shadow: ${isSelected ? "0 4px 12px rgba(37, 99, 235, 0.14)" : "0 1px 2px rgba(15, 23, 42, 0.03)"};
+            transition: all 0.16s ease;
         `;
-        const gradeBadge = p.grade ? `<span class="grade-badge">${p.grade}부</span>` : "";
+        const rankIcon = idx === 0 ? "🥇" : (idx === 1 ? "🥈" : (idx === 2 ? "🥉" : `${idx + 1}`));
+        const gradeBadge = renderStyledGradeBadge(p.grade, false);
         card.innerHTML = `
-            <div style="display:flex; align-items:center; gap:6px; min-width:0;">
-                <span style="font-size:12px; font-weight:900; color:${idx < 3 ? '#2563eb' : '#94a3b8'}; width:20px;">${idx + 1}</span>
+            <div style="display:flex; align-items:center; gap:7px; min-width:0;">
+                <span style="font-size:${idx < 3 ? '14px' : '12px'}; font-weight:900; color:${idx < 3 ? '#2563eb' : '#94a3b8'}; width:22px; text-align:center;">${rankIcon}</span>
                 <span style="font-weight:800; font-size:14px; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.name}</span>
                 ${gradeBadge}
             </div>
             <div style="display:flex; align-items:center; gap:8px; font-size:12px; flex-shrink:0;">
                 <span style="font-weight:900; color:#1d4ed8;">${p.totalPoints}점</span>
-                <span style="color:#64748b;">${p.attendCount}회</span>
-                <span style="background:${Number(winRate) >= 50 ? '#dcfce7' : '#f1f5f9'}; color:${Number(winRate) >= 50 ? '#15803d' : '#475569'}; padding:2px 6px; border-radius:6px; font-weight:800; font-size:11px;">${winRate}%</span>
+                <span style="color:#64748b; font-weight:600;">${p.attendCount}회</span>
+                <span style="background:${Number(winRate) >= 50 ? '#dcfce7' : '#f1f5f9'}; color:${Number(winRate) >= 50 ? '#15803d' : '#475569'}; padding:2px 7px; border-radius:999px; font-weight:800; font-size:11px;">${winRate}%</span>
             </div>
         `;
         card.addEventListener("click", () => selectPlayerForAnalytics(p.name));
@@ -1045,7 +1063,8 @@ function selectPlayerForAnalytics(name) {
     document.querySelectorAll("#pa-player-list > div").forEach(el => {
         const isMe = (el.dataset.playerName === name);
         el.style.border = isMe ? "2px solid #2563eb" : "1px solid #e2e8f0";
-        el.style.background = isMe ? "#eff6ff" : "#ffffff";
+        el.style.background = isMe ? "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)" : "#ffffff";
+        el.style.boxShadow = isMe ? "0 4px 12px rgba(37, 99, 235, 0.14)" : "0 1px 2px rgba(15, 23, 42, 0.03)";
     });
 
     const p = dashAnalytics.playersMap.get(name);
@@ -1081,46 +1100,61 @@ function renderSelectedPlayerProfile(p) {
     const toughOpp = [...opps].filter(o => o.played >= 2).sort((a, b) => (a.win / a.played) - (b.win / b.played) || (b.lose - a.lose))[0];
 
     const badges = [];
-    if (p.upperWins > 0) badges.push(`<span style="background:#fef08a; color:#854d0e; border:1px solid #facc15; padding:3px 8px; border-radius:999px; font-size:12px; font-weight:800;">🏆 상위/전체 우승 ${p.upperWins}회</span>`);
-    if (p.upperRunners > 0) badges.push(`<span style="background:#f1f5f9; color:#334155; border:1px solid #cbd5e1; padding:3px 8px; border-radius:999px; font-size:12px; font-weight:800;">🥈 상위 준우승 ${p.upperRunners}회</span>`);
-    if (p.upperSemis > 0) badges.push(`<span style="background:#ffedd5; color:#9a3412; border:1px solid #fed7aa; padding:3px 8px; border-radius:999px; font-size:12px; font-weight:800;">🥉 상위 4강 ${p.upperSemis}회</span>`);
-    if (p.lowerWins > 0) badges.push(`<span style="background:#dcfce7; color:#166534; border:1px solid #86efac; padding:3px 8px; border-radius:999px; font-size:12px; font-weight:800;">🍀 하위 우승 ${p.lowerWins}회</span>`);
-    if (p.lowerRunners > 0) badges.push(`<span style="background:#e0f2fe; color:#075985; border:1px solid #bae6fd; padding:3px 8px; border-radius:999px; font-size:12px; font-weight:800;">🥈 하위 준우승 ${p.lowerRunners}회</span>`);
+    if (p.upperWins > 0) badges.push(`<span style="background:linear-gradient(135deg,#fef08a,#fde047); color:#854d0e; border:1px solid #facc15; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:800; box-shadow:0 2px 6px rgba(234,179,8,0.18);">🏆 상위/전체 우승 ${p.upperWins}회</span>`);
+    if (p.upperRunners > 0) badges.push(`<span style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:800;">🥈 상위 준우승 ${p.upperRunners}회</span>`);
+    if (p.upperSemis > 0) badges.push(`<span style="background:#ffedd5; color:#9a3412; border:1px solid #fed7aa; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:800;">🥉 상위 4강 ${p.upperSemis}회</span>`);
+    if (p.lowerWins > 0) badges.push(`<span style="background:#dcfce7; color:#166534; border:1px solid #86efac; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:800;">🍀 하위 우승 ${p.lowerWins}회</span>`);
+    if (p.lowerRunners > 0) badges.push(`<span style="background:#e0f2fe; color:#075985; border:1px solid #bae6fd; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:800;">🥈 하위 준우승 ${p.lowerRunners}회</span>`);
+
+    const initial = p.name ? p.name.charAt(0) : "🏓";
+
+    headerEl.style.background = "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)";
+    headerEl.style.border = "1px solid #dbeafe";
+    headerEl.style.boxShadow = "0 8px 20px -6px rgba(37, 99, 235, 0.08)";
 
     headerEl.innerHTML = `
-        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
-            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                <span style="font-size:22px; font-weight:900; color:#0f172a;">${p.name}</span>
-                ${p.grade ? `<span class="grade-badge" style="font-size:13px; padding:3px 8px;">${p.grade}부</span>` : ""}
-                <span style="font-size:13px; color:#64748b; font-weight:700;">출석 ${p.attendCount}회 (출석률 ${attendRate}%)</span>
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid #f1f5f9;">
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                <div style="width:44px; height:44px; border-radius:14px; background:linear-gradient(135deg, #2563eb 0%, #4f46e5 100%); color:#fff; font-size:19px; font-weight:900; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 14px rgba(37,99,235,0.25);">
+                    ${initial}
+                </div>
+                <div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:22px; font-weight:900; color:#0f172a; letter-spacing:-0.02em;">${p.name}</span>
+                        ${renderStyledGradeBadge(p.grade, true)}
+                    </div>
+                    <div style="font-size:12px; color:#64748b; font-weight:700; margin-top:2px;">
+                        정규 금요리그 출석 <b style="color:#1e293b;">${p.attendCount}회</b> / ${totalTourneys}회 (출석률 <b style="color:#2563eb;">${attendRate}%</b>)
+                    </div>
+                </div>
             </div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                ${badges.length > 0 ? badges.join("") : `<span style="font-size:12px; color:#94a3b8;">입상 기록 집계 중</span>`}
+                ${badges.length > 0 ? badges.join("") : `<span style="font-size:12px; color:#94a3b8; background:#f8fafc; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0;">꾸준히 활약 중인 선수</span>`}
             </div>
         </div>
 
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap:10px;">
-            <div style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:12px;">
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap:12px;">
+            <div style="background:#fff; border:1px solid #e2e8f0; border-top:3px solid #2563eb; border-radius:12px; padding:12px 14px; box-shadow:0 2px 6px rgba(15,23,42,0.02);">
                 <div style="font-size:11px; color:#64748b; font-weight:700;">통산 누적 승점</div>
-                <div style="font-size:22px; font-weight:900; color:#1d4ed8; margin:4px 0;">${p.totalPoints}점</div>
-                <div style="font-size:11px; color:#475569;">대회당 평균 <b>${avgPts}점</b></div>
+                <div style="font-size:24px; font-weight:900; color:#1d4ed8; margin:4px 0;">${p.totalPoints}점</div>
+                <div style="font-size:11px; color:#475569;">대회당 평균 <b>${avgPts}점</b> 획득</div>
             </div>
-            <div style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:12px;">
+            <div style="background:#fff; border:1px solid #e2e8f0; border-top:3px solid #4f46e5; border-radius:12px; padding:12px 14px; box-shadow:0 2px 6px rgba(15,23,42,0.02);">
                 <div style="font-size:11px; color:#64748b; font-weight:700;">통산 매치 승률</div>
-                <div style="font-size:22px; font-weight:900; color:#0f172a; margin:4px 0;">${winRate}%</div>
+                <div style="font-size:24px; font-weight:900; color:#0f172a; margin:4px 0;">${winRate}%</div>
                 <div style="font-size:11px; color:#475569;"><b>${p.matchesPlayed}전 ${p.matchesWon}승 ${p.matchesLost}패</b> (예선 ${p.groupWon}승/본선 ${p.bracketWon}승)</div>
             </div>
-            <div style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:12px;">
+            <div style="background:#fff; border:1px solid #e2e8f0; border-top:3px solid ${setDiff >= 0 ? '#10b981' : '#ef4444'}; border-radius:12px; padding:12px 14px; box-shadow:0 2px 6px rgba(15,23,42,0.02);">
                 <div style="font-size:11px; color:#64748b; font-weight:700;">통산 세트 득실</div>
-                <div style="font-size:22px; font-weight:900; color:${setDiff >= 0 ? '#16a34a' : '#ef4444'}; margin:4px 0;">${setDiff >= 0 ? '+' : ''}${setDiff}</div>
+                <div style="font-size:24px; font-weight:900; color:${setDiff >= 0 ? '#16a34a' : '#ef4444'}; margin:4px 0;">${setDiff >= 0 ? '+' : ''}${setDiff}</div>
                 <div style="font-size:11px; color:#475569;">${p.setsFor}득 / ${p.setsAgainst}실 (득실률 <b>${setRatio}%</b>)</div>
             </div>
-            <div style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:12px;">
+            <div style="background:#fff; border:1px solid #e2e8f0; border-top:3px solid #f59e0b; border-radius:12px; padding:12px 14px; box-shadow:0 2px 6px rgba(15,23,42,0.02);">
                 <div style="font-size:11px; color:#64748b; font-weight:700;">맞대결 & 동반출전 요약</div>
-                <div style="font-size:12px; color:#1e293b; margin-top:4px; line-height:1.5;">
+                <div style="font-size:12px; color:#1e293b; margin-top:4px; line-height:1.55;">
                     • 최다 대결: <b>${mostPlayedOpp ? `${mostPlayedOpp.name} (${mostPlayedOpp.played}전 ${mostPlayedOpp.win}승 ${mostPlayedOpp.lose}패)` : "-"}</b><br>
                     • 최다 동반대회: <b>${mostCoAttendOpp ? `${mostCoAttendOpp.name} (${mostCoAttendOpp.coAttend}회)` : "-"}</b><br>
-                    • 강세/열세(2전↑): <span style="color:#1d4ed8;font-weight:700;">${bestWinOpp ? `${bestWinOpp.name}(${Math.round(bestWinOpp.win/bestWinOpp.played*100)}%)` : "-"}</span> / <span style="color:#ef4444;font-weight:700;">${toughOpp ? `${toughOpp.name}(${Math.round(toughOpp.win/toughOpp.played*100)}%)` : "-"}</span>
+                    • 강세/열세(2전↑): <span style="color:#1d4ed8;font-weight:800;">${bestWinOpp ? `${bestWinOpp.name}(${Math.round(bestWinOpp.win/bestWinOpp.played*100)}%)` : "-"}</span> / <span style="color:#ef4444;font-weight:800;">${toughOpp ? `${toughOpp.name}(${Math.round(toughOpp.win/toughOpp.played*100)}%)` : "-"}</span>
                 </div>
             </div>
         </div>
