@@ -5,7 +5,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>🏓 대덕밸리 탁구동호회 · 리그전 & 토너먼트 통합 시스템</title>
-    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <link rel="stylesheet" as="style" crossorigin
+        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
     <style>
         :root {
             --bg: #f4f7f9;
@@ -1544,12 +1545,16 @@
             text-align: left;
             font-weight: 800;
         }
+
         @media (max-width: 900px) {
             .player-analytics-layout {
                 grid-template-columns: 1fr !important;
             }
         }
-        .pa-sort-btn.active, .pa-ctype-btn.active, .pa-octype-btn.active {
+
+        .pa-sort-btn.active,
+        .pa-ctype-btn.active,
+        .pa-octype-btn.active {
             background: #eff6ff !important;
             color: #1d4ed8 !important;
             border-color: #93c5fd !important;
@@ -1557,29 +1562,59 @@
         }
 
         /* 부수별 컬러 뱃지 */
-        .grade-badge[data-grade="선수부"], .grade-badge[data-grade="선수"],
-        .grade-badge[data-grade="0부"], .grade-badge[data-grade="0"],
-        .grade-badge[data-grade="1부"], .grade-badge[data-grade="1"] {
-            background: #fee2e2 !important; color: #dc2626 !important; border-color: #fecaca !important;
+        .grade-badge[data-grade="선수부"],
+        .grade-badge[data-grade="선수"],
+        .grade-badge[data-grade="0부"],
+        .grade-badge[data-grade="0"],
+        .grade-badge[data-grade="1부"],
+        .grade-badge[data-grade="1"] {
+            background: #fee2e2 !important;
+            color: #dc2626 !important;
+            border-color: #fecaca !important;
         }
-        .grade-badge[data-grade="2부"], .grade-badge[data-grade="2"] {
-            background: #ffedd5 !important; color: #ea580c !important; border-color: #fed7aa !important;
+
+        .grade-badge[data-grade="2부"],
+        .grade-badge[data-grade="2"] {
+            background: #ffedd5 !important;
+            color: #ea580c !important;
+            border-color: #fed7aa !important;
         }
-        .grade-badge[data-grade="3부"], .grade-badge[data-grade="3"] {
-            background: #fef3c7 !important; color: #d97706 !important; border-color: #fde68a !important;
+
+        .grade-badge[data-grade="3부"],
+        .grade-badge[data-grade="3"] {
+            background: #fef3c7 !important;
+            color: #d97706 !important;
+            border-color: #fde68a !important;
         }
-        .grade-badge[data-grade="4부"], .grade-badge[data-grade="4"] {
-            background: #dcfce7 !important; color: #16a34a !important; border-color: #bbf7d0 !important;
+
+        .grade-badge[data-grade="4부"],
+        .grade-badge[data-grade="4"] {
+            background: #dcfce7 !important;
+            color: #16a34a !important;
+            border-color: #bbf7d0 !important;
         }
-        .grade-badge[data-grade="5부"], .grade-badge[data-grade="5"] {
-            background: #e0f2fe !important; color: #0284c7 !important; border-color: #bae6fd !important;
+
+        .grade-badge[data-grade="5부"],
+        .grade-badge[data-grade="5"] {
+            background: #e0f2fe !important;
+            color: #0284c7 !important;
+            border-color: #bae6fd !important;
         }
-        .grade-badge[data-grade="6부"], .grade-badge[data-grade="6"] {
-            background: #ede9fe !important; color: #7c3aed !important; border-color: #ddd6fe !important;
+
+        .grade-badge[data-grade="6부"],
+        .grade-badge[data-grade="6"] {
+            background: #ede9fe !important;
+            color: #7c3aed !important;
+            border-color: #ddd6fe !important;
         }
-        .grade-badge[data-grade="7부"], .grade-badge[data-grade="7"],
-        .grade-badge[data-grade="희망부"], .grade-badge[data-grade="희망"] {
-            background: #fce7f3 !important; color: #db2777 !important; border-color: #fbcfe8 !important;
+
+        .grade-badge[data-grade="7부"],
+        .grade-badge[data-grade="7"],
+        .grade-badge[data-grade="희망부"],
+        .grade-badge[data-grade="희망"] {
+            background: #fce7f3 !important;
+            color: #db2777 !important;
+            border-color: #fbcfe8 !important;
         }
     </style>
     <style>
@@ -2183,14 +2218,16 @@
         }
 
         /* Segmented Chart Switchers */
-        #pa-score-chart-types, #pa-opp-chart-types {
+        #pa-score-chart-types,
+        #pa-opp-chart-types {
             background: #f1f5f9;
             padding: 3px;
             border-radius: 10px;
             border: 1px solid #e2e8f0;
         }
 
-        .pa-ctype-btn, .pa-octype-btn {
+        .pa-ctype-btn,
+        .pa-octype-btn {
             border: none !important;
             background: transparent !important;
             box-shadow: none !important;
@@ -2199,7 +2236,8 @@
             padding: 4px 9px !important;
         }
 
-        .pa-ctype-btn.active, .pa-octype-btn.active {
+        .pa-ctype-btn.active,
+        .pa-octype-btn.active {
             background: #ffffff !important;
             color: #1d4ed8 !important;
             box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08) !important;
@@ -2398,15 +2436,21 @@
                         <span style="font-size:14px; font-weight:700; color:#4b5563;">조 개수:</span>
                         <input type="number" id="ra-group-count" value="4" min="2" max="16"
                             style="width:60px; text-align:center; padding:4px; border:1px solid #cbd5e1; border-radius:6px; font-weight:800; font-size:14px;">
-                        <span style="font-size:13px; color:#64748b; font-weight:700;" id="ra-count-display">(0명 선택)</span>
+                        <span style="font-size:13px; color:#64748b; font-weight:700;" id="ra-count-display">(0명
+                            선택)</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:6px;">
                         <span style="font-size:13px; font-weight:700; color:#4b5563;">배정 방식:</span>
-                        <label id="ra-mode-balanced-lbl" style="display:flex; align-items:center; gap:4px; padding:5px 10px; border-radius:6px; border:2px solid #7c3aed; background:#f5f3ff; color:#6d28d9; font-size:13px; font-weight:800; cursor:pointer;" onclick="updateRaModeUI('balanced')">
-                            <input type="radio" name="ra-mode" value="balanced" checked style="margin:0; accent-color:#7c3aed;">
+                        <label id="ra-mode-balanced-lbl"
+                            style="display:flex; align-items:center; gap:4px; padding:5px 10px; border-radius:6px; border:2px solid #7c3aed; background:#f5f3ff; color:#6d28d9; font-size:13px; font-weight:800; cursor:pointer;"
+                            onclick="updateRaModeUI('balanced')">
+                            <input type="radio" name="ra-mode" value="balanced" checked
+                                style="margin:0; accent-color:#7c3aed;">
                             ⚖️ 실력 균등 (부수 고려)
                         </label>
-                        <label id="ra-mode-pure-lbl" style="display:flex; align-items:center; gap:4px; padding:5px 10px; border-radius:6px; border:1px solid #cbd5e1; background:#fff; color:#64748b; font-size:13px; font-weight:600; cursor:pointer;" onclick="updateRaModeUI('pure')">
+                        <label id="ra-mode-pure-lbl"
+                            style="display:flex; align-items:center; gap:4px; padding:5px 10px; border-radius:6px; border:1px solid #cbd5e1; background:#fff; color:#64748b; font-size:13px; font-weight:600; cursor:pointer;"
+                            onclick="updateRaModeUI('pure')">
                             <input type="radio" name="ra-mode" value="pure" style="margin:0; accent-color:#475569;">
                             🎲 완전 랜덤
                         </label>
@@ -2605,16 +2649,22 @@
         <div id="tab-dashboard-view" class="tab-content">
             <div class="tm-dashboard" style="max-width: 1400px;">
                 <!-- 상단 헤더 & 구글 드라이브 동기화 상태 -->
-                <div class="tm-dash-header" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                <div class="tm-dash-header"
+                    style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
                     <div style="display:flex; align-items:center; gap:10px;">
                         <h3 style="margin:0;">📊 대덕밸리 종합 통계 & 선수 분석</h3>
-                        <span id="dash-sync-status" class="pill" style="background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; font-weight:700;">☁️ 데이터 준비 중...</span>
+                        <span id="dash-sync-status" class="pill"
+                            style="background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; font-weight:700;">☁️ 데이터 준비
+                            중...</span>
                     </div>
                     <div style="display:flex; gap:6px; align-items:center;">
-                        <button type="button" class="btn" id="btn-dash-refresh" onclick="syncDashboardData(true)" style="font-size:12px; padding:6px 12px;" title="원본 데이터를 다시 읽어 통계를 강제 재계산하고 서버 캐시를 갱신합니다">
+                        <button type="button" class="btn" id="btn-dash-refresh" onclick="syncDashboardData(true)"
+                            style="font-size:12px; padding:6px 12px;" title="원본 데이터를 다시 읽어 통계를 강제 재계산하고 서버 캐시를 갱신합니다">
                             🔄 최신 동기화 (재계산)
                         </button>
-                        <button type="button" class="btn" onclick="downloadStatsCacheJS()" style="font-size:12px; padding:6px 12px; background:#f0fdf4; color:#15803d; border-color:#bbf7d0;" title="현재 계산된 통계를 stats_cache.js 파일로 다운로드합니다">
+                        <button type="button" class="btn" onclick="downloadStatsCacheJS()"
+                            style="font-size:12px; padding:6px 12px; background:#f0fdf4; color:#15803d; border-color:#bbf7d0;"
+                            title="현재 계산된 통계를 stats_cache.js 파일로 다운로드합니다">
                             💾 통계파일 저장
                         </button>
                     </div>
@@ -2637,7 +2687,8 @@
                 </div>
 
                 <!-- 종합 랭킹 차트 4종 (명예의 전당 / 최다 출석 / 하위부 최다 우승 / 하위부 최다 준우승) -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                <div
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 24px;">
                     <!-- Chart 1 -->
                     <div class="card" style="margin-bottom: 0;">
                         <div class="card-hd" style="padding: 10px 14px;">
@@ -2681,25 +2732,38 @@
                      ========================================================= -->
                 <div class="card" style="margin-bottom: 28px; border: 2px solid #dbeafe;">
                     <div class="card-hd" style="background: linear-gradient(90deg, #eff6ff 0%, #f8fafc 100%);">
-                        <div class="title" style="color:#1e40af; font-size:16px;">🎯 선수별 상세 전적 · 점수 · 상대 승률 분석 (Chart.js)</div>
-                        <span class="pill" style="background:#fff; color:#1d4ed8; border-color:#bfdbfe;">선수를 클릭하여 분석</span>
+                        <div class="title" style="color:#1e40af; font-size:16px;">🎯 선수별 상세 전적 · 점수 · 상대 승률 분석
+                            (Chart.js)</div>
+                        <span class="pill" style="background:#fff; color:#1d4ed8; border-color:#bfdbfe;">선수를 클릭하여
+                            분석</span>
                     </div>
 
-                    <div style="padding: 16px; display: grid; grid-template-columns: 310px 1fr; gap: 20px;" class="player-analytics-layout">
+                    <div style="padding: 16px; display: grid; grid-template-columns: 310px 1fr; gap: 20px;"
+                        class="player-analytics-layout">
                         <!-- 좌측: 선수 검색 및 리스트 -->
-                        <div style="border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; padding: 12px; display:flex; flex-direction:column; max-height: 780px;">
+                        <div
+                            style="border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; padding: 12px; display:flex; flex-direction:column; max-height: 780px;">
                             <div style="margin-bottom: 8px;">
                                 <input type="text" id="pa-search-input" placeholder="🔍 선수 이름 검색..."
                                     oninput="filterPlayerAnalyticsList()"
                                     style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; font-weight:700; outline:none;" />
                             </div>
                             <div style="display:flex; gap:4px; margin-bottom:10px;">
-                                <button type="button" class="btn pa-sort-btn active" data-sort="points" onclick="setPlayerAnalyticsSort('points')" style="flex:1; padding:5px 4px; font-size:11px;">점수순</button>
-                                <button type="button" class="btn pa-sort-btn" data-sort="winrate" onclick="setPlayerAnalyticsSort('winrate')" style="flex:1; padding:5px 4px; font-size:11px;">승률순</button>
-                                <button type="button" class="btn pa-sort-btn" data-sort="attend" onclick="setPlayerAnalyticsSort('attend')" style="flex:1; padding:5px 4px; font-size:11px;">출석순</button>
-                                <button type="button" class="btn pa-sort-btn" data-sort="name" onclick="setPlayerAnalyticsSort('name')" style="flex:1; padding:5px 4px; font-size:11px;">이름순</button>
+                                <button type="button" class="btn pa-sort-btn active" data-sort="points"
+                                    onclick="setPlayerAnalyticsSort('points')"
+                                    style="flex:1; padding:5px 4px; font-size:11px;">점수순</button>
+                                <button type="button" class="btn pa-sort-btn" data-sort="winrate"
+                                    onclick="setPlayerAnalyticsSort('winrate')"
+                                    style="flex:1; padding:5px 4px; font-size:11px;">승률순</button>
+                                <button type="button" class="btn pa-sort-btn" data-sort="attend"
+                                    onclick="setPlayerAnalyticsSort('attend')"
+                                    style="flex:1; padding:5px 4px; font-size:11px;">출석순</button>
+                                <button type="button" class="btn pa-sort-btn" data-sort="name"
+                                    onclick="setPlayerAnalyticsSort('name')"
+                                    style="flex:1; padding:5px 4px; font-size:11px;">이름순</button>
                             </div>
-                            <div id="pa-player-list" style="overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:6px; padding-right:2px;">
+                            <div id="pa-player-list"
+                                style="overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:6px; padding-right:2px;">
                                 <!-- 선수 카드 목록 렌더링 영역 -->
                             </div>
                         </div>
@@ -2707,23 +2771,33 @@
                         <!-- 우측: 선택된 선수의 상세 분석 보드 -->
                         <div id="pa-detail-panel" style="display:flex; flex-direction:column; gap:18px; min-width:0;">
                             <!-- 1) 선수 프로필 헤더 & KPI 요약 -->
-                            <div id="pa-profile-header" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px;">
+                            <div id="pa-profile-header"
+                                style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px;">
                                 <div style="color:#64748b; font-weight:700; text-align:center; padding:20px;">
                                     👈 왼쪽 목록에서 분석할 선수를 선택해주세요.
                                 </div>
                             </div>
 
                             <!-- 2) 차트 2종 그리드 (점수 추이 차트 + 상대별 승률/대결수 차트) -->
-                            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap:16px;">
+                            <div
+                                style="display:grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap:16px;">
                                 <!-- 차트 A: 대회별 점수 & 추이 -->
                                 <div class="card" style="margin-bottom:0;">
                                     <div class="card-hd" style="flex-wrap:wrap; gap:8px;">
                                         <div class="title" style="font-size:14px;">📈 대회별 획득 점수 & 누적 추이</div>
                                         <div style="display:flex; gap:4px; flex-wrap:wrap;" id="pa-score-chart-types">
-                                            <button type="button" class="btn pa-ctype-btn active" data-ctype="combo" onclick="changeScoreChartType('combo')" style="padding:3px 8px; font-size:11px;">📊 복합(막대+선)</button>
-                                            <button type="button" class="btn pa-ctype-btn" data-ctype="line" onclick="changeScoreChartType('line')" style="padding:3px 8px; font-size:11px;">📈 꺾은선</button>
-                                            <button type="button" class="btn pa-ctype-btn" data-ctype="bar" onclick="changeScoreChartType('bar')" style="padding:3px 8px; font-size:11px;">📊 막대</button>
-                                            <button type="button" class="btn pa-ctype-btn" data-ctype="radar" onclick="changeScoreChartType('radar')" style="padding:3px 8px; font-size:11px;">🕸️ 6각 능력치</button>
+                                            <button type="button" class="btn pa-ctype-btn active" data-ctype="combo"
+                                                onclick="changeScoreChartType('combo')"
+                                                style="padding:3px 8px; font-size:11px;">📊 복합(막대+선)</button>
+                                            <button type="button" class="btn pa-ctype-btn" data-ctype="line"
+                                                onclick="changeScoreChartType('line')"
+                                                style="padding:3px 8px; font-size:11px;">📈 꺾은선</button>
+                                            <button type="button" class="btn pa-ctype-btn" data-ctype="bar"
+                                                onclick="changeScoreChartType('bar')"
+                                                style="padding:3px 8px; font-size:11px;">📊 막대</button>
+                                            <button type="button" class="btn pa-ctype-btn" data-ctype="radar"
+                                                onclick="changeScoreChartType('radar')"
+                                                style="padding:3px 8px; font-size:11px;">🕸️ 6각 능력치</button>
                                         </div>
                                     </div>
                                     <div style="padding:14px; height:350px; position:relative;">
@@ -2736,11 +2810,21 @@
                                     <div class="card-hd" style="flex-wrap:wrap; gap:8px;">
                                         <div class="title" style="font-size:14px;">🤝 주요 상대별 대결 횟수 & 승률</div>
                                         <div style="display:flex; gap:4px; flex-wrap:wrap;" id="pa-opp-chart-types">
-                                            <button type="button" class="btn pa-octype-btn active" data-octype="stackedBar" onclick="changeOppChartType('stackedBar')" style="padding:3px 8px; font-size:11px;">📊 승/패 막대</button>
-                                            <button type="button" class="btn pa-octype-btn" data-octype="winRateBar" onclick="changeOppChartType('winRateBar')" style="padding:3px 8px; font-size:11px;">📈 승률(%)</button>
-                                            <button type="button" class="btn pa-octype-btn" data-octype="doughnut" onclick="changeOppChartType('doughnut')" style="padding:3px 8px; font-size:11px;">🍩 도넛</button>
-                                            <button type="button" class="btn pa-octype-btn" data-octype="polarArea" onclick="changeOppChartType('polarArea')" style="padding:3px 8px; font-size:11px;">🎯 폴라</button>
-                                            <button type="button" class="btn pa-octype-btn" data-octype="bubble" onclick="changeOppChartType('bubble')" style="padding:3px 8px; font-size:11px;">🫧 버블</button>
+                                            <button type="button" class="btn pa-octype-btn active"
+                                                data-octype="stackedBar" onclick="changeOppChartType('stackedBar')"
+                                                style="padding:3px 8px; font-size:11px;">📊 승/패 막대</button>
+                                            <button type="button" class="btn pa-octype-btn" data-octype="winRateBar"
+                                                onclick="changeOppChartType('winRateBar')"
+                                                style="padding:3px 8px; font-size:11px;">📈 승률(%)</button>
+                                            <button type="button" class="btn pa-octype-btn" data-octype="doughnut"
+                                                onclick="changeOppChartType('doughnut')"
+                                                style="padding:3px 8px; font-size:11px;">🍩 도넛</button>
+                                            <button type="button" class="btn pa-octype-btn" data-octype="polarArea"
+                                                onclick="changeOppChartType('polarArea')"
+                                                style="padding:3px 8px; font-size:11px;">🎯 폴라</button>
+                                            <button type="button" class="btn pa-octype-btn" data-octype="bubble"
+                                                onclick="changeOppChartType('bubble')"
+                                                style="padding:3px 8px; font-size:11px;">🫧 버블</button>
                                         </div>
                                     </div>
                                     <div style="padding:14px; height:350px; position:relative;">
@@ -2752,26 +2836,39 @@
                             <!-- 3) 상대 선수별 전적 상세 테이블 & 클릭 시 맞대결 기록 -->
                             <div class="card" style="margin-bottom:0;">
                                 <div class="card-hd" style="flex-wrap:wrap; gap:8px;">
-                                    <div class="title" style="font-size:14px;">⚔️ 상대 선수별 상세 전적 & 동반 대회 기록 <small style="font-weight:600; color:#64748b;">(행 클릭 시 맞대결 상세 표시)</small></div>
-                                    <input type="text" id="pa-opp-search" placeholder="상대 이름 필터..." oninput="renderSelectedPlayerOpponentTable()"
+                                    <div class="title" style="font-size:14px;">⚔️ 상대 선수별 상세 전적 & 동반 대회 기록 <small
+                                            style="font-weight:600; color:#64748b;">(행 클릭 시 맞대결 상세 표시)</small></div>
+                                    <input type="text" id="pa-opp-search" placeholder="상대 이름 필터..."
+                                        oninput="renderSelectedPlayerOpponentTable()"
                                         style="padding:4px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; width:160px;" />
                                 </div>
                                 <div style="padding:12px;">
-                                    <div id="pa-opp-match-detail" style="display:none; margin-bottom:12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:12px;"></div>
-                                    <div style="max-height:280px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px;">
-                                        <table style="width:100%; border-collapse:collapse; font-size:13px; text-align:center;">
+                                    <div id="pa-opp-match-detail"
+                                        style="display:none; margin-bottom:12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:12px;">
+                                    </div>
+                                    <div
+                                        style="max-height:280px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px;">
+                                        <table
+                                            style="width:100%; border-collapse:collapse; font-size:13px; text-align:center;">
                                             <thead style="position:sticky; top:0; background:#f1f5f9; z-index:1;">
                                                 <tr>
                                                     <th style="padding:8px; border-bottom:1px solid #cbd5e1;">상대 선수</th>
-                                                    <th style="padding:8px; border-bottom:1px solid #cbd5e1;">함께 참가한 대회</th>
+                                                    <th style="padding:8px; border-bottom:1px solid #cbd5e1;">함께 참가한 대회
+                                                    </th>
                                                     <th style="padding:8px; border-bottom:1px solid #cbd5e1;">맞대결 수</th>
-                                                    <th style="padding:8px; border-bottom:1px solid #cbd5e1;">전적 (승-패)</th>
+                                                    <th style="padding:8px; border-bottom:1px solid #cbd5e1;">전적 (승-패)
+                                                    </th>
                                                     <th style="padding:8px; border-bottom:1px solid #cbd5e1;">세트 득실</th>
-                                                    <th style="padding:8px; border-bottom:1px solid #cbd5e1; min-width:140px;">상대 승률</th>
+                                                    <th
+                                                        style="padding:8px; border-bottom:1px solid #cbd5e1; min-width:140px;">
+                                                        상대 승률</th>
                                                 </tr>
                                             </thead>
                                             <tbody id="pa-opp-tbody">
-                                                <tr><td colspan="6" style="padding:20px; color:#94a3b8;">선수를 선택하면 상대별 전적이 표시됩니다.</td></tr>
+                                                <tr>
+                                                    <td colspan="6" style="padding:20px; color:#94a3b8;">선수를 선택하면 상대별
+                                                        전적이 표시됩니다.</td>
+                                                </tr>
                                             </tbody>
                                         </table>
                                     </div>
@@ -2796,7 +2893,8 @@
                                 <option value="">선수 2</option>
                             </select>
                         </div>
-                        <button id="btn-h2h-search" class="btn primary" style="width:100%; margin-bottom:16px;">🔍 전적 조회</button>
+                        <button id="btn-h2h-search" class="btn primary" style="width:100%; margin-bottom:16px;">🔍 전적
+                            조회</button>
 
                         <div id="h2h-result">
                             <div style="color:#94a3b8; font-size:13px;">두 선수를 선택하고 조회하세요.</div>
@@ -3037,7 +3135,7 @@
             { id: "p016", name: "박덕례", grade: 6 },
             { id: "p017", name: "박혜란", grade: 6 },
             { id: "p018", name: "백낙천", grade: 3 },
-            { id: "p019", name: "서상국", grade: 4 },
+            { id: "p019", name: "서상국", grade: 3 },
             { id: "p020", name: "송광용", grade: 5 },
             { id: "p021", name: "김종탁", grade: 5 },
             { id: "p022", name: "오장진", grade: 4 },
@@ -3052,7 +3150,7 @@
             { id: "p031", name: "박현신", grade: 6 },
             { id: "p032", name: "홍순관", grade: 6 },
             { id: "p033", name: "홍현숙", grade: 6 },
-            { id: "p034", name: "박승기", grade: 5 },
+            { id: "p034", name: "박승기", grade: 4 },
             { id: "p035", name: "전영주", grade: 6 },
             { id: "p036", name: "최병희", grade: 1 },
             { id: "p037", name: "조창수", grade: 3 },
@@ -3068,7 +3166,8 @@
             { id: "p046", name: "e김희숙", grade: 6 },
 
             { id: "p047", name: "e김홍철", grade: 2 },
-            { id: "p048", name: "이영기", grade: 4 }
+            { id: "p048", name: "이영기", grade: 3 },
+            { id: "p049", name: "e최광호", grade: 5 }
         ];
 
         // Player Info Lookup (name -> {id, grade})
@@ -7389,7 +7488,7 @@
 
                         // 2. 구글 백엔드 서버가 뒤에서 혼자 통계를 재계산하도록 비동기(fire-and-forget, keepalive) 신호만 전송
                         // (사용자가 즉시 브라우저 창을 닫아도 keepalive 옵션으로 구글 서버 백그라운드에서 통계 갱신이 완료됨)
-                        fetch(`${url}?action=rebuildStats`, { mode: "no-cors", keepalive: true }).catch(() => {});
+                        fetch(`${url}?action=rebuildStats`, { mode: "no-cors", keepalive: true }).catch(() => { });
 
                         alert("✅ 기록 및 전체 자료가 전송되었습니다!\n(지금 바로 창을 닫으셔도 통계는 구글 서버 백그라운드에서 자동 계산됩니다)");
 
