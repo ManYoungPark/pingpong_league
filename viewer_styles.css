@@ -592,3 +592,171 @@ table.rr {
 .tm-player.runner-up-final small {
     color: #475569 !important;
 }
+
+/* Portal & Ranking Explain UI (Synchronized with index.html) */
+.rr td.rank.clickable {
+    cursor: pointer;
+    user-select: none;
+}
+.rr td.rank.clickable:hover {
+    background: #eff6ff;
+}
+.portal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: none;
+}
+.portal.open {
+    display: block;
+}
+.portal .backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.25);
+}
+.portal .pop {
+    position: fixed;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+    padding: 12px;
+    min-width: 320px;
+    max-width: min(420px, 94vw);
+    max-height: 85vh;
+    overflow-y: auto;
+    z-index: 10000;
+}
+.portal .pop .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #f1f5f9;
+}
+.portal .pop .ttl {
+    font-weight: 900;
+    font-size: 14px;
+    color: #0f172a;
+}
+.portal .pop .close {
+    border: 1px solid var(--border);
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.pop .explain {
+    font-size: 13px;
+    line-height: 1.5;
+    color: #334155;
+}
+.pop .explain-meta {
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 12px;
+}
+.pop .decision-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 16px;
+}
+.pop .decision-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+}
+.pop .decision-text {
+    font-weight: 800;
+    color: #1e293b;
+    white-space: pre-wrap;
+}
+.pop .section-title {
+    font-weight: 800;
+    font-size: 12px;
+    margin: 16px 0 8px;
+    color: #475569;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 4px;
+}
+.pop .round-item {
+    border: 1px solid #f1f5f9;
+    border-radius: 8px;
+    padding: 8px;
+    margin-bottom: 8px;
+    background: #fff;
+}
+.pop .round-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+.pop .round-name {
+    font-weight: 700;
+    font-size: 12px;
+    color: #1e293b;
+}
+.pop .round-rule {
+    font-size: 10px;
+    font-weight: 800;
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #64748b;
+}
+.pop .round-note {
+    font-size: 11px;
+    color: #64748b;
+    margin-bottom: 6px;
+    white-space: pre-wrap;
+}
+.pop .mini-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    margin: 4px 0;
+}
+.pop .mini-table th,
+.pop .mini-table td {
+    padding: 4px;
+    text-align: center;
+    border-bottom: 1px solid #f8fafc;
+}
+.pop .mini-table th {
+    color: #94a3b8;
+    font-weight: 600;
+}
+.pop .mini-table td.me {
+    font-weight: 800;
+    color: #1d4ed8;
+    background: #eff6ff;
+}
+.pop .match-list {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed #f1f5f9;
+    font-size: 11px;
+    color: #64748b;
+}
+.pop .match-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2px;
+}
+.pop .match-win {
+    color: #1d4ed8;
+    font-weight: 700;
+}
+.pop .match-lose {
+    color: #ef4444;
+}

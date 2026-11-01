@@ -1,4 +1,4 @@
-const GAS_URL = "https://script.google.com/macros/s/AKfycbybkNRimOGBcCYH7HAbiT6lhlqtT9SzVZ0QjDxkD6By1ePgtv5XS8-eGSIIRocNpdJn/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzNkG3ZT9SVvkm5Qxel62eLsYbUHEEB8L2QQMZlY2jN48hKmqELaB8S2mOoL3_qqQOc/exec";
 
 // --- 글로벌 상태 (Viewer 전용) ---
 let currentHistoryList = [];
@@ -189,18 +189,178 @@ function ensureManual(teamId) {
     if (!manualRankByTeam.has(teamId)) manualRankByTeam.set(teamId, new Map());
     return manualRankByTeam.get(teamId);
 }
-function keyPair(p1, p2) { return [p1, p2].sort().join("|||"); }
+function keyPair(a, b) {
+    return (a.localeCompare(b, 'ko') <= 0) ? `${a}|||${b}` : `${b}|||${a}`;
+}
 function parseScore(s) {
     if (!s) return null;
     const pts = String(s).split("-");
     if (pts.length !== 2) return null;
-    return { a: parseInt(pts[0], 10), b: parseInt(pts[1], 10) };
+    const a = Number(pts[0]), b = Number(pts[1]);
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+    return { a, b };
 }
 function getGradeBadgeHTML(name) {
     if (!name || name === "BYE" || name === "?") return "";
     const p = PLAYER_INFO.get(name);
     return p && p.grade ? `<span class="grade-badge">${p.grade}</span>` : "";
 }
+
+function placePop(popEl, anchorEl) {
+    if (!popEl || !anchorEl) return;
+    const rect = anchorEl.getBoundingClientRect();
+    const pw = popEl.offsetWidth || 320;
+    const ph = popEl.offsetHeight || 260;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let left = rect.left;
+    let top = rect.bottom + 6;
+    if (left + pw > vw - 12) left = Math.max(12, vw - pw - 12);
+    if (top + ph > vh - 12) top = Math.max(12, rect.top - ph - 6);
+    popEl.style.left = `${left}px`;
+    popEl.style.top = `${top}px`;
+}
+
+function closeInfoPortal() {
+    const infoPortal = document.getElementById("infoPortal");
+    if (!infoPortal) return;
+    infoPortal.classList.remove("open");
+    infoPortal.setAttribute("aria-hidden", "true");
+}
+
+function buildExplainDOM(exp) {
+    const wrap = document.createElement("div");
+    wrap.className = "explain";
+
+    const meta = document.createElement("div");
+    meta.className = "explain-meta";
+    meta.textContent = exp.header?.recordText || "";
+    wrap.appendChild(meta);
+
+    if (exp.decision) {
+        const card = document.createElement("div");
+        card.className = "decision-card";
+
+        const label = document.createElement("div");
+        label.className = "decision-label";
+        label.textContent = "순위 결정 사유 (Decision)";
+        card.appendChild(label);
+
+        const text = document.createElement("div");
+        text.className = "decision-text";
+        text.style.whiteSpace = "pre-wrap";
+        text.textContent = exp.decision.text;
+        card.appendChild(text);
+
+        wrap.appendChild(card);
+    }
+
+    if (exp.rounds && exp.rounds.length > 0) {
+        const secTitle = document.createElement("div");
+        secTitle.className = "section-title";
+        secTitle.textContent = "단계별 타이브레이크 과정 (동률자 간 전적)";
+        wrap.appendChild(secTitle);
+
+        exp.rounds.forEach((rd, idx) => {
+            const item = document.createElement("div");
+            item.className = "round-item";
+
+            const header = document.createElement("div");
+            header.className = "round-header";
+
+            const name = document.createElement("div");
+            name.className = "round-name";
+            name.textContent = `${idx + 1}단계: ${rd.members.length}명 동률 (${rd.members.join(", ")})`;
+            header.appendChild(name);
+
+            const rule = document.createElement("div");
+            rule.className = "round-rule";
+            rule.textContent = rd.rule;
+            header.appendChild(rule);
+
+            item.appendChild(header);
+
+            const note = document.createElement("div");
+            note.className = "round-note";
+            note.style.whiteSpace = "pre-wrap";
+            note.textContent = rd.note;
+            item.appendChild(note);
+
+            if (rd.table && rd.table.length > 0) {
+                const tbl = document.createElement("table");
+                tbl.className = "mini-table";
+                const thead = document.createElement("thead");
+                thead.innerHTML = `<tr><th>이름</th><th>맞대결 승</th><th>득/실</th><th>득실차</th><th>다득</th></tr>`;
+                tbl.appendChild(thead);
+
+                const tbody = document.createElement("tbody");
+                rd.table.forEach(r => {
+                    const tr = document.createElement("tr");
+                    const isMe = (r.name === exp.title);
+                    const forAgainst = (r.subAgainst !== undefined) ? `${r.subFor}/${r.subAgainst}` : `${r.subFor}`;
+                    const diffColor = r.subDiff > 0 ? 'color:#1d4ed8;font-weight:700;' : (r.subDiff < 0 ? 'color:#ef4444;' : '');
+                    tr.innerHTML = `
+                        <td class="${isMe ? 'me' : ''}">${r.name}</td>
+                        <td>${r.h2h}승</td>
+                        <td>${forAgainst}</td>
+                        <td style="${diffColor}">${r.subDiff > 0 ? '+' : ''}${r.subDiff}</td>
+                        <td>${r.subFor}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                tbl.appendChild(tbody);
+                item.appendChild(tbl);
+            }
+
+            if (rd.matches && rd.matches.length > 0) {
+                const matchList = document.createElement("div");
+                matchList.className = "match-list";
+                rd.matches.forEach(m => {
+                    const mDiv = document.createElement("div");
+                    mDiv.className = "match-item";
+                    const isAWin = m.aScore > m.bScore;
+                    const winnerName = isAWin ? m.A : m.B;
+                    mDiv.innerHTML = `
+                        <span>${m.A} vs ${m.B}</span>
+                        <span class="${isAWin ? 'match-win' : 'match-lose'}">${m.aScore}-${m.bScore} (${winnerName} 승)</span>
+                    `;
+                    matchList.appendChild(mDiv);
+                });
+                item.appendChild(matchList);
+            }
+
+            wrap.appendChild(item);
+        });
+    }
+
+    return wrap;
+}
+
+function openInfoPortal(title, exp, anchorEl) {
+    const infoPortal = document.getElementById("infoPortal");
+    const infoPop = document.getElementById("infoPop");
+    const infoTitle = document.getElementById("infoTitle");
+    const infoContent = document.getElementById("infoContent");
+    if (!infoPortal || !infoPop || !infoTitle || !infoContent) return;
+
+    infoTitle.textContent = title;
+    infoContent.innerHTML = "";
+
+    if (!exp) {
+        infoContent.textContent = "상세 정보가 없습니다.";
+    } else {
+        infoContent.appendChild(buildExplainDOM(exp));
+    }
+
+    infoPortal.classList.add("open");
+    infoPortal.setAttribute("aria-hidden", "false");
+    requestAnimationFrame(() => placePop(infoPop, anchorEl));
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("infoClose")?.addEventListener("click", (e) => { e.stopPropagation(); closeInfoPortal(); });
+    document.getElementById("infoBackdrop")?.addEventListener("click", () => closeInfoPortal());
+});
 
 function computeRanking(teamId, players) {
     const resMap = ensureTeamResults(teamId);
@@ -231,36 +391,231 @@ function computeRanking(teamId, players) {
 
     const anyPlayed = Array.from(base.values()).some(s => s.played > 0);
     const statsArr = Array.from(base.values()).map(s => {
+        const denom = s.setsFor + s.setsAgainst;
+        const setRatio = denom === 0 ? 0 : (s.setsFor / denom);
         const setDiff = s.setsFor - s.setsAgainst;
-        return { ...s, points: s.win, setDiff };
+        return { ...s, points: s.win, setRatio, setDiff };
     });
 
     if (!anyPlayed) {
         const out = new Map();
-        players.forEach(p => out.set(p, { ...base.get(p), autoRank: null, autoReason: null }));
+        players.forEach(p => out.set(p, {
+            ...base.get(p), points: 0, setRatio: 0, setDiff: 0,
+            autoRank: null, autoReason: null,
+            explain: { title: p, summary: "경기 기록 없음", rounds: [], decision: null },
+            tieKey: null, tieMembers: null, tieBaseRank: null
+        }));
         return { map: out, anyPlayed, tieGroups: [] };
     }
 
-    // Simplified Ranking logic for Viewer (H2H only if possible)
+    function getStats(name) { return statsArr.find(x => x.name === name); }
+    function getPairScore(A, B) {
+        const k = keyPair(A, B);
+        const parsed = parseScore(resMap.get(k)?.score || "");
+        if (!parsed) return null;
+        const aIsFirst = k.startsWith(`${A}|||`);
+        const aScore = aIsFirst ? parsed.a : parsed.b;
+        const bScore = aIsFirst ? parsed.b : parsed.a;
+        return { A, B, aScore, bScore, winner: aScore > bScore ? A : (bScore > aScore ? B : null) };
+    }
+    function getSubgroupMetrics(group) {
+        const m = new Map();
+        group.forEach(p => m.set(p, { h2h: 0, subFor: 0, subAgainst: 0, subDiff: 0 }));
+        const matches = [];
+        for (let i = 0; i < group.length; i++) {
+            for (let j = i + 1; j < group.length; j++) {
+                const ps = getPairScore(group[i], group[j]);
+                if (!ps) continue;
+                matches.push(ps);
+                m.get(ps.A).subFor += ps.aScore; m.get(ps.A).subAgainst += ps.bScore;
+                m.get(ps.B).subFor += ps.bScore; m.get(ps.B).subAgainst += ps.aScore;
+                if (ps.aScore > ps.bScore) m.get(ps.A).h2h += 1;
+                else if (ps.bScore > ps.aScore) m.get(ps.B).h2h += 1;
+            }
+        }
+        group.forEach(p => { const obj = m.get(p); obj.subDiff = obj.subFor - obj.subAgainst; });
+        return { metrics: m, matches };
+    }
+
+    const explainByPlayer = new Map();
+    players.forEach(p => explainByPlayer.set(p, { title: p, header: null, summary: null, decision: null, rounds: [] }));
     const reasonMap = new Map();
-    const sorted = statsArr.sort((x, y) => {
-        if (y.win !== x.win) return y.win - x.win;
-        if (y.setDiff !== x.setDiff) return y.setDiff - x.setDiff;
-        return y.setsFor - x.setsFor;
-    });
+
+    function logRoundForGroup(groupNames, pts, rule, tableRows, matches, note) {
+        groupNames.forEach(nm => {
+            explainByPlayer.get(nm).rounds.push({ pts, members: [...groupNames], rule, table: tableRows, matches, note });
+        });
+    }
+    function buildSortedTableRows(groupNames, metrics) {
+        return groupNames.map(nm => {
+            const x = metrics.get(nm);
+            return { name: nm, h2h: x.h2h, subFor: x.subFor, subAgainst: x.subAgainst, subDiff: x.subDiff };
+        }).sort((a, b) => (b.h2h - a.h2h) || (b.subDiff - a.subDiff) || (b.subFor - a.subFor) || a.name.localeCompare(b.name, "ko"));
+    }
+
+    function resolveTie(groupNames, pts) {
+        if (groupNames.length <= 1) return [groupNames];
+        const { metrics, matches } = getSubgroupMetrics(groupNames);
+        const tableRows = buildSortedTableRows(groupNames, metrics);
+
+        const bucketsH2H = new Map();
+        groupNames.forEach(nm => {
+            const w = metrics.get(nm).h2h;
+            if (!bucketsH2H.has(w)) bucketsH2H.set(w, []);
+            bucketsH2H.get(w).push(nm);
+        });
+        const h2hKeys = [...bucketsH2H.keys()].sort((a, b) => b - a);
+
+        if (h2hKeys.length > 1) {
+            const h2hOrderStr = tableRows.map(r => `${r.name}(${r.h2h}승)`).join(" > ");
+            logRoundForGroup(groupNames, pts, "H2H", tableRows, matches, `동률자 간 맞대결 승수(승자승)로 분리: ${h2hOrderStr}`);
+            groupNames.forEach(nm => reasonMap.set(nm, reasonMap.get(nm) || "H2H"));
+            const resolved = [];
+            for (const w of h2hKeys) {
+                const bucket = bucketsH2H.get(w);
+                if (bucket.length === 1) resolved.push(bucket);
+                else resolveTie(bucket, pts).forEach(g => resolved.push(g));
+            }
+            return resolved;
+        }
+
+        const tiedWins = h2hKeys[0] ?? 0;
+        const bucketsDiff = new Map();
+        groupNames.forEach(nm => {
+            const d = metrics.get(nm).subDiff;
+            if (!bucketsDiff.has(d)) bucketsDiff.set(d, []);
+            bucketsDiff.get(d).push(nm);
+        });
+        const diffKeys = [...bucketsDiff.keys()].sort((a, b) => b - a);
+
+        if (diffKeys.length > 1) {
+            const diffOrderStr = tableRows.map(r => `${r.name}(${r.subDiff > 0 ? "+" : ""}${r.subDiff})`).join(" > ");
+            logRoundForGroup(groupNames, pts, "DIFF", tableRows, matches, `맞대결 승수 동일(각 ${tiedWins}승) → 동률자 간 세트득실(DIFF)로 순위 결정: ${diffOrderStr}`);
+            groupNames.forEach(nm => reasonMap.set(nm, reasonMap.get(nm) || "DIFF"));
+            const resolved = [];
+            for (const d of diffKeys) {
+                const bucket2 = bucketsDiff.get(d);
+                if (bucket2.length === 1) resolved.push(bucket2);
+                else resolveTie(bucket2, pts).forEach(g => resolved.push(g));
+            }
+            return resolved;
+        }
+
+        const tiedDiff = diffKeys[0] ?? 0;
+        const bucketsFor = new Map();
+        groupNames.forEach(nm => {
+            const f = metrics.get(nm).subFor;
+            if (!bucketsFor.has(f)) bucketsFor.set(f, []);
+            bucketsFor.get(f).push(nm);
+        });
+        const forKeys = [...bucketsFor.keys()].sort((a, b) => b - a);
+
+        if (forKeys.length > 1) {
+            const sfOrderStr = tableRows.map(r => `${r.name}(${r.subFor}득)`).join(" > ");
+            logRoundForGroup(groupNames, pts, "SF", tableRows, matches, `맞대결(${tiedWins}승)·세트득실(${tiedDiff > 0 ? "+" : ""}${tiedDiff}) 동일 → 동률자 간 다득점(SF)으로 순위 결정: ${sfOrderStr}`);
+            groupNames.forEach(nm => reasonMap.set(nm, reasonMap.get(nm) || "SF"));
+            const resolved = [];
+            for (const f of forKeys) {
+                const bucket3 = bucketsFor.get(f);
+                if (bucket3.length === 1) resolved.push(bucket3);
+                else resolveTie(bucket3, pts).forEach(g => resolved.push(g));
+            }
+            return resolved;
+        }
+
+        const tiedFor = forKeys[0] ?? 0;
+        logRoundForGroup(groupNames, pts, "TIE", tableRows, matches, `맞대결(${tiedWins}승)·세트득실(${tiedDiff > 0 ? "+" : ""}${tiedDiff})·다득점(${tiedFor}득) 모두 동일 → 완전 동률`);
+        const sorted = [...groupNames].sort((a, b) => a.localeCompare(b, "ko"));
+        sorted.forEach(nm => reasonMap.set(nm, "TIE"));
+        return [sorted];
+    }
+
+    statsArr.sort((x, y) => (y.points - x.points) || x.name.localeCompare(y.name, "ko"));
+    const blocks = [], tieGroups = [];
+    let idx = 0;
+    while (idx < statsArr.length) {
+        const pts = statsArr[idx].points;
+        const group = [];
+        while (idx < statsArr.length && statsArr[idx].points === pts) { group.push(statsArr[idx].name); idx++; }
+        if (group.length === 1) { blocks.push({ members: [group[0]], type: "single" }); continue; }
+        for (const g of resolveTie(group, pts)) {
+            blocks.push({ members: g, type: g.length === 1 ? "single" : "tie" });
+        }
+    }
 
     const out = new Map();
     let rank = 1;
-    for (let i = 0; i < sorted.length; i++) {
-        const nm = sorted[i].name;
-        let reason = null;
-        if (i > 0 && sorted[i].win === sorted[i - 1].win) reason = "H2H"; // Simplified label
-        if (i < sorted.length - 1 && sorted[i].win === sorted[i + 1].win) reason = "H2H";
-
-        out.set(nm, { ...sorted[i], autoRank: rank++, autoReason: reason });
+    for (const b of blocks) {
+        if (b.members.length === 1) {
+            const nm = b.members[0];
+            out.set(nm, { ...getStats(nm), autoRank: rank++, autoReason: reasonMap.get(nm) || null, explain: null, tieKey: null, tieMembers: null, tieBaseRank: null });
+        } else {
+            const baseRank = rank, members = b.members;
+            const tieKey = `${teamId}|pts=${getStats(members[0]).points}|r=${baseRank}`;
+            tieGroups.push({ tieKey, members, baseRank });
+            for (const nm of members) {
+                out.set(nm, { ...getStats(nm), autoRank: baseRank, autoReason: "TIE", explain: null, tieKey, tieMembers: members, tieBaseRank: baseRank });
+            }
+            rank += members.length;
+        }
     }
 
-    return { map: out, anyPlayed, tieGroups: [] };
+    for (const nm of players) {
+        const row = out.get(nm), s = getStats(nm), exp = explainByPlayer.get(nm);
+        exp.header = {
+            rank: row.autoRank,
+            badge: row.autoReason,
+            recordText: `${s.win}승 ${s.lose}패 (득실 ${s.setDiff >= 0 ? "+" : ""}${s.setDiff}, 세트득실률 ${(s.setRatio * 100).toFixed(1)}%)`
+        };
+        const rounds = exp.rounds;
+        if (!rounds || rounds.length === 0) {
+            exp.summary = "단독 순위(동률 없음)";
+            exp.decision = null;
+        } else {
+            const last = rounds[rounds.length - 1];
+            const narrowMembers = last.members || [];
+            const pts = last.pts;
+            let decision = null;
+            if (narrowMembers.length === 2) {
+                const other = narrowMembers[0] === nm ? narrowMembers[1] : narrowMembers[0];
+                const ms = (last.matches || []).find(m => (m.A === nm && m.B === other) || (m.A === other && m.B === nm));
+                if (ms && ms.winner) {
+                    const score = (ms.A === nm) ? `${ms.aScore}-${ms.bScore}` : `${ms.bScore}-${ms.aScore}`;
+                    decision = {
+                        rule: "H2H",
+                        text: ms.winner === nm
+                            ? `2명 동률(${pts}승) 맞대결에서 ${other}에게 ${score} 승 → ${row.autoRank}위 확정`
+                            : `2명 동률(${pts}승) 맞대결에서 ${other}에게 ${score} 패 → ${row.autoRank}위 확정`,
+                        vs: other, score
+                    };
+                }
+            }
+            if (!decision) {
+                const tbl = last.table || [];
+                const myRow = tbl.find(r => r.name === nm);
+                const memberCnt = narrowMembers.length;
+                if (last.rule === "H2H") {
+                    const orderStr = tbl.map(r => `${r.name}(${r.h2h}승)`).join(" > ");
+                    decision = { rule: "H2H", text: `${memberCnt}명 동률(${pts}승) 맞대결 승자승(${myRow ? myRow.h2h + "승" : ""})으로 ${row.autoRank}위 결정\n맞대결 승수: ${orderStr}` };
+                } else if (last.rule === "DIFF") {
+                    const orderStr = tbl.map(r => `${r.name}(${r.subDiff > 0 ? "+" : ""}${r.subDiff})`).join(" > ");
+                    const myDiffStr = myRow ? `${myRow.subDiff > 0 ? "+" : ""}${myRow.subDiff} (${myRow.subFor}득/${myRow.subAgainst}실)` : "";
+                    decision = { rule: "DIFF", text: `${memberCnt}명 동률(${pts}승) 맞대결 동률(${myRow ? myRow.h2h + "승" : "동률"}) 후\n동률자 간 세트득실 ${myDiffStr}로 ${row.autoRank}위 결정\n세트득실 비교: ${orderStr}` };
+                } else if (last.rule === "SF") {
+                    const orderStr = tbl.map(r => `${r.name}(${r.subFor}득)`).join(" > ");
+                    decision = { rule: "SF", text: `${memberCnt}명 동률(${pts}승) 맞대결·세트득실 동률 후\n동률자 간 다득점(${myRow ? myRow.subFor + "득" : ""})으로 ${row.autoRank}위 결정\n다득점 비교: ${orderStr}` };
+                } else {
+                    decision = { rule: "TIE", text: `${memberCnt}명 동률(${pts}승) 맞대결·세트득실·다득점 모두 동일\n완전 동률 (공동 ${row.autoRank}위)` };
+                }
+            }
+            exp.decision = decision;
+            exp.summary = `${pts}승 동률 내 타이브레이크 적용`;
+        }
+        row.explain = exp;
+        out.set(nm, row);
+    }
+
+    return { map: out, anyPlayed, tieGroups };
 }
 
 function resolveFinalRanks(teamId, autoPack) {
@@ -271,11 +626,13 @@ function resolveFinalRanks(teamId, autoPack) {
     for (const [nm, st] of autoPack.map.entries()) {
         const m = manual.get(nm);
         const r = m || st.autoRank;
+        const isTie = !!st.tieKey && !m;
         final.set(nm, {
             finalRank: r,
-            finalLabel: (anyPlayed && r) ? `${r}위` : "",
+            finalLabel: (anyPlayed && r) ? (isTie ? `공동 ${r}위` : `${r}위`) : "",
             isManual: !!m,
-            autoReason: st.autoReason
+            autoReason: st.autoReason,
+            explain: st.explain
         });
     }
     return final;
@@ -361,10 +718,19 @@ function renderRoundRobin(teamBox, teamId, players) {
         const diffTd = document.createElement("td"); diffTd.className = "wl"; diffTd.textContent = anyPlayed ? (st.setDiff >= 0 ? "+" + st.setDiff : st.setDiff) : "-"; tr.appendChild(diffTd);
 
         const rkTd = document.createElement("td"); rkTd.className = "rank";
-        if (anyPlayed && f.finalRank === 1) rkTd.innerHTML = `<span class="crown">👑</span>1위`;
+        if (anyPlayed && f.finalRank === 1 && f.finalLabel === "1위") rkTd.innerHTML = `<span class="crown">👑</span>1위`;
         else rkTd.innerHTML = f.finalLabel || "-";
-        if (f.autoReason) rkTd.innerHTML += `<span class="code" title="동률 처리규정">${f.autoReason}</span>`;
+        if (f.autoReason && !(f.autoReason === "TIE" && f.isManual)) rkTd.innerHTML += `<span class="code" title="동률 처리규정">${f.autoReason}</span>`;
         if (f.isManual) rkTd.innerHTML += `<span class="manual">MAN</span>`;
+        if (anyPlayed && f.explain) {
+            rkTd.classList.add("clickable");
+            rkTd.title = "클릭하여 순위 산정 상세 보기";
+            rkTd.addEventListener("click", (e) => {
+                e.stopPropagation();
+                closeInfoPortal();
+                openInfoPortal(`순위 정보 · ${rowP}`, f.explain, rkTd);
+            });
+        }
         tr.appendChild(rkTd);
 
         tbody.appendChild(tr);

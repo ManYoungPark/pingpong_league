@@ -1543,6 +1543,17 @@
             text-align: left;
             font-weight: 800;
         }
+        @media (max-width: 900px) {
+            .player-analytics-layout {
+                grid-template-columns: 1fr !important;
+            }
+        }
+        .pa-sort-btn.active, .pa-ctype-btn.active, .pa-octype-btn.active {
+            background: #eff6ff !important;
+            color: #1d4ed8 !important;
+            border-color: #93c5fd !important;
+            font-weight: 800 !important;
+        }
     </style>
     <style>
         /* [New] Tabs Styles */
@@ -1817,6 +1828,7 @@
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="mock_data.js"></script>
+    <script src="stats_cache.js"></script>
     <script src="dashboard.js"></script>
 </head>
 
@@ -1992,11 +2004,24 @@
                     <p style="margin:0; font-size:13px; color:#6b7280;">출석한 선수를 체크해주세요. (체크된 인원만 배정)</p>
                 </div>
                 <div
-                    style="margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; gap:10px; background:#f8fafc; padding:10px; border-radius:8px;">
-                    <span style="font-size:14px; font-weight:700; color:#4b5563;">조 개수:</span>
-                    <input type="number" id="ra-group-count" value="4" min="2" max="16"
-                        style="width:60px; text-align:center; padding:4px; border:1px solid #cbd5e1; border-radius:6px; font-weight:800; font-size:14px;">
-                    <span style="font-size:13px; color:#94a3b8;" id="ra-count-display">(0명 선택)</span>
+                    style="margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; background:#f8fafc; padding:10px 12px; border-radius:8px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:14px; font-weight:700; color:#4b5563;">조 개수:</span>
+                        <input type="number" id="ra-group-count" value="4" min="2" max="16"
+                            style="width:60px; text-align:center; padding:4px; border:1px solid #cbd5e1; border-radius:6px; font-weight:800; font-size:14px;">
+                        <span style="font-size:13px; color:#64748b; font-weight:700;" id="ra-count-display">(0명 선택)</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span style="font-size:13px; font-weight:700; color:#4b5563;">배정 방식:</span>
+                        <label id="ra-mode-balanced-lbl" style="display:flex; align-items:center; gap:4px; padding:5px 10px; border-radius:6px; border:2px solid #7c3aed; background:#f5f3ff; color:#6d28d9; font-size:13px; font-weight:800; cursor:pointer;" onclick="updateRaModeUI('balanced')">
+                            <input type="radio" name="ra-mode" value="balanced" checked style="margin:0; accent-color:#7c3aed;">
+                            ⚖️ 실력 균등 (부수 고려)
+                        </label>
+                        <label id="ra-mode-pure-lbl" style="display:flex; align-items:center; gap:4px; padding:5px 10px; border-radius:6px; border:1px solid #cbd5e1; background:#fff; color:#64748b; font-size:13px; font-weight:600; cursor:pointer;" onclick="updateRaModeUI('pure')">
+                            <input type="radio" name="ra-mode" value="pure" style="margin:0; accent-color:#475569;">
+                            🎲 완전 랜덤
+                        </label>
+                    </div>
                 </div>
                 <button type="button" class="btn" onclick="toggleAllRandomAssignCheck()"
                     style="width:100%; margin-bottom:10px; padding:6px; font-size:12px;">전체 선택/해제</button>
@@ -2190,29 +2215,149 @@
         <!-- 3. Dashboard Tab -->
         <div id="tab-dashboard-view" class="tab-content">
             <div class="tm-dashboard" style="max-width: 1400px;">
-                <div class="tm-dash-header">
-                    <h3>📊 종합 통계</h3>
+                <!-- 상단 헤더 & 구글 드라이브 동기화 상태 -->
+                <div class="tm-dash-header" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <h3 style="margin:0;">📊 대덕밸리 종합 통계 & 선수 분석</h3>
+                        <span id="dash-sync-status" class="pill" style="background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; font-weight:700;">☁️ 데이터 준비 중...</span>
+                    </div>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <button type="button" class="btn" id="btn-dash-refresh" onclick="syncDashboardData(true)" style="font-size:12px; padding:6px 12px;" title="원본 데이터를 다시 읽어 통계를 강제 재계산하고 서버 캐시를 갱신합니다">
+                            🔄 최신 동기화 (재계산)
+                        </button>
+                        <button type="button" class="btn" onclick="downloadStatsCacheJS()" style="font-size:12px; padding:6px 12px; background:#f0fdf4; color:#15803d; border-color:#bbf7d0;" title="현재 계산된 통계를 stats_cache.js 파일로 다운로드합니다">
+                            💾 통계파일 저장
+                        </button>
+                    </div>
                 </div>
-                <div class="tm-cards">
+
+                <!-- 전체 요약 카드 -->
+                <div class="tm-cards" style="margin-bottom: 24px;">
                     <div class="tm-card">
                         <div class="label">총 대회 수</div>
                         <div class="val" id="stat-total-tourneys">-</div>
                     </div>
                     <div class="tm-card">
-                        <div class="label">총 경기 수</div>
+                        <div class="label">총 기록 경기 수</div>
                         <div class="val" id="stat-total-matches">-</div>
                     </div>
                     <div class="tm-card">
-                        <div class="label">등록 선수</div>
+                        <div class="label">참가 선수 수</div>
                         <div class="val" id="stat-total-players">-</div>
                     </div>
                 </div>
 
+                <!-- =========================================================
+                     👤 [NEW] 선수별 상세 기록 · 점수 추이 · 상대별 승률 분석 보드
+                     ========================================================= -->
+                <div class="card" style="margin-bottom: 28px; border: 2px solid #dbeafe;">
+                    <div class="card-hd" style="background: linear-gradient(90deg, #eff6ff 0%, #f8fafc 100%);">
+                        <div class="title" style="color:#1e40af; font-size:16px;">🎯 선수별 상세 전적 · 점수 · 상대 승률 분석 (Chart.js)</div>
+                        <span class="pill" style="background:#fff; color:#1d4ed8; border-color:#bfdbfe;">선수를 클릭하여 분석</span>
+                    </div>
+
+                    <div style="padding: 16px; display: grid; grid-template-columns: 310px 1fr; gap: 20px;" class="player-analytics-layout">
+                        <!-- 좌측: 선수 검색 및 리스트 -->
+                        <div style="border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; padding: 12px; display:flex; flex-direction:column; max-height: 780px;">
+                            <div style="margin-bottom: 8px;">
+                                <input type="text" id="pa-search-input" placeholder="🔍 선수 이름 검색..."
+                                    oninput="filterPlayerAnalyticsList()"
+                                    style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; font-weight:700; outline:none;" />
+                            </div>
+                            <div style="display:flex; gap:4px; margin-bottom:10px;">
+                                <button type="button" class="btn pa-sort-btn active" data-sort="points" onclick="setPlayerAnalyticsSort('points')" style="flex:1; padding:5px 4px; font-size:11px;">점수순</button>
+                                <button type="button" class="btn pa-sort-btn" data-sort="winrate" onclick="setPlayerAnalyticsSort('winrate')" style="flex:1; padding:5px 4px; font-size:11px;">승률순</button>
+                                <button type="button" class="btn pa-sort-btn" data-sort="attend" onclick="setPlayerAnalyticsSort('attend')" style="flex:1; padding:5px 4px; font-size:11px;">출석순</button>
+                                <button type="button" class="btn pa-sort-btn" data-sort="name" onclick="setPlayerAnalyticsSort('name')" style="flex:1; padding:5px 4px; font-size:11px;">이름순</button>
+                            </div>
+                            <div id="pa-player-list" style="overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:6px; padding-right:2px;">
+                                <!-- 선수 카드 목록 렌더링 영역 -->
+                            </div>
+                        </div>
+
+                        <!-- 우측: 선택된 선수의 상세 분석 보드 -->
+                        <div id="pa-detail-panel" style="display:flex; flex-direction:column; gap:18px; min-width:0;">
+                            <!-- 1) 선수 프로필 헤더 & KPI 요약 -->
+                            <div id="pa-profile-header" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px;">
+                                <div style="color:#64748b; font-weight:700; text-align:center; padding:20px;">
+                                    👈 왼쪽 목록에서 분석할 선수를 선택해주세요.
+                                </div>
+                            </div>
+
+                            <!-- 2) 차트 2종 그리드 (점수 추이 차트 + 상대별 승률/대결수 차트) -->
+                            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap:16px;">
+                                <!-- 차트 A: 대회별 점수 & 추이 -->
+                                <div class="card" style="margin-bottom:0;">
+                                    <div class="card-hd" style="flex-wrap:wrap; gap:8px;">
+                                        <div class="title" style="font-size:14px;">📈 대회별 획득 점수 & 누적 추이</div>
+                                        <div style="display:flex; gap:4px; flex-wrap:wrap;" id="pa-score-chart-types">
+                                            <button type="button" class="btn pa-ctype-btn active" data-ctype="combo" onclick="changeScoreChartType('combo')" style="padding:3px 8px; font-size:11px;">📊 복합(막대+선)</button>
+                                            <button type="button" class="btn pa-ctype-btn" data-ctype="line" onclick="changeScoreChartType('line')" style="padding:3px 8px; font-size:11px;">📈 꺾은선</button>
+                                            <button type="button" class="btn pa-ctype-btn" data-ctype="bar" onclick="changeScoreChartType('bar')" style="padding:3px 8px; font-size:11px;">📊 막대</button>
+                                            <button type="button" class="btn pa-ctype-btn" data-ctype="radar" onclick="changeScoreChartType('radar')" style="padding:3px 8px; font-size:11px;">🕸️ 6각 능력치</button>
+                                        </div>
+                                    </div>
+                                    <div style="padding:12px; height:300px; position:relative;">
+                                        <canvas id="chart-player-scores"></canvas>
+                                    </div>
+                                </div>
+
+                                <!-- 차트 B: 상대별 맞대결 횟수 & 상대 승률 -->
+                                <div class="card" style="margin-bottom:0;">
+                                    <div class="card-hd" style="flex-wrap:wrap; gap:8px;">
+                                        <div class="title" style="font-size:14px;">🤝 주요 상대별 대결 횟수 & 승률</div>
+                                        <div style="display:flex; gap:4px; flex-wrap:wrap;" id="pa-opp-chart-types">
+                                            <button type="button" class="btn pa-octype-btn active" data-octype="stackedBar" onclick="changeOppChartType('stackedBar')" style="padding:3px 8px; font-size:11px;">📊 승/패 막대</button>
+                                            <button type="button" class="btn pa-octype-btn" data-octype="winRateBar" onclick="changeOppChartType('winRateBar')" style="padding:3px 8px; font-size:11px;">📈 승률(%)</button>
+                                            <button type="button" class="btn pa-octype-btn" data-octype="doughnut" onclick="changeOppChartType('doughnut')" style="padding:3px 8px; font-size:11px;">🍩 도넛</button>
+                                            <button type="button" class="btn pa-octype-btn" data-octype="polarArea" onclick="changeOppChartType('polarArea')" style="padding:3px 8px; font-size:11px;">🎯 폴라</button>
+                                            <button type="button" class="btn pa-octype-btn" data-octype="bubble" onclick="changeOppChartType('bubble')" style="padding:3px 8px; font-size:11px;">🫧 버블</button>
+                                        </div>
+                                    </div>
+                                    <div style="padding:12px; height:300px; position:relative;">
+                                        <canvas id="chart-player-opponents"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 3) 상대 선수별 전적 상세 테이블 & 클릭 시 맞대결 기록 -->
+                            <div class="card" style="margin-bottom:0;">
+                                <div class="card-hd" style="flex-wrap:wrap; gap:8px;">
+                                    <div class="title" style="font-size:14px;">⚔️ 상대 선수별 상세 전적 & 동반 대회 기록 <small style="font-weight:600; color:#64748b;">(행 클릭 시 맞대결 상세 표시)</small></div>
+                                    <input type="text" id="pa-opp-search" placeholder="상대 이름 필터..." oninput="renderSelectedPlayerOpponentTable()"
+                                        style="padding:4px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; width:160px;" />
+                                </div>
+                                <div style="padding:12px;">
+                                    <div id="pa-opp-match-detail" style="display:none; margin-bottom:12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:12px;"></div>
+                                    <div style="max-height:280px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px;">
+                                        <table style="width:100%; border-collapse:collapse; font-size:13px; text-align:center;">
+                                            <thead style="position:sticky; top:0; background:#f1f5f9; z-index:1;">
+                                                <tr>
+                                                    <th style="padding:8px; border-bottom:1px solid #cbd5e1;">상대 선수</th>
+                                                    <th style="padding:8px; border-bottom:1px solid #cbd5e1;">함께 참가한 대회</th>
+                                                    <th style="padding:8px; border-bottom:1px solid #cbd5e1;">맞대결 수</th>
+                                                    <th style="padding:8px; border-bottom:1px solid #cbd5e1;">전적 (승-패)</th>
+                                                    <th style="padding:8px; border-bottom:1px solid #cbd5e1;">세트 득실</th>
+                                                    <th style="padding:8px; border-bottom:1px solid #cbd5e1; min-width:140px;">상대 승률</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="pa-opp-tbody">
+                                                <tr><td colspan="6" style="padding:20px; color:#94a3b8;">선수를 선택하면 상대별 전적이 표시됩니다.</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 기존 종합 랭킹 차트 4종 + 1:1 전적 검색 -->
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
                     <!-- Chart 1 -->
                     <div class="card">
                         <div class="card-hd">
-                            <div class="title">👑 명예의 전당 (최다 우승)</div>
+                            <div class="title">👑 명예의 전당 (상위/전체 최다 우승)</div>
                         </div>
                         <div style="padding: 12px; height: 300px;">
                             <canvas id="chart-wins"></canvas>
@@ -2248,7 +2393,7 @@
                     <!-- H2H Search -->
                     <div class="card">
                         <div class="card-hd">
-                            <div class="title">⚔️ 상대 전적 검색</div>
+                            <div class="title">⚔️ 1:1 상대 전적 직접 비교</div>
                         </div>
                         <div class="h2h-box">
                             <div class="h2h-selects">
@@ -2811,7 +2956,7 @@
             bo5: ["", "3-0", "3-1", "3-2", "2-3", "1-3", "0-3"]
         };
 
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbybkNRimOGBcCYH7HAbiT6lhlqtT9SzVZ0QjDxkD6By1ePgtv5XS8-eGSIIRocNpdJn/exec";
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzNkG3ZT9SVvkm5Qxel62eLsYbUHEEB8L2QQMZlY2jN48hKmqELaB8S2mOoL3_qqQOc/exec";
 
         const state = new Map();               // name -> {where:"pool"} or {where:"team", teamId}
         state.groupsCount = 0;
@@ -2988,17 +3133,23 @@
         }
 
         function openRankPortal(ctx) {
-            // ctx: {teamId, name, tieMembers, baseRank, anchorEl, detail}
+            // ctx: {teamId, name, tieMembers, baseRank, anchorEl, detail, explain}
             currentRankCtx = ctx;
-            const { teamId, name, tieMembers, baseRank, anchorEl, detail } = ctx;
+            const { teamId, name, tieMembers, baseRank, anchorEl, detail, explain } = ctx;
 
             const manual = ensureManual(teamId);
 
             rankTitle.textContent = `순위 확정 · ${name} (동률 ${tieMembers.length}명)`;
             rankGrid.innerHTML = "";
 
-            // 상세 설명 표시 (모바일 대응)
-            if (detail) {
+            // 상세 설명 표시 (모바일 대응 - 표/결정타 포함)
+            if (explain) {
+                const expEl = buildExplainDOM(explain);
+                expEl.style.gridColumn = "1 / -1";
+                expEl.style.marginBottom = "8px";
+                expEl.style.textAlign = "left";
+                rankGrid.appendChild(expEl);
+            } else if (detail) {
                 const desc = document.createElement("div");
                 desc.style.fontSize = "13px";
                 desc.style.color = "#4b5563";
@@ -3008,6 +3159,7 @@
                 desc.style.marginBottom = "12px";
                 desc.style.whiteSpace = "pre-wrap"; // 줄바꿈 유지
                 desc.style.textAlign = "left";
+                desc.style.gridColumn = "1 / -1";
                 desc.textContent = detail;
                 rankGrid.appendChild(desc);
             }
@@ -3386,19 +3538,7 @@
             currentInfoAnchor = null;
         }
 
-        function openInfoPortal(title, exp, anchorEl) {
-            currentInfoAnchor = anchorEl;
-            infoTitle.textContent = title;
-            infoContent.innerHTML = ""; // Clear existing content
-
-            if (!exp) {
-                infoContent.textContent = "상세 정보가 없습니다.";
-                infoPortal.classList.add("open");
-                infoPortal.setAttribute("aria-hidden", "false");
-                requestAnimationFrame(() => placePop(infoPop, anchorEl));
-                return;
-            }
-
+        function buildExplainDOM(exp) {
             const wrap = document.createElement("div");
             wrap.className = "explain";
 
@@ -3415,11 +3555,12 @@
 
                 const label = document.createElement("div");
                 label.className = "decision-label";
-                label.textContent = "결정타 (Decision)";
+                label.textContent = "순위 결정 사유 (Decision)";
                 card.appendChild(label);
 
                 const text = document.createElement("div");
                 text.className = "decision-text";
+                text.style.whiteSpace = "pre-wrap";
                 text.textContent = exp.decision.text;
                 card.appendChild(text);
 
@@ -3430,7 +3571,7 @@
             if (exp.rounds && exp.rounds.length > 0) {
                 const secTitle = document.createElement("div");
                 secTitle.className = "section-title";
-                secTitle.textContent = "단계별 타이브레이크 과정";
+                secTitle.textContent = "단계별 타이브레이크 과정 (동률자 간 전적)";
                 wrap.appendChild(secTitle);
 
                 exp.rounds.forEach((rd, idx) => {
@@ -3442,7 +3583,7 @@
 
                     const name = document.createElement("div");
                     name.className = "round-name";
-                    name.textContent = `${idx + 1}단계: ${rd.members.length}명 동률`;
+                    name.textContent = `${idx + 1}단계: ${rd.members.length}명 동률 (${rd.members.join(", ")})`;
                     header.appendChild(name);
 
                     const rule = document.createElement("div");
@@ -3454,6 +3595,7 @@
 
                     const note = document.createElement("div");
                     note.className = "round-note";
+                    note.style.whiteSpace = "pre-wrap";
                     note.textContent = rd.note;
                     item.appendChild(note);
 
@@ -3462,17 +3604,20 @@
                         const tbl = document.createElement("table");
                         tbl.className = "mini-table";
                         const thead = document.createElement("thead");
-                        thead.innerHTML = `<tr><th>이름</th><th>승</th><th>득실</th><th>다득</th></tr>`;
+                        thead.innerHTML = `<tr><th>이름</th><th>맞대결 승</th><th>득/실</th><th>득실차</th><th>다득</th></tr>`;
                         tbl.appendChild(thead);
 
                         const tbody = document.createElement("tbody");
                         rd.table.forEach(r => {
                             const tr = document.createElement("tr");
                             const isMe = (r.name === exp.title);
+                            const forAgainst = (r.subAgainst !== undefined) ? `${r.subFor}/${r.subAgainst}` : `${r.subFor}`;
+                            const diffColor = r.subDiff > 0 ? 'color:#1d4ed8;font-weight:700;' : (r.subDiff < 0 ? 'color:#ef4444;' : '');
                             tr.innerHTML = `
                                 <td class="${isMe ? 'me' : ''}">${r.name}</td>
-                                <td>${r.h2h}</td>
-                                <td>${r.subDiff > 0 ? '+' : ''}${r.subDiff}</td>
+                                <td>${r.h2h}승</td>
+                                <td>${forAgainst}</td>
+                                <td style="${diffColor}">${r.subDiff > 0 ? '+' : ''}${r.subDiff}</td>
                                 <td>${r.subFor}</td>
                             `;
                             tbody.appendChild(tr);
@@ -3490,9 +3635,10 @@
                             mDiv.className = "match-item";
 
                             const isAWin = m.aScore > m.bScore;
+                            const winnerName = isAWin ? m.A : m.B;
                             mDiv.innerHTML = `
                                 <span>${m.A} vs ${m.B}</span>
-                                <span class="${isAWin ? 'match-win' : 'match-lose'}">${m.aScore}-${m.bScore}</span>
+                                <span class="${isAWin ? 'match-win' : 'match-lose'}">${m.aScore}-${m.bScore} (${winnerName} 승)</span>
                             `;
                             matchList.appendChild(mDiv);
                         });
@@ -3503,6 +3649,23 @@
                 });
             }
 
+            return wrap;
+        }
+
+        function openInfoPortal(title, exp, anchorEl) {
+            currentInfoAnchor = anchorEl;
+            infoTitle.textContent = title;
+            infoContent.innerHTML = ""; // Clear existing content
+
+            if (!exp) {
+                infoContent.textContent = "상세 정보가 없습니다.";
+                infoPortal.classList.add("open");
+                infoPortal.setAttribute("aria-hidden", "false");
+                requestAnimationFrame(() => placePop(infoPop, anchorEl));
+                return;
+            }
+
+            const wrap = buildExplainDOM(exp);
             infoContent.appendChild(wrap);
             infoPortal.classList.add("open");
             infoPortal.setAttribute("aria-hidden", "false");
@@ -3801,8 +3964,8 @@
              -> 안 갈리면 "세트 다득(SetsFor)"
              -> 그래도 안 갈리면 "공동(TIE)"
         */
-        function computeRanking(teamId, players) {
-            const resMap = ensureTeamResults(teamId);
+        function computeRanking(teamId, players, customResMap = null) {
+            const resMap = customResMap || ensureTeamResults(teamId);
 
             // ---------- Overall stats ----------
             const base = new Map();
@@ -3932,18 +4095,19 @@
                 });
             }
 
+            function buildSortedTableRows(groupNames, metrics) {
+                return groupNames.map(nm => {
+                    const x = metrics.get(nm);
+                    return { name: nm, h2h: x.h2h, subFor: x.subFor, subAgainst: x.subAgainst, subDiff: x.subDiff };
+                }).sort((a, b) => (b.h2h - a.h2h) || (b.subDiff - a.subDiff) || (b.subFor - a.subFor) || a.name.localeCompare(b.name, "ko"));
+            }
+
             // ---------- Tie-break resolver with logging ----------
             function resolveTie(groupNames, pts) {
                 if (groupNames.length <= 1) return [groupNames];
 
                 const { metrics, matches } = getSubgroupMetrics(groupNames);
-
-                const tableRows = groupNames.map(nm => {
-                    const x = metrics.get(nm);
-                    return { name: nm, h2h: x.h2h, subDiff: x.subDiff, subFor: x.subFor };
-                });
-
-                logRoundForGroup(groupNames, pts, "H2H", tableRows, matches, "동률자끼리 승자승으로 1차 분리");
+                const tableRows = buildSortedTableRows(groupNames, metrics);
 
                 const bucketsH2H = new Map();
                 groupNames.forEach(nm => {
@@ -3952,84 +4116,118 @@
                     bucketsH2H.get(w).push(nm);
                 });
                 const h2hKeys = [...bucketsH2H.keys()].sort((a, b) => b - a);
-                if (h2hKeys.length > 1) groupNames.forEach(nm => reasonMap.set(nm, reasonMap.get(nm) || "H2H"));
 
-                const resolved = [];
-                for (const w of h2hKeys) {
-                    const bucket = bucketsH2H.get(w);
-                    if (bucket.length === 1) {
-                        resolved.push(bucket);
-                        continue;
+                // (1) H2H에서 분리가 일어난 경우
+                if (h2hKeys.length > 1) {
+                    const h2hOrderStr = tableRows.map(r => `${r.name}(${r.h2h}승)`).join(" > ");
+                    logRoundForGroup(
+                        groupNames,
+                        pts,
+                        "H2H",
+                        tableRows,
+                        matches,
+                        `동률자 간 맞대결 승수(승자승)로 분리: ${h2hOrderStr}`
+                    );
+                    groupNames.forEach(nm => reasonMap.set(nm, reasonMap.get(nm) || "H2H"));
+
+                    const resolved = [];
+                    for (const w of h2hKeys) {
+                        const bucket = bucketsH2H.get(w);
+                        if (bucket.length === 1) {
+                            resolved.push(bucket);
+                        } else {
+                            // 남은 동률 서브그룹끼리 다시 H2H부터 재귀 비교
+                            const deeper = resolveTie(bucket, pts);
+                            deeper.forEach(g => resolved.push(g));
+                        }
                     }
+                    return resolved;
+                }
 
-                    const { metrics: metrics2, matches: matches2 } = getSubgroupMetrics(bucket);
-                    const table2 = bucket.map(nm => {
-                        const x = metrics2.get(nm);
-                        return { name: nm, h2h: x.h2h, subDiff: x.subDiff, subFor: x.subFor };
-                    });
+                // (2) H2H가 모두 동일한 경우 (예: 3명 모두 1승 1패) -> 동률자 간 세트득실(DIFF) 비교
+                const tiedWins = h2hKeys[0] ?? 0;
+                const bucketsDiff = new Map();
+                groupNames.forEach(nm => {
+                    const d = metrics.get(nm).subDiff;
+                    if (!bucketsDiff.has(d)) bucketsDiff.set(d, []);
+                    bucketsDiff.get(d).push(nm);
+                });
+                const diffKeys = [...bucketsDiff.keys()].sort((a, b) => b - a);
 
-                    logRoundForGroup(bucket, pts, "DIFF", table2, matches2, "동률자끼리 득실(subDiff)로 2차 분리");
+                if (diffKeys.length > 1) {
+                    const diffOrderStr = tableRows.map(r => `${r.name}(${r.subDiff > 0 ? "+" : ""}${r.subDiff})`).join(" > ");
+                    logRoundForGroup(
+                        groupNames,
+                        pts,
+                        "DIFF",
+                        tableRows,
+                        matches,
+                        `맞대결 승수 동일(각 ${tiedWins}승) → 동률자 간 세트득실(DIFF)로 순위 결정: ${diffOrderStr}`
+                    );
+                    groupNames.forEach(nm => reasonMap.set(nm, reasonMap.get(nm) || "DIFF"));
 
-                    const bucketsDiff = new Map();
-                    bucket.forEach(nm => {
-                        const d = metrics2.get(nm).subDiff;
-                        if (!bucketsDiff.has(d)) bucketsDiff.set(d, []);
-                        bucketsDiff.get(d).push(nm);
-                    });
-                    const diffKeys = [...bucketsDiff.keys()].sort((a, b) => b - a);
-                    if (diffKeys.length > 1) bucket.forEach(nm => reasonMap.set(nm, reasonMap.get(nm) || "DIFF"));
-
+                    const resolved = [];
                     for (const d of diffKeys) {
                         const bucket2 = bucketsDiff.get(d);
                         if (bucket2.length === 1) {
                             resolved.push(bucket2);
-                            continue;
-                        }
-
-                        const { metrics: metrics3, matches: matches3 } = getSubgroupMetrics(bucket2);
-                        const table3 = bucket2.map(nm => {
-                            const x = metrics3.get(nm);
-                            return { name: nm, h2h: x.h2h, subDiff: x.subDiff, subFor: x.subFor };
-                        });
-
-                        logRoundForGroup(bucket2, pts, "SF", table3, matches3, "동률자끼리 다득(subFor)로 3차 분리");
-
-                        const bucketsFor = new Map();
-                        bucket2.forEach(nm => {
-                            const f = metrics3.get(nm).subFor;
-                            if (!bucketsFor.has(f)) bucketsFor.set(f, []);
-                            bucketsFor.get(f).push(nm);
-                        });
-                        const forKeys = [...bucketsFor.keys()].sort((a, b) => b - a);
-                        if (forKeys.length > 1) bucket2.forEach(nm => reasonMap.set(nm, reasonMap.get(nm) || "SF"));
-
-                        for (const f of forKeys) {
-                            const bucket3 = bucketsFor.get(f);
-                            if (bucket3.length === 1) {
-                                resolved.push(bucket3);
-                                continue;
-                            }
-
-                            // Still tied -> recurse
-                            const { metrics: m4 } = getSubgroupMetrics(bucket3);
-                            const first = bucket3[0];
-                            const allSame = bucket3.every(nm => {
-                                const a = m4.get(nm), b = m4.get(first);
-                                return a.h2h === b.h2h && a.subDiff === b.subDiff && a.subFor === b.subFor;
-                            });
-
-                            if (allSame) {
-                                const sorted = [...bucket3].sort((a, b) => a.localeCompare(b, "ko"));
-                                sorted.forEach(nm => reasonMap.set(nm, reasonMap.get(nm) || "TIE"));
-                                resolved.push(sorted);
-                            } else {
-                                const deeper = resolveTie(bucket3, pts);
-                                deeper.forEach(g => resolved.push(g));
-                            }
+                        } else {
+                            // 일부만 갈리고 남은 동률자(예: 2명)가 있으면 그들끼리 다시 H2H부터 재귀 비교
+                            const deeper = resolveTie(bucket2, pts);
+                            deeper.forEach(g => resolved.push(g));
                         }
                     }
+                    return resolved;
                 }
-                return resolved;
+
+                // (3) H2H와 세트득실(DIFF)까지 모두 동일한 경우 -> 동률자 간 다득점(SF) 비교
+                const tiedDiff = diffKeys[0] ?? 0;
+                const bucketsFor = new Map();
+                groupNames.forEach(nm => {
+                    const f = metrics.get(nm).subFor;
+                    if (!bucketsFor.has(f)) bucketsFor.set(f, []);
+                    bucketsFor.get(f).push(nm);
+                });
+                const forKeys = [...bucketsFor.keys()].sort((a, b) => b - a);
+
+                if (forKeys.length > 1) {
+                    const sfOrderStr = tableRows.map(r => `${r.name}(${r.subFor}득)`).join(" > ");
+                    logRoundForGroup(
+                        groupNames,
+                        pts,
+                        "SF",
+                        tableRows,
+                        matches,
+                        `맞대결(${tiedWins}승)·세트득실(${tiedDiff > 0 ? "+" : ""}${tiedDiff}) 동일 → 동률자 간 다득점(SF)으로 순위 결정: ${sfOrderStr}`
+                    );
+                    groupNames.forEach(nm => reasonMap.set(nm, reasonMap.get(nm) || "SF"));
+
+                    const resolved = [];
+                    for (const f of forKeys) {
+                        const bucket3 = bucketsFor.get(f);
+                        if (bucket3.length === 1) {
+                            resolved.push(bucket3);
+                        } else {
+                            const deeper = resolveTie(bucket3, pts);
+                            deeper.forEach(g => resolved.push(g));
+                        }
+                    }
+                    return resolved;
+                }
+
+                // (4) 맞대결 승수·세트득실·다득점까지 모두 동일한 완전 동률(TIE)
+                const tiedFor = forKeys[0] ?? 0;
+                logRoundForGroup(
+                    groupNames,
+                    pts,
+                    "TIE",
+                    tableRows,
+                    matches,
+                    `맞대결(${tiedWins}승)·세트득실(${tiedDiff > 0 ? "+" : ""}${tiedDiff})·다득점(${tiedFor}득) 모두 동일 → 완전 동률`
+                );
+                const sorted = [...groupNames].sort((a, b) => a.localeCompare(b, "ko"));
+                sorted.forEach(nm => reasonMap.set(nm, "TIE"));
+                return [sorted];
             }
 
             // ---------- Build ranking blocks ----------
@@ -4137,8 +4335,8 @@
                             decision = {
                                 rule: "H2H",
                                 text: ms.winner === nm
-                                    ? `${other}에게 맞대결 ${score} 승`
-                                    : `${other}에게 맞대결 ${score} 패`,
+                                    ? `2명 동률(${pts}승) 맞대결에서 ${other}에게 ${score} 승 → ${row.autoRank}위 확정`
+                                    : `2명 동률(${pts}승) 맞대결에서 ${other}에게 ${score} 패 → ${row.autoRank}위 확정`,
                                 vs: other,
                                 score
                             };
@@ -4146,10 +4344,38 @@
                     }
 
                     if (!decision) {
-                        if (last.rule === "H2H") decision = { rule: "H2H", text: `동률자끼리 승자승으로 순위 결정` };
-                        else if (last.rule === "DIFF") decision = { rule: "DIFF", text: `동률자끼리 득실(subDiff)로 순위 결정` };
-                        else if (last.rule === "SF") decision = { rule: "SF", text: `동률자끼리 다득(subFor)로 순위 결정` };
-                        else decision = { rule: "TIE", text: `완전 동률` };
+                        const tbl = last.table || [];
+                        const myRow = tbl.find(r => r.name === nm);
+                        const memberCnt = narrowMembers.length;
+
+                        if (last.rule === "H2H") {
+                            const orderStr = tbl.map(r => `${r.name}(${r.h2h}승)`).join(" > ");
+                            const myWins = myRow ? `${myRow.h2h}승` : "";
+                            decision = {
+                                rule: "H2H",
+                                text: `${memberCnt}명 동률(${pts}승) 맞대결 승자승(${myWins})으로 ${row.autoRank}위 결정\n맞대결 승수: ${orderStr}`
+                            };
+                        } else if (last.rule === "DIFF") {
+                            const orderStr = tbl.map(r => `${r.name}(${r.subDiff > 0 ? "+" : ""}${r.subDiff})`).join(" > ");
+                            const myDiffStr = myRow ? `${myRow.subDiff > 0 ? "+" : ""}${myRow.subDiff} (${myRow.subFor}득/${myRow.subAgainst}실)` : "";
+                            const myH2H = myRow ? `${myRow.h2h}승` : "동률";
+                            decision = {
+                                rule: "DIFF",
+                                text: `${memberCnt}명 동률(${pts}승) 맞대결 동률(${myH2H}) 후\n동률자 간 세트득실 ${myDiffStr}로 ${row.autoRank}위 결정\n세트득실 비교: ${orderStr}`
+                            };
+                        } else if (last.rule === "SF") {
+                            const orderStr = tbl.map(r => `${r.name}(${r.subFor}득)`).join(" > ");
+                            const myForStr = myRow ? `${myRow.subFor}득` : "";
+                            decision = {
+                                rule: "SF",
+                                text: `${memberCnt}명 동률(${pts}승) 맞대결·세트득실 동률 후\n동률자 간 다득점(${myForStr})으로 ${row.autoRank}위 결정\n다득점 비교: ${orderStr}`
+                            };
+                        } else {
+                            decision = {
+                                rule: "TIE",
+                                text: `${memberCnt}명 동률(${pts}승) 맞대결·세트득실·다득점 모두 동일\n완전 동률 (공동 ${row.autoRank}위)`
+                            };
+                        }
                     }
 
                     exp.decision = decision;
@@ -4164,8 +4390,8 @@
         }
 
         // ✅ manualRank를 반영한 "최종 표시"
-        function resolveFinalRanks(teamId, autoPack) {
-            const manual = ensureManual(teamId);
+        function resolveFinalRanks(teamId, autoPack, customManualMap = null) {
+            const manual = customManualMap || ensureManual(teamId);
             const final = new Map(); // name -> {finalRank, finalLabel, isManual, isTieClickable, tieMembers, baseRank}
             const anyPlayed = autoPack.anyPlayed;
 
@@ -4546,6 +4772,7 @@
                                     tieMembers: auto.tieMembers,
                                     baseRank: auto.tieBaseRank,
                                     detail: f?.explain?.summary || "",
+                                    explain: f?.explain,
                                     anchorEl: rk
                                 });
                             } else {
@@ -6585,7 +6812,7 @@
 
         async function exportToGoogleSheet() {
             // Hardcoded Default URL
-            const url = "https://script.google.com/macros/s/AKfycbybkNRimOGBcCYH7HAbiT6lhlqtT9SzVZ0QjDxkD6By1ePgtv5XS8-eGSIIRocNpdJn/exec";
+            const url = "https://script.google.com/macros/s/AKfycbzNkG3ZT9SVvkm5Qxel62eLsYbUHEEB8L2QQMZlY2jN48hKmqELaB8S2mOoL3_qqQOc/exec";
 
             // 1. Calculate Points
             const selectedDate = document.getElementById("datePicker").value;
@@ -6769,7 +6996,14 @@
                             body: JSON.stringify(payload)
                         });
 
-                        alert("✅ 기록 및 전체 자료가 전송되었습니다!");
+                        // 1. 스냅샷 저장이 끝나면 즉시 로딩창을 닫고 사용자 화면을 종료 (통계 계산 대기 0초)
+                        toggleLoading(false);
+
+                        // 2. 구글 백엔드 서버가 뒤에서 혼자 통계를 재계산하도록 비동기(fire-and-forget, keepalive) 신호만 전송
+                        // (사용자가 즉시 브라우저 창을 닫아도 keepalive 옵션으로 구글 서버 백그라운드에서 통계 갱신이 완료됨)
+                        fetch(`${url}?action=rebuildStats`, { mode: "no-cors", keepalive: true }).catch(() => {});
+
+                        alert("✅ 기록 및 전체 자료가 전송되었습니다!\n(지금 바로 창을 닫으셔도 통계는 구글 서버 백그라운드에서 자동 계산됩니다)");
 
                     } catch (e) {
                         console.error(e);
@@ -7159,7 +7393,7 @@
                 const response = await fetch(`${GAS_URL}?action=getList`);
                 const data = await response.json();
                 if (data.success) {
-                    h_historyList = data.list || [];
+                    h_historyList = (data.list || []).filter(item => item && !String(item.date || "").startsWith("__STATS_CACHE_"));
                     select.innerHTML = "";
                     if (h_historyList.length === 0) {
                         select.innerHTML = '<option value="">기록이 없습니다</option>';
@@ -7362,8 +7596,32 @@
                 const wlTd = document.createElement("td"); wlTd.className = "wl"; wlTd.textContent = autoPack.anyPlayed ? `${st.win}-${st.lose}` : "-"; tr.appendChild(wlTd);
                 const diffTd = document.createElement("td"); diffTd.className = "wl"; diffTd.textContent = autoPack.anyPlayed ? (st.setDiff >= 0 ? "+" + st.setDiff : st.setDiff) : "-"; tr.appendChild(diffTd);
                 const rkTd = document.createElement("td"); rkTd.className = "rank";
-                if (autoPack.anyPlayed && f.finalRank === 1) rkTd.innerHTML = `<span class="crown">👑</span>1위`;
-                else rkTd.innerHTML = f.finalLabel || "-";
+                if (!autoPack.anyPlayed) {
+                    rkTd.textContent = "-";
+                } else {
+                    const label = f?.finalLabel || "-";
+                    let code = "";
+                    if (st?.autoReason === "TIE" && !f?.isManual) {
+                        code = "TIE";
+                    } else if (st?.autoReason && st.autoReason !== "TIE") {
+                        code = st.autoReason;
+                    }
+                    const crown = (f?.finalRank === 1 && f?.finalLabel === "1위") ? `<span class="crown">👑</span>` : "";
+                    const codeTag = code ? `<span class="code">${code}</span>` : "";
+                    const manTag = f?.isManual ? `<span class="manual" title="사용자 확정">MAN</span>` : "";
+                    rkTd.innerHTML = `${crown}${label}${codeTag}${manTag}`;
+
+                    if (f?.explain) {
+                        rkTd.classList.add("clickable");
+                        rkTd.title = "클릭하여 순위 산정 상세 보기";
+                        rkTd.addEventListener("click", (e) => {
+                            e.stopPropagation();
+                            closeInfoPortal();
+                            openInfoPortal(`순위 정보 · ${rowP}`, f.explain, rkTd);
+                        });
+                    }
+                }
+                tr.appendChild(rkTd);
                 tbody.appendChild(tr);
             });
             tbl.appendChild(tbody); scroll.appendChild(tbl); wrap.appendChild(scroll); host.appendChild(wrap);
@@ -7371,44 +7629,12 @@
 
         function computeRanking_h(teamId, players) {
             const resMap = h_resultsByTeam.get(teamId) || new Map();
-            const base = new Map();
-            players.forEach(p => base.set(p, { name: p, played: 0, win: 0, lose: 0, setsFor: 0, setsAgainst: 0 }));
-
-            for (let i = 0; i < players.length; i++) {
-                for (let j = i + 1; j < players.length; j++) {
-                    const A = players[i], B = players[j];
-                    const k = (A.localeCompare(B, 'ko') <= 0) ? `${A}|||${B}` : `${B}|||${A}`;
-                    const res = resMap.get(k);
-                    const pts = res?.score ? res.score.split("-") : null;
-                    if (!pts || pts.length !== 2) continue;
-
-                    const aScore = k.startsWith(A) ? parseInt(pts[0]) : parseInt(pts[1]);
-                    const bScore = k.startsWith(A) ? parseInt(pts[1]) : parseInt(pts[0]);
-                    const sA = base.get(A), sB = base.get(B);
-                    sA.played++; sB.played++;
-                    sA.setsFor += aScore; sA.setsAgainst += bScore;
-                    sB.setsFor += bScore; sB.setsAgainst += aScore;
-                    if (aScore > bScore) { sA.win++; sB.lose++; } else if (aScore < bScore) { sB.win++; sA.lose++; }
-                }
-            }
-
-            const anyPlayed = Array.from(base.values()).some(s => s.played > 0);
-            const statsArr = Array.from(base.values()).map(s => ({ ...s, points: s.win, setDiff: s.setsFor - s.setsAgainst }));
-            const sorted = statsArr.sort((x, y) => (y.win - x.win) || (y.setDiff - x.setDiff) || (y.setsFor - x.setsFor));
-
-            const out = new Map();
-            sorted.forEach((s, idx) => out.set(s.name, { ...s, autoRank: idx + 1 }));
-            return { map: out, anyPlayed };
+            return computeRanking(teamId, players, resMap);
         }
 
         function resolveFinalRanks_h(teamId, autoPack) {
-            const final = new Map();
             const manual = h_manualRankByTeam.get(teamId) || new Map();
-            autoPack.map.forEach((st, nm) => {
-                const r = manual.get(nm) || st.autoRank;
-                final.set(nm, { finalRank: r, finalLabel: autoPack.anyPlayed ? `${r}위` : "" });
-            });
-            return final;
+            return resolveFinalRanks(teamId, autoPack, manual);
         }
 
         function h_renderBrackets() {
@@ -7740,6 +7966,94 @@
             updateRaCount();
         }
 
+        function updateRaModeUI(mode) {
+            const balLbl = document.getElementById('ra-mode-balanced-lbl');
+            const pureLbl = document.getElementById('ra-mode-pure-lbl');
+            if (!balLbl || !pureLbl) return;
+
+            const balInput = balLbl.querySelector('input');
+            const pureInput = pureLbl.querySelector('input');
+            if (mode === 'balanced') {
+                if (balInput) balInput.checked = true;
+                balLbl.style.border = '2px solid #7c3aed';
+                balLbl.style.background = '#f5f3ff';
+                balLbl.style.color = '#6d28d9';
+                balLbl.style.fontWeight = '800';
+
+                pureLbl.style.border = '1px solid #cbd5e1';
+                pureLbl.style.background = '#fff';
+                pureLbl.style.color = '#64748b';
+                pureLbl.style.fontWeight = '600';
+            } else {
+                if (pureInput) pureInput.checked = true;
+                pureLbl.style.border = '2px solid #3b82f6';
+                pureLbl.style.background = '#eff6ff';
+                pureLbl.style.color = '#1d4ed8';
+                pureLbl.style.fontWeight = '800';
+
+                balLbl.style.border = '1px solid #cbd5e1';
+                balLbl.style.background = '#fff';
+                balLbl.style.color = '#64748b';
+                balLbl.style.fontWeight = '600';
+            }
+        }
+
+        function shuffleArray(arr) {
+            const copy = arr.slice();
+            for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy;
+        }
+
+        // 부수 균등(포트+스네이크) 랜덤 배정 생성: [{ name, targetGroup }, ...]
+        function buildBalancedAssignments(selectedNames, groupCount) {
+            // 1. 부수별로 그룹화 (부수 미지정은 99로 처리)
+            const byGrade = new Map();
+            selectedNames.forEach(name => {
+                const g = PLAYER_INFO.get(name)?.grade || 99;
+                if (!byGrade.has(g)) byGrade.set(g, []);
+                byGrade.get(g).push(name);
+            });
+
+            // 2. 부수 오름차순(1부 -> 7부) 정렬하되, 같은 부수 내에서는 완전 랜덤 셔플
+            const grades = Array.from(byGrade.keys()).sort((a, b) => a - b);
+            const orderedBySkill = [];
+            grades.forEach(g => {
+                const shuffledSameGrade = shuffleArray(byGrade.get(g));
+                orderedBySkill.push(...shuffledSameGrade);
+            });
+
+            // 3. 기준 조 순서를 랜덤으로 섞은 뒤 스네이크(지그재그) 방식으로 조 번호 배정
+            //    -> 각 조의 고수/하수 비율과 부수 합계가 균등하게 맞춰짐
+            const baseGroups = shuffleArray(Array.from({ length: groupCount }, (_, i) => i + 1));
+            const pairs = [];
+            const totalRounds = Math.ceil(orderedBySkill.length / groupCount);
+
+            for (let r = 0; r < totalRounds; r++) {
+                const roundStart = r * groupCount;
+                const roundPlayers = orderedBySkill.slice(roundStart, roundStart + groupCount);
+
+                // 스네이크 방향 (짝수 라운드 정방향, 홀수 라운드 역방향)
+                let roundGroupOrder = (r % 2 === 0) ? baseGroups.slice() : baseGroups.slice().reverse();
+
+                // 만약 이 라운드의 선수들이 모두 동일한 부수라면, 조 순서도 한 번 더 섞어 무작위성 극대화
+                const firstGrade = PLAYER_INFO.get(roundPlayers[0])?.grade || 99;
+                const allSameGradeInRound = roundPlayers.every(p => (PLAYER_INFO.get(p)?.grade || 99) === firstGrade);
+                if (allSameGradeInRound && roundPlayers.length === groupCount) {
+                    roundGroupOrder = shuffleArray(roundGroupOrder);
+                }
+
+                roundPlayers.forEach((name, idx) => {
+                    pairs.push({ name, targetGroup: roundGroupOrder[idx] });
+                });
+            }
+
+            // 4. 화투 뽑기 호출 순서는 예측할 수 없도록 한 번 더 섞음 (배정된 조는 유지)
+            return shuffleArray(pairs);
+        }
+
         function confirmRandomAssign() {
             const groupCount = parseInt(document.getElementById('ra-group-count').value, 10);
             const checkboxes = document.querySelectorAll('#ra-list-container input[type="checkbox"]:checked');
@@ -7750,7 +8064,11 @@
                 return;
             }
 
-            if (!confirm(`${selectedNames.length}명을 ${groupCount}개 조에 화투 뽑기로 배정합니다!\n계속하시겠습니까?`)) {
+            const modeEl = document.querySelector('input[name="ra-mode"]:checked');
+            const mode = modeEl ? modeEl.value : 'balanced';
+            const modeLabel = (mode === 'balanced') ? '⚖️ 실력 균등 랜덤 (부수 고려)' : '🎲 완전 랜덤';
+
+            if (!confirm(`${selectedNames.length}명을 ${groupCount}개 조에 [${modeLabel}] 방식으로 배정합니다!\n계속하시겠습니까?`)) {
                 return;
             }
 
@@ -7761,15 +8079,15 @@
             INITIAL_NAMES.forEach(name => state.set(name, { where: 'pool' }));
             createTeams(groupCount);
 
-            // Shuffle players for fun randomness
-            const shuffled = selectedNames.slice();
-            for (let i = shuffled.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            if (mode === 'balanced') {
+                const balancedPairs = buildBalancedAssignments(selectedNames, groupCount);
+                const playerOrder = balancedPairs.map(p => p.name);
+                const presetGroups = balancedPairs.map(p => p.targetGroup);
+                startSequentialHwatu(playerOrder, groupCount, presetGroups);
+            } else {
+                const shuffled = shuffleArray(selectedNames);
+                startSequentialHwatu(shuffled, groupCount, null);
             }
-
-            // Start sequential hwatu animation
-            startSequentialHwatu(shuffled, groupCount);
         }
 
         function generateDistributionPreview(groupCount, targetNameList) {
@@ -7847,25 +8165,27 @@
         let hwatuSpinInterval = null;
         let hwatuGroupAssignments = []; // 미리 섞인 조 배정 순서
 
-        function startSequentialHwatu(playerList, groupCount) {
+        function startSequentialHwatu(playerList, groupCount, presetGroupAssignments = null) {
             console.log('🎴 Starting hwatu animation', playerList, groupCount);
             hwatuQueue = playerList;
             hwatuGroupCount = groupCount;
             hwatuCurrentIndex = 0;
 
-            // 균형 배정이지만 랜덤 순서로! 각 라운드마다 조 순서 섞기
-            hwatuGroupAssignments = [];
-            const totalRounds = Math.ceil(playerList.length / groupCount);
-            for (let round = 0; round < totalRounds; round++) {
-                // 1~groupCount 배열 만들고 셔플
-                const roundGroups = [];
-                for (let g = 1; g <= groupCount; g++) roundGroups.push(g);
-                // Fisher-Yates shuffle
-                for (let i = roundGroups.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [roundGroups[i], roundGroups[j]] = [roundGroups[j], roundGroups[i]];
+            if (Array.isArray(presetGroupAssignments) && presetGroupAssignments.length === playerList.length) {
+                hwatuGroupAssignments = presetGroupAssignments.slice();
+            } else {
+                // 완전 랜덤: 각 라운드마다 조 순서 섞기 (인원수만 균등)
+                hwatuGroupAssignments = [];
+                const totalRounds = Math.ceil(playerList.length / groupCount);
+                for (let round = 0; round < totalRounds; round++) {
+                    const roundGroups = [];
+                    for (let g = 1; g <= groupCount; g++) roundGroups.push(g);
+                    for (let i = roundGroups.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [roundGroups[i], roundGroups[j]] = [roundGroups[j], roundGroups[i]];
+                    }
+                    hwatuGroupAssignments.push(...roundGroups);
                 }
-                hwatuGroupAssignments.push(...roundGroups);
             }
             console.log('🎴 Group order:', hwatuGroupAssignments);
 

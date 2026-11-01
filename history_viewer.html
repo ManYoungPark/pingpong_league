@@ -177,6 +177,20 @@
 
     </main>
 
+    <!-- 알림/정보 포탈 (순위 설명) -->
+    <div class="portal" id="infoPortal" aria-hidden="true">
+        <div class="backdrop" id="infoBackdrop"></div>
+        <div class="pop" id="infoPop" role="dialog" aria-modal="true" style="min-width: 320px;">
+            <div class="row">
+                <div class="ttl" id="infoTitle">정보</div>
+                <button class="close" type="button" id="infoClose">닫기</button>
+            </div>
+            <div class="content" id="infoContent"
+                style="padding: 0 4px 8px; font-size: 14px; line-height: 1.5; color: #374151;">
+            </div>
+        </div>
+    </div>
+
     <!-- 데이터 및 스크립트 로드 -->
     <script src="sample_data.js"></script>
     <script src="history_viewer.js"></script>
