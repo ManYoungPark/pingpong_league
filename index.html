@@ -2364,7 +2364,7 @@
                             · SF · TIE(공동))</button>
                     </div>
                     <div class="teams" id="teams"></div>
-                    <div
+                    <div id="teams-action-footer"
                         style="padding:12px; display:flex; flex-direction:column; gap:8px; border-top:1px solid var(--border);">
                         <div style="display:flex; gap:8px; width:100%;">
                             <button type="button" class="btn primary" id="btn-gen-tournament"
@@ -2536,11 +2536,14 @@
                     </div>
                 </div>
 
-                <div class="tm-controls">
+                <div class="tm-controls" id="tm-controls-bar">
                     <h2 class="tm-title">🏆 본선 토너먼트</h2>
-                    <button type="button" class="btn" onclick="exportToGoogleSheet()"
-                        style="margin-left:auto; margin-right:8px;">📤 서버에 결과저장</button>
-                    <button type="button" class="btn" onclick="captureResultImage()">📷 이미지 저장</button>
+                    <button type="button" class="btn" id="btn-export-sheet" onclick="exportToGoogleSheet()"
+                        style="margin-left:auto; margin-right:6px;">📤 서버에 결과저장</button>
+                    <button type="button" class="btn primary" id="btn-capture-all" onclick="captureResultImage('all')"
+                        style="margin-right:6px;" title="예선 조별리그와 본선 토너먼트를 초고화질 1장으로 저장합니다">📷 고화질 이미지 저장</button>
+                    <button type="button" class="btn" id="btn-capture-split" onclick="captureResultImage('split')"
+                        style="background:#fef3c7; color:#b45309; border-color:#fde68a;" title="카카오톡 전송 시 화질 저하가 없도록 [1.조별리그]와 [2.본선토너먼트] 2장으로 나누어 초고화질 저장합니다">📸 카톡용 2장 분할저장</button>
                 </div>
 
                 <div class="tm-panel-row">
@@ -7549,139 +7552,251 @@
             portal.classList.add("open");
         }
 
-        /* ✅ Helper: Image Capture */
-        async function captureResultImage() {
+        /* ✅ Helper: Ultra-HD Image Capture (통합 1장 / 카톡용 2장 분할 지원) */
+        async function captureResultImage(mode = 'all') {
             const area = document.getElementById("tournament-area");
             if (!area || area.style.display === "none") {
                 alert("토너먼트 결과가 생성되지 않았습니다.");
                 return;
             }
 
-            // 1. Show Loading Overlay (Cover the mess we are about to make)
-            toggleLoading(true, "이미지 생성 중... (잠시만 기다려주세요)");
-            await new Promise(r => setTimeout(r, 100)); // Render tick
+            const prevScrollX = window.scrollX;
+            const prevScrollY = window.scrollY;
 
-            // 2. Store Original States & Modify Real DOM (To ensure correct height calculation)
-            // We use a class approach or direct style manipulation. Direct style is safer for restoration without CSS conflicts.
+            // 1. Show Loading Overlay & Scroll to top so sticky elements don't float in the middle
+            toggleLoading(true, "초고화질 이미지 생성 중... (잠시만 기다려주세요)");
+            window.scrollTo(0, 0);
+            await new Promise(r => setTimeout(r, 150));
+
             const originalStyles = new Map();
+            function saveAndSetStyle(el, prop, val) {
+                if (!el) return;
+                if (!originalStyles.has(el)) originalStyles.set(el, {});
+                const saved = originalStyles.get(el);
+                if (!(prop in saved)) saved[prop] = el.style.getPropertyValue(prop);
+                if (val === null) el.style.removeProperty(prop);
+                else el.style.setProperty(prop, val, "important");
+            }
+            function hideEl(idOrEl) {
+                const el = typeof idOrEl === "string" ? document.getElementById(idOrEl) : idOrEl;
+                if (el) saveAndSetStyle(el, "display", "none");
+            }
+            function expandEl(el) {
+                saveAndSetStyle(el, "overflow", "visible");
+                saveAndSetStyle(el, "height", "auto");
+                saveAndSetStyle(el, "max-height", "none");
+            }
 
-            function hide(id) {
-                const el = document.getElementById(id);
-                if (el) {
-                    originalStyles.set(el, { property: 'display', value: el.style.display });
-                    el.style.display = "none";
+            async function renderTargetToPng(targetEl, fileSuffix) {
+                const rect = targetEl.getBoundingClientRect();
+                const w = Math.ceil(rect.width || targetEl.scrollWidth || 1360);
+                const h = Math.ceil(rect.height || targetEl.scrollHeight || 1800);
+
+                // iOS Safari / iPad has a ~16.7M pixel canvas limit (4096x4096).
+                // On PC we use scale 3.5 (Ultra-HD); on iOS we safely cap within 15.5M pixels.
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+                const maxPixels = isIOS ? 15500000 : 48000000;
+                let optimalScale = 3.5;
+                if (w * h * optimalScale * optimalScale > maxPixels) {
+                    optimalScale = Math.max(2, Math.floor(Math.sqrt(maxPixels / (w * h)) * 10) / 10);
                 }
-            }
-            function expand(el) {
-                originalStyles.set(el, {
-                    overflow: el.style.overflow,
-                    height: el.style.height,
-                    maxHeight: el.style.maxHeight
-                });
-                el.style.overflow = "visible";
-                el.style.height = "auto";
-                el.style.maxHeight = "none";
-            }
 
-            try {
-                // Execute Layout Changes on Real DOM
-                hide("card-settings");
-                hide("card-pool");
-                // Note: We DO NOT hide "loadingOverlay" here, because we want the user to see it.
-                // We will hide it inside onclone so it's not in the screenshot.
-
-                // Hide Portals
-                document.querySelectorAll(".portal, .modal-portal").forEach(el => {
-                    originalStyles.set(el, { property: 'display', value: el.style.display });
-                    el.style.display = "none";
-                });
-
-                // Expand Tables
-                document.querySelectorAll(".table-scroll").forEach(el => expand(el));
-
-                // Force layout recalc?
-                // accessing offsetHeight forces reflow
-                document.body.offsetHeight;
-
-                // 3. Capture
-                const canvas = await html2canvas(document.body, {
-                    scale: 2,
-                    backgroundColor: "#ffffff", // Force white background
+                const canvas = await html2canvas(targetEl, {
+                    scale: optimalScale,
+                    backgroundColor: "#f8fafc",
                     useCORS: true,
                     logging: false,
+                    scrollX: 0,
+                    scrollY: 0,
+                    
                     onclone: (clonedDoc) => {
-                        // A. Hide the overlay in the screenshot
                         const overlay = clonedDoc.getElementById("loadingOverlay");
                         if (overlay) overlay.style.display = "none";
 
-                        // B. Force Text Color Black (Global & Specific)
-                        clonedDoc.body.style.color = "#000000";
-                        clonedDoc.body.style.backgroundColor = "#ffffff";
+                        // Reset CSS properties that html2canvas cannot render sharply (backdrop-filter, background-clip:text)
+                        const styleFix = clonedDoc.createElement("style");
+                        styleFix.textContent = `
+                            * {
+                                backdrop-filter: none !important;
+                                -webkit-backdrop-filter: none !important;
+                                text-rendering: geometricPrecision !important;
+                                -webkit-font-smoothing: antialiased !important;
+                            }
+                            header {
+                                position: relative !important;
+                                top: auto !important;
+                                background: #ffffff !important;
+                                box-shadow: none !important;
+                                border-bottom: 2px solid #e2e8f0 !important;
+                                margin-bottom: 14px !important;
+                                padding: 14px 24px !important;
+                            }
+                            header h1, .card-hd .title, .summary-title, .tm-title {
+                                background: none !important;
+                                -webkit-background-clip: initial !important;
+                                background-clip: initial !important;
+                                -webkit-text-fill-color: initial !important;
+                                color: #0f172a !important;
+                            }
+                            .card, .team, .tm-panel, .summary-card {
+                                box-shadow: none !important;
+                                transform: none !important;
+                            }
+                        `;
+                        clonedDoc.head.appendChild(styleFix);
 
-                        // D. Clean up Header Date (Remove underline, force black)
-                        const headerDate = clonedDoc.getElementById("headerDate");
-                        if (headerDate) {
-                            headerDate.style.borderBottom = "none";
-                            headerDate.style.color = "#000000";
-                            headerDate.style.fontWeight = "800";
+                        // Replace header select & date input with crisp high-contrast badges
+                        const origTitleSel = document.getElementById("headerTitle");
+                        const cloneTitleSel = clonedDoc.getElementById("headerTitle");
+                        if (origTitleSel && cloneTitleSel) {
+                            const badge = clonedDoc.createElement("span");
+                            badge.textContent = origTitleSel.options[origTitleSel.selectedIndex]?.text || origTitleSel.value;
+                            badge.style.cssText = "display:inline-flex;align-items:center;padding:4px 14px;border-radius:999px;background:#eff6ff;color:#1d4ed8;border:1.5px solid #bfdbfe;font-size:20px;font-weight:900;margin:0 6px;";
+                            cloneTitleSel.parentNode.replaceChild(badge, cloneTitleSel);
                         }
 
-                        // C. Replace Selects with Text (Visual correction)
+                        const origDate = document.getElementById("datePicker");
+                        const cloneDate = clonedDoc.getElementById("datePicker");
+                        if (origDate && cloneDate) {
+                            const dSpan = clonedDoc.createElement("span");
+                            dSpan.textContent = origDate.value || new Date().toISOString().slice(0, 10);
+                            dSpan.style.cssText = "display:inline-flex;align-items:center;padding:4px 14px;border-radius:999px;background:#f1f5f9;color:#0f172a;border:1.5px solid #cbd5e1;font-size:18px;font-weight:800;";
+                            cloneDate.parentNode.replaceChild(dSpan, cloneDate);
+                        }
+
+                        // Replace any remaining selects with clean text spans
                         const originSelects = document.body.querySelectorAll("select");
                         const clonedSelects = clonedDoc.querySelectorAll("select");
-
                         originSelects.forEach((orig, idx) => {
-                            if (clonedSelects[idx]) {
+                            if (clonedSelects[idx] && orig.id !== "headerTitle") {
                                 const val = orig.options[orig.selectedIndex]?.text || " - ";
-                                // Create span
                                 const span = clonedDoc.createElement("span");
                                 span.textContent = val;
-                                span.style.fontWeight = "bold";
-                                span.style.fontSize = "14px";
-                                span.style.color = "#000000"; // Force black
-                                span.style.display = "flex";
-                                span.style.alignItems = "center";
-                                span.style.justifyContent = "center";
-
+                                span.style.cssText = "font-weight:800;font-size:14px;color:#0f172a;display:inline-flex;align-items:center;justify-content:center;";
                                 if (clonedSelects[idx].parentNode) {
                                     clonedSelects[idx].parentNode.replaceChild(span, clonedSelects[idx]);
                                 }
                             }
                         });
 
-                        // Ensure all text is black by brute-forcing some common containers if inheritance fails?
-                        // Usually body style is enough, but some user agent styles might override.
-                        // Let's rely on body.style.color + explicit span colors for now.
+
                     }
                 });
 
-                // 4. Download
-                const link = document.createElement("a");
-                link.download = `대진표_결과_${new Date().toISOString().slice(0, 10)}.png`;
-                link.href = canvas.toDataURL("image/png");
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                const dateStr = (document.getElementById("datePicker")?.value) || new Date().toISOString().slice(0, 10);
+                const filename = `대덕밸리_대진표_${dateStr}${fileSuffix}.png`;
+
+                await new Promise((resolve) => {
+                    if (canvas.toBlob) {
+                        canvas.toBlob((blob) => {
+                            if (!blob) { resolve(); return; }
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement("a");
+                            link.download = filename;
+                            link.href = url;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            setTimeout(() => URL.revokeObjectURL(url), 5000);
+                            resolve();
+                        }, "image/png", 1.0);
+                    } else {
+                        const link = document.createElement("a");
+                        link.download = filename;
+                        link.href = canvas.toDataURL("image/png");
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        resolve();
+                    }
+                });
+            }
+
+            try {
+                // 2. Hide non-print UI controls & portals
+                hideEl("card-settings");
+                hideEl("card-pool");
+                hideEl("teams-action-footer");
+                hideEl("btn-edit-mode");
+                hideEl("openHelpBtn");
+                hideEl("timeEst");
+                hideEl("btn-export-sheet");
+                hideEl("btn-capture-all");
+                hideEl("btn-capture-split");
+                document.querySelectorAll("header .tabs, .portal, .modal-portal").forEach(el => hideEl(el));
+
+                // Fix sticky header to top static flow & tighten vertical spacing
+                const headerEl = document.querySelector("header");
+                if (headerEl) {
+                    saveAndSetStyle(headerEl, "position", "relative");
+                    saveAndSetStyle(headerEl, "top", "auto");
+                }
+
+                const finalSumEl = document.getElementById("final-summary");
+                if (finalSumEl) {
+                    saveAndSetStyle(finalSumEl, "margin", "14px auto");
+                    saveAndSetStyle(finalSumEl, "padding", "16px 20px");
+                }
+                const tmControlsEl = document.getElementById("tm-controls-bar");
+                if (tmControlsEl) {
+                    saveAndSetStyle(tmControlsEl, "margin", "10px 0 8px");
+                }
+
+                // Expand scrollable containers so nothing is clipped
+                document.querySelectorAll(".table-scroll").forEach(el => expandEl(el));
+
+                // Redraw bracket lines after expanding containers
+                try {
+                    if (typeof drawAllBrackets === "function") drawAllBrackets();
+                } catch (_) {}
+
+                document.body.offsetHeight; // Force reflow
+                await new Promise(r => setTimeout(r, 80));
+
+                saveAndSetStyle(document.body, "background", "#f8fafc");
+
+                const cardTeams = document.querySelector("#tab-match .right-col");
+
+                if (mode === "split") {
+                    // Part 1: Header + Group League Table
+                    hideEl(area);
+                    document.body.offsetHeight;
+                    await new Promise(r => setTimeout(r, 60));
+                    await renderTargetToPng(document.body, "_1_조별리그");
+
+                    // Part 2: Header + Final Summary & Tournament Bracket
+                    if (cardTeams) hideEl(cardTeams);
+                    saveAndSetStyle(area, "display", "block");
+                    try {
+                        if (typeof drawAllBrackets === "function") drawAllBrackets();
+                    } catch (_) {}
+                    document.body.offsetHeight;
+                    await new Promise(r => setTimeout(r, 80));
+                    await renderTargetToPng(document.body, "_2_본선토너먼트");
+                } else {
+                    await renderTargetToPng(document.body, "");
+                }
 
             } catch (err) {
                 console.error(err);
                 alert("이미지 저장 실패: " + err.message);
             } finally {
-                // 5. Restore Real DOM
-                originalStyles.forEach((styles, el) => {
-                    if (styles.property) {
-                        el.style[styles.property] = styles.value;
-                    } else {
-                        // Restoring expanded styles
-                        el.style.overflow = styles.overflow;
-                        el.style.height = styles.height;
-                        el.style.maxHeight = styles.maxHeight;
-                    }
+                // Restore all modified styles
+                originalStyles.forEach((props, el) => {
+                    Object.entries(props).forEach(([prop, val]) => {
+                        if (val) el.style.setProperty(prop, val);
+                        else el.style.removeProperty(prop);
+                    });
                 });
-
+                try {
+                    if (typeof drawAllBrackets === "function") drawAllBrackets();
+                } catch (_) {}
+                window.scrollTo(prevScrollX, prevScrollY);
                 toggleLoading(false);
             }
         }
+
         // ----------------------------------------------------
         // ⏱️ Time Estimation Feature (Global)
         // ----------------------------------------------------
