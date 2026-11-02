@@ -2605,6 +2605,7 @@
         }
     </style>
 
+    <link rel="stylesheet" href="dashboard_redesign.css?v=20261103_dx3">
 </head>
 
 <body>
@@ -3095,251 +3096,186 @@
             </div>
         </div>
 
-        <!-- 3. Dashboard Tab -->
+        <!-- 3. Dashboard Tab (스타일: dashboard_redesign.css / 렌더링: dashboard.js) -->
         <div id="tab-dashboard-view" class="tab-content">
-            <div class="tm-dashboard" style="max-width: 1400px;">
-                <!-- 상단 헤더 & 구글 드라이브 동기화 상태 -->
-                <div class="tm-dash-header"
-                    style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <h3 style="margin:0; font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📊 대덕밸리 종합 통계 & 분석</h3>
-                        <span id="dash-sync-status" class="pill"
-                            style="background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; font-weight:700;">☁️ 데이터 준비
-                            중...</span>
+            <div class="dx">
+                <!-- 제목 · 데이터 상태 · 동작 버튼 -->
+                <div class="dx-head">
+                    <div class="dx-head-main">
+                        <p class="dx-eyebrow">대덕밸리동호회</p>
+                        <h2 class="dx-title">통계 대시보드</h2>
+                        <div id="dash-sync-status" class="dx-status" data-state="loading" role="status" aria-live="polite">
+                            <span class="dx-status-dot" aria-hidden="true"></span>
+                            <span id="dash-sync-text">통계를 불러오는 중입니다…</span>
+                            <span id="dash-sync-time" class="dx-status-time"></span>
+                        </div>
                     </div>
-                    <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                        <div class="header-qr-badge" id="btn-dash-qr" title="스마트폰 카메라로 바로 스캔하세요! (클릭 시 크게 확대)">
+                    <div class="dx-head-actions">
+                        <div class="header-qr-badge" id="btn-dash-qr" role="button" tabindex="0" title="스마트폰 카메라로 스캔하세요. 클릭하면 크게 확대됩니다.">
                             <div id="dash-mini-qr" class="mini-qr-box"></div>
                             <div class="mini-qr-label">
-                                <span class="qr-label-title">📱 실시간 관전</span>
-                                <span class="qr-label-sub">QR 스캔 · 확대 🔍</span>
+                                <span class="qr-label-title">실시간 관전</span>
+                                <span class="qr-label-sub">QR 스캔 · 확대</span>
                             </div>
                         </div>
-                        <button type="button" class="btn" id="btn-dash-refresh" onclick="syncDashboardData(true)"
-                            style="font-size:12px; padding:6px 12px;" title="원본 데이터를 다시 읽어 통계를 강제 재계산하고 서버 캐시를 갱신합니다">
-                            🔄 최신 동기화 (재계산)
+                        <button type="button" class="dx-btn" id="btn-dash-refresh" onclick="syncDashboardData(true)"
+                            title="원본 대회 기록을 다시 읽어 통계를 새로 계산하고 서버에 저장합니다">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                            <span id="btn-dash-refresh-text">통계 새로고침</span>
                         </button>
-                        <button type="button" class="btn" onclick="downloadStatsCacheJS()"
-                            style="font-size:12px; padding:6px 12px; background:#f0fdf4; color:#15803d; border-color:#bbf7d0;"
-                            title="현재 계산된 통계를 stats_cache.js 파일로 다운로드합니다">
-                            💾 통계파일 저장
+                        <button type="button" class="dx-btn" id="btn-dash-save" onclick="downloadStatsCacheJS()"
+                            title="현재 통계를 stats_cache.js 파일로 내려받습니다">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                            통계 파일 저장
                         </button>
                     </div>
                 </div>
 
-                <!-- 전체 요약 카드 -->
-                <div class="tm-cards" style="margin-bottom: 18px;">
-                    <div class="tm-card">
-                        <div class="label">총 대회 수</div>
-                        <div class="val" id="stat-total-tourneys">-</div>
+                <!-- 전체 요약 -->
+                <div class="dx-kpis">
+                    <div class="dx-card dx-kpi">
+                        <div class="dx-kpi-label">총 대회 수</div>
+                        <div class="dx-kpi-val is-empty" id="stat-total-tourneys">-</div>
                     </div>
-                    <div class="tm-card">
-                        <div class="label">총 기록 경기 수</div>
-                        <div class="val" id="stat-total-matches">-</div>
+                    <div class="dx-card dx-kpi">
+                        <div class="dx-kpi-label">총 기록 경기 수</div>
+                        <div class="dx-kpi-val is-empty" id="stat-total-matches">-</div>
                     </div>
-                    <div class="tm-card">
-                        <div class="label">참가 선수 수</div>
-                        <div class="val" id="stat-total-players">-</div>
-                    </div>
-                </div>
-
-                <!-- 종합 랭킹 차트 4종 (명예의 전당 / 최다 출석 / 하위부 최다 우승 / 하위부 최다 준우승) -->
-                <div class="hof-charts-grid"
-                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 24px;">
-                    <!-- Chart 1 -->
-                    <div class="card hof-chart-card" style="margin-bottom: 0;">
-                        <div class="card-hd" style="padding: 10px 14px;">
-                            <div class="title" style="font-size: 13.5px;">👑 명예의 전당 (상위/전체 최다 우승)</div>
-                        </div>
-                        <div class="chart-wrap" style="padding: 10px 12px; height: 220px;">
-                            <canvas id="chart-wins"></canvas>
-                        </div>
-                    </div>
-                    <!-- Chart 2 -->
-                    <div class="card hof-chart-card" style="margin-bottom: 0;">
-                        <div class="card-hd" style="padding: 10px 14px;">
-                            <div class="title" style="font-size: 13.5px;">🔥 성실함의 상징 (최다 출석)</div>
-                        </div>
-                        <div class="chart-wrap" style="padding: 10px 12px; height: 220px;">
-                            <canvas id="chart-attendance"></canvas>
-                        </div>
-                    </div>
-                    <!-- Chart 3 (Lower Winner) -->
-                    <div class="card hof-chart-card" style="margin-bottom: 0;">
-                        <div class="card-hd" style="padding: 10px 14px;">
-                            <div class="title" style="font-size: 13.5px;">🍀 하위부 최다 우승 (Legend of Lower)</div>
-                        </div>
-                        <div class="chart-wrap" style="padding: 10px 12px; height: 220px;">
-                            <canvas id="chart-wins-lower"></canvas>
-                        </div>
-                    </div>
-                    <!-- Chart 4 (Lower Runner-up) -->
-                    <div class="card hof-chart-card" style="margin-bottom: 0;">
-                        <div class="card-hd" style="padding: 10px 14px;">
-                            <div class="title" style="font-size: 13.5px;">🥈 하위부 최다 준우승 (Prince of Lower)</div>
-                        </div>
-                        <div class="chart-wrap" style="padding: 10px 12px; height: 220px;">
-                            <canvas id="chart-runners-lower"></canvas>
-                        </div>
+                    <div class="dx-card dx-kpi">
+                        <div class="dx-kpi-label">참가 선수 수</div>
+                        <div class="dx-kpi-val is-empty" id="stat-total-players">-</div>
                     </div>
                 </div>
 
-                <!-- =========================================================
-                     👤 [NEW] 선수별 상세 기록 · 점수 추이 · 상대별 승률 분석 보드
-                     ========================================================= -->
-                <div class="card" style="margin-bottom: 28px; border: 2px solid #dbeafe;">
-                    <div class="card-hd" style="background: linear-gradient(90deg, #eff6ff 0%, #f8fafc 100%);">
-                        <div class="title" style="color:#1e40af; font-size:16px;">🎯 선수별 상세 전적 · 점수 · 상대 승률 분석
-                            (Chart.js)</div>
-                        <span class="pill" style="background:#fff; color:#1d4ed8; border-color:#bfdbfe;">선수를 클릭하여
-                            분석</span>
+                <!-- 종합 랭킹 4종 (막대를 누르면 해당 선수가 아래 분석에 선택됩니다) -->
+                <div class="dx-rank-grid">
+                    <div class="dx-card dx-rank-card">
+                        <div class="dx-card-hd"><h3 class="dx-card-title">최다 우승 <span class="dx-card-sub">상위부·전체</span></h3></div>
+                        <div class="dx-chart-box"><canvas id="chart-wins" role="img" aria-label="상위부·전체 최다 우승 상위 10명 막대 차트"></canvas></div>
+                    </div>
+                    <div class="dx-card dx-rank-card">
+                        <div class="dx-card-hd"><h3 class="dx-card-title">최다 출석</h3></div>
+                        <div class="dx-chart-box"><canvas id="chart-attendance" role="img" aria-label="최다 출석 상위 10명 막대 차트"></canvas></div>
+                    </div>
+                    <div class="dx-card dx-rank-card">
+                        <div class="dx-card-hd"><h3 class="dx-card-title">하위부 최다 우승</h3></div>
+                        <div class="dx-chart-box"><canvas id="chart-wins-lower" role="img" aria-label="하위부 최다 우승 상위 10명 막대 차트"></canvas></div>
+                    </div>
+                    <div class="dx-card dx-rank-card">
+                        <div class="dx-card-hd"><h3 class="dx-card-title">하위부 최다 준우승</h3></div>
+                        <div class="dx-chart-box"><canvas id="chart-runners-lower" role="img" aria-label="하위부 최다 준우승 상위 10명 막대 차트"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- 선수별 기록 분석 -->
+                <div class="dx-card">
+                    <div class="dx-card-hd">
+                        <h3 class="dx-card-title">선수별 기록 분석</h3>
+                        <span class="dx-card-sub">선수를 선택하면 상세 기록이 표시됩니다</span>
                     </div>
 
-                    <div style="padding: 16px; display: grid; grid-template-columns: 310px 1fr; gap: 20px;"
-                        class="player-analytics-layout">
-                        <!-- 좌측: 선수 검색 및 리스트 (모바일 퀵 칩 + 아코디언 최적화) -->
-                        <div id="pa-player-selector-box"
-                            style="border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; padding: 12px; display:flex; flex-direction:column; max-height: 780px;">
-                            
-                            <!-- 📱 모바일 전용 상위 선수 퀵 선택 칩 (가로 스크롤) -->
+                    <div class="dx-pa">
+                        <!-- 좌측: 선수 검색 · 정렬 · 목록 -->
+                        <div id="pa-player-selector-box">
                             <div id="mobile-quick-player-chips"></div>
 
-                            <div style="margin-bottom: 8px;">
-                                <input type="text" id="pa-search-input" placeholder="🔍 선수 이름 검색..."
-                                    oninput="filterPlayerAnalyticsList()"
-                                    style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; font-weight:700; outline:none;" />
-                            </div>
-                            <div style="display:flex; gap:4px; margin-bottom:8px;">
-                                <button type="button" class="btn pa-sort-btn active" data-sort="points"
-                                    onclick="setPlayerAnalyticsSort('points')"
-                                    style="flex:1; padding:5px 4px; font-size:11px;">점수순</button>
-                                <button type="button" class="btn pa-sort-btn" data-sort="winrate"
-                                    onclick="setPlayerAnalyticsSort('winrate')"
-                                    style="flex:1; padding:5px 4px; font-size:11px;">승률순</button>
-                                <button type="button" class="btn pa-sort-btn" data-sort="attend"
-                                    onclick="setPlayerAnalyticsSort('attend')"
-                                    style="flex:1; padding:5px 4px; font-size:11px;">출석순</button>
-                                <button type="button" class="btn pa-sort-btn" data-sort="name"
-                                    onclick="setPlayerAnalyticsSort('name')"
-                                    style="flex:1; padding:5px 4px; font-size:11px;">이름순</button>
-                            </div>
-                            <div id="pa-player-list-container" style="overflow-y:auto; flex:1; display:flex; flex-direction:column;">
-                                <div id="pa-player-list"
-                                    style="display:flex; flex-direction:column; gap:6px; padding-right:2px;">
-                                    <!-- 선수 카드 목록 렌더링 영역 -->
+                            <div class="dx-list-tools">
+                                <input type="search" id="pa-search-input" class="dx-input" placeholder="선수 이름 검색"
+                                    aria-label="선수 이름 검색" autocomplete="off" oninput="filterPlayerAnalyticsList()" />
+                                <div class="dx-seg is-wide" role="group" aria-label="선수 정렬 기준">
+                                    <button type="button" class="dx-seg-btn active" data-sort="points" onclick="setPlayerAnalyticsSort('points')">점수순</button>
+                                    <button type="button" class="dx-seg-btn" data-sort="winrate" onclick="setPlayerAnalyticsSort('winrate')">승률순</button>
+                                    <button type="button" class="dx-seg-btn" data-sort="attend" onclick="setPlayerAnalyticsSort('attend')">출석순</button>
+                                    <button type="button" class="dx-seg-btn" data-sort="name" onclick="setPlayerAnalyticsSort('name')">이름순</button>
                                 </div>
                             </div>
-                            <button type="button" id="pa-list-toggle-btn" onclick="toggleMobilePlayerList()">
-                                <span id="pa-list-toggle-text">선수 목록 접기 ▴</span>
+                            <div class="dx-list-head" aria-hidden="true">
+                                <span>순위</span><span>선수</span><span class="dx-num">점수</span><span class="dx-num">출석</span><span class="dx-num">승률</span>
+                            </div>
+                            <div id="pa-player-list-container">
+                                <div id="pa-player-list" role="group" aria-label="선수 목록">
+                                    <!-- 선수 행 렌더링 영역 -->
+                                </div>
+                            </div>
+                            <button type="button" id="pa-list-toggle-btn" onclick="toggleMobilePlayerList()" aria-controls="pa-player-list-container">
+                                <span id="pa-list-toggle-text">선수 목록 접기</span>
                             </button>
                         </div>
 
-                        <!-- 우측: 선택된 선수의 상세 분석 보드 -->
-                        <div id="pa-detail-panel" style="display:flex; flex-direction:column; gap:18px; min-width:0;">
-                            <!-- 1) 선수 프로필 헤더 & KPI 요약 -->
-                            <div id="pa-profile-header"
-                                style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px;">
-                                <div style="color:#64748b; font-weight:700; text-align:center; padding:20px;">
-                                    👈 왼쪽 목록에서 분석할 선수를 선택해주세요.
+                        <!-- 우측: 선택한 선수의 상세 -->
+                        <div id="pa-detail-panel">
+                            <!-- 1) 프로필 · 핵심 수치 -->
+                            <div id="pa-profile-header">
+                                <div class="dx-empty">왼쪽 목록에서 선수를 선택해 주세요.</div>
+                            </div>
+
+                            <!-- 2) 차트 2종 -->
+                            <div class="dx-charts">
+                                <div class="dx-card">
+                                    <div class="dx-card-hd">
+                                        <h4 class="dx-card-title">대회별 점수와 누적 추이</h4>
+                                        <div class="dx-seg" id="pa-score-chart-types" role="group" aria-label="점수 차트 종류">
+                                            <button type="button" class="dx-seg-btn active" data-ctype="combo" onclick="changeScoreChartType('combo')">복합</button>
+                                            <button type="button" class="dx-seg-btn" data-ctype="line" onclick="changeScoreChartType('line')">꺾은선</button>
+                                            <button type="button" class="dx-seg-btn" data-ctype="bar" onclick="changeScoreChartType('bar')">막대</button>
+                                            <button type="button" class="dx-seg-btn" data-ctype="radar" onclick="changeScoreChartType('radar')">6각 능력치</button>
+                                        </div>
+                                    </div>
+                                    <div class="dx-chart-box is-tall">
+                                        <canvas id="chart-player-scores" role="img" aria-label="선택한 선수의 대회별 획득 점수와 누적 승점 차트"></canvas>
+                                    </div>
+                                </div>
+
+                                <div class="dx-card">
+                                    <div class="dx-card-hd">
+                                        <h4 class="dx-card-title">주요 상대별 전적</h4>
+                                        <div class="dx-seg" id="pa-opp-chart-types" role="group" aria-label="상대 전적 차트 종류">
+                                            <button type="button" class="dx-seg-btn active" data-octype="stackedBar" onclick="changeOppChartType('stackedBar')">승·패</button>
+                                            <button type="button" class="dx-seg-btn" data-octype="winRateBar" onclick="changeOppChartType('winRateBar')">승률</button>
+                                            <button type="button" class="dx-seg-btn" data-octype="doughnut" onclick="changeOppChartType('doughnut')">도넛</button>
+                                            <button type="button" class="dx-seg-btn" data-octype="polarArea" onclick="changeOppChartType('polarArea')">폴라</button>
+                                            <button type="button" class="dx-seg-btn" data-octype="bubble" onclick="changeOppChartType('bubble')">버블</button>
+                                        </div>
+                                    </div>
+                                    <div class="dx-chart-box is-tall">
+                                        <canvas id="chart-player-opponents" role="img" aria-label="선택한 선수의 주요 상대별 대결 횟수와 승률 차트"></canvas>
+                                    </div>
+                                    <p class="dx-note">맞대결이 많은 상위 12명 기준 · 막대나 항목을 누르면 맞대결 기록이 표시됩니다.</p>
                                 </div>
                             </div>
 
-                            <!-- 2) 차트 2종 그리드 (점수 추이 차트 + 상대별 승률/대결수 차트) -->
-                            <div
-                                style="display:grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap:16px;">
-                                <!-- 차트 A: 대회별 점수 & 추이 -->
-                                <div class="card" style="margin-bottom:0;">
-                                    <div class="card-hd" style="flex-wrap:wrap; gap:8px;">
-                                        <div class="title" style="font-size:14px;">📈 대회별 획득 점수 & 누적 추이</div>
-                                        <div style="display:flex; gap:4px; flex-wrap:wrap;" id="pa-score-chart-types">
-                                            <button type="button" class="btn pa-ctype-btn active" data-ctype="combo"
-                                                onclick="changeScoreChartType('combo')"
-                                                style="padding:3px 8px; font-size:11px;">📊 복합(막대+선)</button>
-                                            <button type="button" class="btn pa-ctype-btn" data-ctype="line"
-                                                onclick="changeScoreChartType('line')"
-                                                style="padding:3px 8px; font-size:11px;">📈 꺾은선</button>
-                                            <button type="button" class="btn pa-ctype-btn" data-ctype="bar"
-                                                onclick="changeScoreChartType('bar')"
-                                                style="padding:3px 8px; font-size:11px;">📊 막대</button>
-                                            <button type="button" class="btn pa-ctype-btn" data-ctype="radar"
-                                                onclick="changeScoreChartType('radar')"
-                                                style="padding:3px 8px; font-size:11px;">🕸️ 6각 능력치</button>
-                                        </div>
-                                    </div>
-                                    <div style="padding:14px; height:350px; position:relative;">
-                                        <canvas id="chart-player-scores"></canvas>
-                                    </div>
+                            <!-- 3) 상대 선수별 상세 전적 -->
+                            <div class="dx-card">
+                                <div class="dx-card-hd">
+                                    <h4 class="dx-card-title">상대 선수별 상세 전적 <span class="dx-card-sub">행을 선택하면 맞대결 기록이 열립니다</span></h4>
+                                    <input type="search" id="pa-opp-search" class="dx-input dx-filter" placeholder="상대 이름 필터"
+                                        aria-label="상대 이름 필터" autocomplete="off" oninput="renderSelectedPlayerOpponentTable()" />
                                 </div>
+                                <div class="dx-card-bd">
+                                    <div id="pa-opp-match-detail" aria-live="polite"></div>
 
-                                <!-- 차트 B: 상대별 맞대결 횟수 & 상대 승률 -->
-                                <div class="card" style="margin-bottom:0;">
-                                    <div class="card-hd" style="flex-wrap:wrap; gap:8px;">
-                                        <div class="title" style="font-size:14px;">🤝 주요 상대별 대결 횟수 & 승률</div>
-                                        <div style="display:flex; gap:4px; flex-wrap:wrap;" id="pa-opp-chart-types">
-                                            <button type="button" class="btn pa-octype-btn active"
-                                                data-octype="stackedBar" onclick="changeOppChartType('stackedBar')"
-                                                style="padding:3px 8px; font-size:11px;">📊 승/패 막대</button>
-                                            <button type="button" class="btn pa-octype-btn" data-octype="winRateBar"
-                                                onclick="changeOppChartType('winRateBar')"
-                                                style="padding:3px 8px; font-size:11px;">📈 승률(%)</button>
-                                            <button type="button" class="btn pa-octype-btn" data-octype="doughnut"
-                                                onclick="changeOppChartType('doughnut')"
-                                                style="padding:3px 8px; font-size:11px;">🍩 도넛</button>
-                                            <button type="button" class="btn pa-octype-btn" data-octype="polarArea"
-                                                onclick="changeOppChartType('polarArea')"
-                                                style="padding:3px 8px; font-size:11px;">🎯 폴라</button>
-                                            <button type="button" class="btn pa-octype-btn" data-octype="bubble"
-                                                onclick="changeOppChartType('bubble')"
-                                                style="padding:3px 8px; font-size:11px;">🫧 버블</button>
-                                        </div>
-                                    </div>
-                                    <div style="padding:14px; height:350px; position:relative;">
-                                        <canvas id="chart-player-opponents"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 3) 상대 선수별 전적 상세 테이블 & 클릭 시 맞대결 기록 -->
-                            <div class="card" style="margin-bottom:0;">
-                                <div class="card-hd" style="flex-wrap:wrap; gap:8px;">
-                                    <div class="title" style="font-size:14px;">⚔️ 상대 선수별 상세 전적 & 동반 대회 기록 <small
-                                            style="font-weight:600; color:#64748b;">(행 클릭 시 맞대결 상세 표시)</small></div>
-                                    <input type="text" id="pa-opp-search" placeholder="상대 이름 필터..."
-                                        oninput="renderSelectedPlayerOpponentTable()"
-                                        style="padding:4px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; width:160px;" />
-                                </div>
-                                <div style="padding:12px;">
-                                    <div id="pa-opp-match-detail"
-                                        style="display:none; margin-bottom:12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:12px;">
-                                    </div>
-                                    <!-- 💻 데스크톱: 가로 스크롤 보호 테이블 (열 너비 깨짐 원천 방지) -->
-                                    <div id="pa-opp-table-desktop"
-                                        style="max-height:280px; overflow-y:auto; overflow-x:auto; border:1px solid #e2e8f0; border-radius:8px;">
-                                        <table
-                                            style="width:100%; min-width:580px; border-collapse:collapse; font-size:13px; text-align:center; white-space:nowrap;">
-                                            <thead style="position:sticky; top:0; background:#f1f5f9; z-index:1;">
+                                    <!-- PC: 표 -->
+                                    <div id="pa-opp-table-desktop">
+                                        <table class="dx-table">
+                                            <thead>
                                                 <tr>
-                                                    <th style="padding:8px; border-bottom:1px solid #cbd5e1;">상대 선수</th>
-                                                    <th style="padding:8px; border-bottom:1px solid #cbd5e1;">함께 참가한 대회</th>
-                                                    <th style="padding:8px; border-bottom:1px solid #cbd5e1;">맞대결 수</th>
-                                                    <th style="padding:8px; border-bottom:1px solid #cbd5e1;">전적 (승-패)</th>
-                                                    <th style="padding:8px; border-bottom:1px solid #cbd5e1;">세트 득실</th>
-                                                    <th style="padding:8px; border-bottom:1px solid #cbd5e1; min-width:140px;">상대 승률</th>
+                                                    <th scope="col">상대 선수</th>
+                                                    <th scope="col">함께 참가한 대회</th>
+                                                    <th scope="col">맞대결</th>
+                                                    <th scope="col">전적</th>
+                                                    <th scope="col">세트 득실</th>
+                                                    <th scope="col">상대 승률</th>
                                                 </tr>
                                             </thead>
                                             <tbody id="pa-opp-tbody">
-                                                <tr>
-                                                    <td colspan="6" style="padding:20px; color:#94a3b8;">선수를 선택하면 상대별 전적이 표시됩니다.</td>
-                                                </tr>
+                                                <tr><td colspan="6" class="is-msg">선수를 선택하면 상대별 전적이 표시됩니다.</td></tr>
                                             </tbody>
                                         </table>
                                     </div>
 
-                                    <!-- 📱 모바일: 카드형 뷰 (터치 친화적, 줄바꿈 없음) -->
-                                    <div id="pa-opp-cards-mobile" style="max-height:360px; overflow-y:auto;">
-                                        <div style="padding:20px; text-align:center; color:#94a3b8; font-size:13px;">
-                                            선수를 선택하면 상대별 전적이 카드 형태로 표시됩니다.
-                                        </div>
+                                    <!-- 모바일: 카드 목록 -->
+                                    <div id="pa-opp-cards-mobile">
+                                        <div class="dx-empty">선수를 선택하면 상대별 전적이 표시됩니다.</div>
                                     </div>
                                 </div>
                             </div>
@@ -3347,28 +3283,29 @@
                     </div>
                 </div>
 
-                <!-- 1:1 전적 직접 비교 -->
-                <div class="card">
-                    <div class="card-hd">
-                        <div class="title">⚔️ 1:1 상대 전적 직접 비교</div>
+                <!-- 1:1 직접 비교 -->
+                <div class="dx-card">
+                    <div class="dx-card-hd">
+                        <h3 class="dx-card-title">1:1 상대 전적 비교</h3>
                     </div>
-                    <div class="h2h-box" style="max-width: 600px; margin: 0 auto;">
-                        <div class="h2h-selects">
-                            <select id="h2h-p1" class="select">
-                                <option value="">선수 1</option>
-                            </select>
-                            <span style="align-self:center; font-weight:900; color:#cbd5e1;">VS</span>
-                            <select id="h2h-p2" class="select">
-                                <option value="">선수 2</option>
-                            </select>
-                        </div>
-                        <button id="btn-h2h-search" class="btn primary" style="width:100%; margin-bottom:16px;">🔍 전적
-                            조회</button>
+                    <div class="dx-card-bd">
+                        <div class="h2h-box dx-h2h">
+                            <div class="h2h-selects">
+                                <select id="h2h-p1" class="select" aria-label="선수 1">
+                                    <option value="">선수 1</option>
+                                </select>
+                                <span class="dx-vs">VS</span>
+                                <select id="h2h-p2" class="select" aria-label="선수 2">
+                                    <option value="">선수 2</option>
+                                </select>
+                            </div>
+                            <button id="btn-h2h-search" type="button" class="dx-btn is-primary" style="width:100%; margin-bottom:14px;">전적 조회</button>
 
-                        <div id="h2h-result">
-                            <div style="color:#94a3b8; font-size:13px;">두 선수를 선택하고 조회하세요.</div>
+                            <div id="h2h-result">
+                                <div class="dx-h2h-hint">두 선수를 선택하고 조회해 주세요.</div>
+                            </div>
+                            <div id="h2h-list" class="h2h-list"></div>
                         </div>
-                        <div id="h2h-list" class="h2h-list"></div>
                     </div>
                 </div>
             </div>

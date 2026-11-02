@@ -1,0 +1,509 @@
+/* =========================================================
+   dashboard_redesign.css
+   통계 대시보드(#tab-dashboard-view) 전용 스타일.
+   - 모든 규칙은 #tab-dashboard-view 아래로 한정해 다른 화면(현재 경기/기록실/토너먼트 요약)에 영향을 주지 않는다.
+   - 의미별 색상: 승리=파랑, 패배=빨강, 증가(+)=초록, 감소(-)=빨강, 강조=네이비/파랑
+   ========================================================= */
+#tab-dashboard-view {
+    --dx-ink: #0f172a;
+    --dx-text: #1e293b;
+    --dx-muted: #64748b;
+    --dx-faint: #94a3b8;
+    --dx-line: #e2e8f0;
+    --dx-line-strong: #cbd5e1;
+    --dx-soft: #f8fafc;
+    --dx-accent: #1e40af;
+    --dx-accent-soft: #eff6ff;
+    --dx-win: #1d4ed8;
+    --dx-lose: #dc2626;
+    --dx-pos: #15803d;
+    --dx-radius: 10px;
+    /* 글꼴은 앱 전체(Pretendard)를 그대로 상속 */
+    color: var(--dx-text);
+}
+
+#tab-dashboard-view .dx {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ---------- 공통: 카드 ---------- */
+#tab-dashboard-view .dx-card {
+    background: #fff;
+    border: 1px solid var(--dx-line);
+    border-radius: var(--dx-radius);
+    box-shadow: none;
+    min-width: 0;
+}
+#tab-dashboard-view .dx-card-hd {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--dx-line);
+}
+#tab-dashboard-view .dx-card-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--dx-ink);
+}
+#tab-dashboard-view .dx-card-sub {
+    font-size: 12px;
+    color: var(--dx-muted);
+    font-weight: 400;
+}
+#tab-dashboard-view .dx-card-bd { padding: 16px; }
+
+/* ---------- 버튼 ---------- */
+#tab-dashboard-view .dx-btn {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 6px 12px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--dx-text);
+    background: #fff;
+    border: 1px solid var(--dx-line-strong);
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: none;
+    transition: background .12s, border-color .12s;
+}
+#tab-dashboard-view .dx-btn:hover:not(:disabled) { background: var(--dx-soft); border-color: var(--dx-faint); }
+#tab-dashboard-view .dx-btn:disabled { opacity: .55; cursor: not-allowed; }
+#tab-dashboard-view .dx-btn.is-primary { background: var(--dx-accent); border-color: var(--dx-accent); color: #fff; }
+#tab-dashboard-view .dx-btn.is-primary:hover:not(:disabled) { background: #1e3a8a; border-color: #1e3a8a; }
+#tab-dashboard-view .dx-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+#tab-dashboard-view .dx-btn.is-spinning svg { animation: dx-spin 1s linear infinite; }
+@keyframes dx-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+    #tab-dashboard-view .dx-btn.is-spinning svg { animation: none; }
+}
+
+#tab-dashboard-view :focus-visible {
+    outline: 2px solid var(--dx-win);
+    outline-offset: 2px;
+}
+
+/* ---------- 상단 헤더 ---------- */
+#tab-dashboard-view .dx-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+    padding: 4px 0 0;
+}
+#tab-dashboard-view .dx-head-main { min-width: 0; }
+#tab-dashboard-view .dx-eyebrow { font-size: 12px; color: var(--dx-muted); margin: 0 0 2px; }
+#tab-dashboard-view .dx-title { margin: 0; font-size: 22px; font-weight: 700; color: var(--dx-ink); letter-spacing: -0.01em; }
+#tab-dashboard-view .dx-head-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+
+/* 데이터 상태 */
+#tab-dashboard-view .dx-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 6px;
+    font-size: 12.5px;
+    color: var(--dx-muted);
+    line-height: 1.4;
+}
+#tab-dashboard-view .dx-status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dx-faint); flex-shrink: 0; }
+#tab-dashboard-view .dx-status[data-state="loading"] .dx-status-dot { background: #d97706; }
+#tab-dashboard-view .dx-status[data-state="ok"] .dx-status-dot { background: var(--dx-pos); }
+#tab-dashboard-view .dx-status[data-state="warn"] .dx-status-dot { background: #d97706; }
+#tab-dashboard-view .dx-status[data-state="error"] { color: var(--dx-lose); }
+#tab-dashboard-view .dx-status[data-state="error"] .dx-status-dot { background: var(--dx-lose); }
+#tab-dashboard-view .dx-status-time { color: var(--dx-faint); }
+
+/* QR 배지 (기존 supabase_live.js 가 id 로 참조 — id/구조 유지, 스타일만 정돈) */
+#tab-dashboard-view .header-qr-badge {
+    border: 1px solid var(--dx-line-strong);
+    box-shadow: none;
+    border-radius: 8px;
+    padding: 2px 10px 2px 3px;
+    margin-left: 0;
+    background: #fff;
+}
+#tab-dashboard-view .header-qr-badge:hover { transform: none; box-shadow: none; background: var(--dx-soft); border-color: var(--dx-faint); }
+#tab-dashboard-view .mini-qr-box { width: 34px; height: 34px; }
+#tab-dashboard-view .mini-qr-box img, #tab-dashboard-view .mini-qr-box canvas { width: 34px !important; height: 34px !important; }
+#tab-dashboard-view .qr-label-title { font-size: 12px; font-weight: 600; color: var(--dx-text); }
+#tab-dashboard-view .qr-label-sub { font-size: 11px; font-weight: 400; color: var(--dx-muted); }
+
+/* ---------- 전체 요약 ---------- */
+#tab-dashboard-view .dx-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+#tab-dashboard-view .dx-kpi { padding: 14px 18px; display: flex; flex-direction: column-reverse; gap: 2px; }
+#tab-dashboard-view .dx-kpi-label { font-size: 13px; color: var(--dx-muted); font-weight: 500; }
+#tab-dashboard-view .dx-kpi-val { font-size: 28px; font-weight: 700; color: var(--dx-ink); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.15; }
+#tab-dashboard-view .dx-kpi-val.is-empty { color: var(--dx-faint); font-weight: 500; }
+#tab-dashboard-view .dx-kpi-val { white-space: nowrap; }
+#tab-dashboard-view .dx-unit { margin-left: 2px; font-size: 0.55em; font-weight: 500; color: var(--dx-muted); letter-spacing: 0; }
+
+/* ---------- 랭킹 차트 4종 ---------- */
+#tab-dashboard-view .dx-rank-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+}
+#tab-dashboard-view .dx-rank-card .dx-card-hd { padding: 10px 14px; }
+#tab-dashboard-view .dx-rank-card .dx-card-title { font-size: 13.5px; }
+#tab-dashboard-view .dx-rank-card .dx-chart-box { height: 220px; padding: 10px 12px; position: relative; }
+
+/* ---------- 선수 분석 레이아웃 ---------- */
+#tab-dashboard-view .dx-pa {
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    gap: 16px;
+    padding: 16px;
+    align-items: start;
+}
+
+/* 선수 목록 */
+#tab-dashboard-view #pa-player-selector-box {
+    border: 1px solid var(--dx-line);
+    border-radius: var(--dx-radius);
+    background: #fff;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    max-height: 760px;
+    position: sticky;
+    top: 8px;
+    overflow: hidden;
+}
+#tab-dashboard-view .dx-list-tools { padding: 10px 10px 8px; border-bottom: 1px solid var(--dx-line); display: flex; flex-direction: column; gap: 8px; }
+#tab-dashboard-view .dx-input {
+    width: 100%;
+    min-height: 36px;
+    padding: 7px 10px;
+    font: inherit;
+    font-size: 14px;
+    color: var(--dx-ink);
+    background: #fff;
+    border: 1px solid var(--dx-line-strong);
+    border-radius: 8px;
+    outline: none;
+}
+#tab-dashboard-view .dx-input::placeholder { color: var(--dx-faint); }
+#tab-dashboard-view .dx-input:focus { border-color: var(--dx-win); box-shadow: 0 0 0 2px rgba(29, 78, 216, .15); }
+
+/* 정렬 (기존 .pa-sort-btn / data-sort 유지) */
+#tab-dashboard-view .dx-seg {
+    display: inline-flex;
+    padding: 2px;
+    gap: 2px;
+    background: #f1f5f9;
+    border-radius: 8px;
+    max-width: 100%;
+}
+#tab-dashboard-view .dx-seg.is-wide { display: flex; }
+#tab-dashboard-view .dx-seg .dx-seg-btn {
+    appearance: none;
+    flex: 1 1 auto;
+    min-height: 30px;
+    padding: 4px 10px;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--dx-muted);
+    background: transparent;
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+#tab-dashboard-view .dx-seg .dx-seg-btn:hover { color: var(--dx-ink); }
+#tab-dashboard-view .dx-seg .dx-seg-btn.active {
+    background: #fff;
+    color: var(--dx-accent);
+    font-weight: 700;
+    box-shadow: 0 0 0 1px var(--dx-line);
+}
+
+/* 선수 행 */
+#tab-dashboard-view .dx-list-head,
+#tab-dashboard-view .dx-prow {
+    display: grid;
+    grid-template-columns: 26px minmax(0, 1fr) 44px 36px 54px;
+    align-items: center;
+    gap: 4px;
+    padding: 0 12px;
+}
+#tab-dashboard-view .dx-list-head {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    font-size: 11.5px;
+    color: var(--dx-muted);
+    background: var(--dx-soft);
+    border-bottom: 1px solid var(--dx-line);
+}
+#tab-dashboard-view .dx-num { text-align: right; font-variant-numeric: tabular-nums; }
+#tab-dashboard-view #pa-player-list-container { overflow-y: auto; flex: 1; display: flex; flex-direction: column; min-height: 0; }
+#tab-dashboard-view #pa-player-list { display: flex; flex-direction: column; gap: 0; padding: 0; }
+#tab-dashboard-view .dx-prow {
+    appearance: none;
+    width: 100%;
+    margin: 0;
+    font: inherit;
+    text-align: left;
+    border-top: 0;
+    border-right: 0;
+    min-height: 40px;
+    font-size: 13px;
+    color: var(--dx-text);
+    border-bottom: 1px solid #f1f5f9;
+    border-left: 3px solid transparent;
+    cursor: pointer;
+    background: #fff;
+}
+#tab-dashboard-view .dx-prow:hover { background: var(--dx-soft); }
+#tab-dashboard-view .dx-prow:focus-visible { outline-offset: -2px; }
+#tab-dashboard-view .dx-prow.is-selected { background: var(--dx-accent-soft); border-left-color: var(--dx-win); }
+#tab-dashboard-view .dx-prow .dx-rk { text-align: center; color: var(--dx-faint); font-variant-numeric: tabular-nums; font-size: 12px; }
+#tab-dashboard-view .dx-prow.is-top3 .dx-rk { color: var(--dx-accent); font-weight: 700; }
+#tab-dashboard-view .dx-pname { display: flex; align-items: center; gap: 6px; min-width: 0; }
+#tab-dashboard-view .dx-pname-text { font-weight: 600; color: var(--dx-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+#tab-dashboard-view .dx-prow .dx-pts { font-weight: 700; color: var(--dx-ink); }
+#tab-dashboard-view .dx-prow .dx-sub { color: var(--dx-muted); }
+/* 승률 알약: 50% 이상=초록(양호), 50% 미만=회색 */
+#tab-dashboard-view .dx-wrpill {
+    display: inline-block;
+    padding: 1px 7px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.6;
+    border-radius: 999px;
+    font-variant-numeric: tabular-nums;
+}
+#tab-dashboard-view .dx-wrpill.is-good { background: #dcfce7; color: #15803d; }
+#tab-dashboard-view .dx-wrpill.is-low { background: #f1f5f9; color: #475569; }
+#tab-dashboard-view .dx-empty { padding: 28px 16px; text-align: center; color: var(--dx-muted); font-size: 13.5px; }
+
+/* 부수 배지 — 단색 통일 */
+#tab-dashboard-view .dx-grade {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    padding: 1px 7px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.5;
+    color: #334155;
+    background: #f1f5f9;
+    border: 1px solid var(--dx-line);
+    border-radius: 999px;
+    white-space: nowrap;
+}
+#tab-dashboard-view .dx-grade.is-lg { font-size: 12.5px; padding: 2px 10px; }
+
+/* 모바일 퀵 선택 칩 (기존 id 유지) */
+#tab-dashboard-view #mobile-quick-player-chips { display: none; gap: 6px; overflow-x: auto; padding: 10px 10px 8px; scrollbar-width: none; }
+#tab-dashboard-view #mobile-quick-player-chips::-webkit-scrollbar { display: none; }
+#tab-dashboard-view .quick-pchip {
+    flex-shrink: 0;
+    min-height: 34px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid var(--dx-line-strong);
+    color: var(--dx-text);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    gap: 5px;
+}
+#tab-dashboard-view .quick-pchip.active { background: var(--dx-accent) !important; color: #fff !important; border-color: var(--dx-accent) !important; }
+#tab-dashboard-view #pa-list-toggle-btn {
+    min-height: 40px;
+    margin: 0;
+    border: 0;
+    border-top: 1px solid var(--dx-line);
+    border-radius: 0;
+    background: var(--dx-soft);
+    color: var(--dx-text);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* ---------- 선수 상세 ---------- */
+#tab-dashboard-view #pa-detail-panel { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+#tab-dashboard-view #pa-profile-header { background: #fff; border: 1px solid var(--dx-line); border-radius: var(--dx-radius); padding: 16px; box-shadow: none; }
+#tab-dashboard-view .dx-pf-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    padding-bottom: 14px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--dx-line);
+}
+#tab-dashboard-view .dx-pf-name { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+#tab-dashboard-view .dx-pf-name h4 { margin: 0; font-size: 22px; font-weight: 700; color: var(--dx-ink); letter-spacing: -0.01em; }
+#tab-dashboard-view .dx-pf-meta { margin-top: 4px; font-size: 13px; color: var(--dx-muted); }
+#tab-dashboard-view .dx-pf-meta b { color: var(--dx-text); font-weight: 600; }
+#tab-dashboard-view .dx-awards { display: flex; flex-wrap: wrap; gap: 6px; }
+#tab-dashboard-view .dx-award {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    padding: 3px 10px;
+    font-size: 12.5px;
+    color: var(--dx-text);
+    background: #fff;
+    border: 1px solid var(--dx-line-strong);
+    border-radius: 999px;
+}
+#tab-dashboard-view .dx-award b { font-weight: 700; color: var(--dx-ink); font-variant-numeric: tabular-nums; }
+#tab-dashboard-view .dx-award.is-main { background: var(--dx-accent-soft); border-color: #bfdbfe; color: var(--dx-accent); }
+#tab-dashboard-view .dx-award.is-main b { color: var(--dx-accent); }
+#tab-dashboard-view .dx-award.is-none { color: var(--dx-muted); border-style: dashed; }
+
+#tab-dashboard-view .dx-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+#tab-dashboard-view .dx-metric { padding: 2px 0 2px 12px; border-left: 3px solid var(--dx-line-strong); }
+#tab-dashboard-view .dx-metric-label { font-size: 12.5px; color: var(--dx-muted); }
+#tab-dashboard-view .dx-metric-val { font-size: 26px; font-weight: 700; color: var(--dx-ink); margin: 2px 0; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.2; }
+#tab-dashboard-view .dx-metric-val.is-pos { color: var(--dx-pos); }
+#tab-dashboard-view .dx-metric-val.is-neg { color: var(--dx-lose); }
+#tab-dashboard-view .dx-metric-note { font-size: 12.5px; color: var(--dx-muted); line-height: 1.5; }
+#tab-dashboard-view .dx-metric-note b { color: var(--dx-text); font-weight: 600; }
+
+#tab-dashboard-view .dx-facts { margin: 0; padding: 12px 14px; background: var(--dx-soft); border: 1px solid var(--dx-line); border-radius: 8px; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px 16px; }
+#tab-dashboard-view .dx-fact dt { font-size: 12px; color: var(--dx-muted); margin: 0 0 1px; }
+#tab-dashboard-view .dx-fact dd { margin: 0; font-size: 13.5px; color: var(--dx-ink); font-weight: 600; word-break: keep-all; }
+#tab-dashboard-view .dx-fact .is-win { color: var(--dx-win); }
+#tab-dashboard-view .dx-fact .is-lose { color: var(--dx-lose); }
+
+/* ---------- 차트 영역 ---------- */
+#tab-dashboard-view .dx-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+#tab-dashboard-view .dx-chart-box.is-tall { height: 340px; padding: 12px 14px 14px; position: relative; }
+#tab-dashboard-view .dx-note { margin: 0; padding: 0 16px 12px; font-size: 12px; color: var(--dx-muted); }
+
+/* ---------- 상대 전적 표 ---------- */
+#tab-dashboard-view .dx-filter { width: 180px; min-height: 34px; padding: 5px 10px; font-size: 13px; }
+#tab-dashboard-view #pa-opp-match-detail {
+    display: none;
+    margin-bottom: 12px;
+    background: var(--dx-accent-soft);
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 12px 14px;
+}
+#tab-dashboard-view .dx-detail-hd { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+#tab-dashboard-view .dx-detail-title { font-size: 14px; font-weight: 700; color: var(--dx-accent); }
+#tab-dashboard-view .dx-detail-sum { font-size: 13px; color: var(--dx-text); margin-top: 2px; }
+#tab-dashboard-view .dx-mgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px; margin-top: 10px; }
+#tab-dashboard-view .dx-mrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; font-size: 12.5px; background: #fff; border: 1px solid var(--dx-line); border-radius: 6px; }
+#tab-dashboard-view .dx-mrow .dx-mdate { color: var(--dx-muted); }
+#tab-dashboard-view .dx-mrow .dx-mres { font-weight: 700; font-variant-numeric: tabular-nums; }
+#tab-dashboard-view .dx-mres.is-win { color: var(--dx-win); }
+#tab-dashboard-view .dx-mres.is-lose { color: var(--dx-lose); }
+
+#tab-dashboard-view #pa-opp-table-desktop { max-height: 320px; overflow: auto; border: 1px solid var(--dx-line); border-radius: 8px; }
+#tab-dashboard-view .dx-table { width: 100%; min-width: 640px; border-collapse: collapse; font-size: 13px; }
+#tab-dashboard-view .dx-table thead th {
+    position: sticky; top: 0; z-index: 1;
+    padding: 9px 10px;
+    font-size: 12px; font-weight: 600; color: var(--dx-muted);
+    background: var(--dx-soft);
+    border-bottom: 1px solid var(--dx-line-strong);
+    white-space: nowrap;
+    text-align: right;
+}
+#tab-dashboard-view .dx-table thead th:first-child { text-align: left; }
+#tab-dashboard-view .dx-table td { padding: 0 10px; height: 44px; border-bottom: 1px solid #f1f5f9; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+#tab-dashboard-view .dx-table td:first-child { text-align: left; }
+#tab-dashboard-view .dx-table tbody tr { cursor: pointer; }
+#tab-dashboard-view .dx-table tbody tr:hover { background: var(--dx-soft); }
+#tab-dashboard-view .dx-table tbody tr:focus-visible { outline: 2px solid var(--dx-win); outline-offset: -2px; background: var(--dx-accent-soft); }
+#tab-dashboard-view .dx-table td.is-msg { text-align: center; color: var(--dx-muted); padding: 22px 10px; height: auto; cursor: default; }
+#tab-dashboard-view .dx-oname { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--dx-ink); }
+#tab-dashboard-view .dx-w { color: var(--dx-win); font-weight: 700; }
+#tab-dashboard-view .dx-l { color: var(--dx-lose); font-weight: 700; }
+#tab-dashboard-view .dx-pos { color: var(--dx-pos); font-weight: 600; }
+#tab-dashboard-view .dx-neg { color: var(--dx-lose); font-weight: 600; }
+#tab-dashboard-view .dx-zero { color: var(--dx-muted); }
+#tab-dashboard-view .dx-wr { display: inline-flex; align-items: center; justify-content: flex-end; gap: 8px; }
+#tab-dashboard-view .dx-wr-track { width: 64px; height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden; }
+#tab-dashboard-view .dx-wr-fill { height: 100%; background: var(--dx-win); }
+#tab-dashboard-view .dx-wr-fill.is-low { background: #94a3b8; }
+#tab-dashboard-view .dx-wr-num { min-width: 40px; text-align: right; font-weight: 700; color: var(--dx-ink); }
+
+/* 모바일 상대 카드 (기존 id/클래스 유지) */
+#tab-dashboard-view #pa-opp-cards-mobile { display: none; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; }
+#tab-dashboard-view .opp-card-item {
+    background: #fff;
+    border: 1px solid var(--dx-line);
+    border-radius: 8px;
+    padding: 12px 14px;
+    box-shadow: none;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+    width: 100%;
+}
+#tab-dashboard-view .opp-card-item:hover, #tab-dashboard-view .opp-card-item:active { background: var(--dx-soft); border-color: var(--dx-faint); }
+#tab-dashboard-view .dx-oc-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+#tab-dashboard-view .dx-oc-rec { display: flex; align-items: baseline; gap: 6px; font-size: 14px; white-space: nowrap; }
+#tab-dashboard-view .dx-oc-bot { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12.5px; color: var(--dx-muted); }
+
+/* ---------- 1:1 비교 ---------- */
+#tab-dashboard-view .dx-h2h { max-width: 640px; margin: 0 auto; }
+#tab-dashboard-view .dx-h2h .h2h-selects { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; align-items: center; margin-bottom: 12px; }
+#tab-dashboard-view .dx-h2h select { width: 100%; min-height: 38px; padding: 6px 10px; font: inherit; font-size: 14px; border: 1px solid var(--dx-line-strong); border-radius: 8px; background: #fff; color: var(--dx-ink); }
+#tab-dashboard-view .dx-vs { font-size: 12px; font-weight: 600; color: var(--dx-muted); }
+#tab-dashboard-view .dx-h2h .h2h-summary { background: var(--dx-soft); border: 1px solid var(--dx-line); border-radius: 8px; box-shadow: none; }
+#tab-dashboard-view .dx-h2h .h2h-summary .name { font-weight: 700; color: var(--dx-ink); }
+#tab-dashboard-view .dx-h2h .h2h-summary .score { font-weight: 700; color: var(--dx-win); }
+#tab-dashboard-view .dx-h2h .h2h-total { color: var(--dx-muted); }
+#tab-dashboard-view .dx-h2h .no-data, #tab-dashboard-view .dx-h2h-hint { color: var(--dx-muted); font-size: 13px; text-align: center; padding: 12px 0; }
+
+/* ---------- 반응형 ---------- */
+@media (max-width: 900px) {
+    #tab-dashboard-view .dx-pa { grid-template-columns: minmax(0, 1fr); padding: 12px; }
+    #tab-dashboard-view #pa-player-selector-box { position: static; max-height: none; }
+    #tab-dashboard-view .dx-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 768px) {
+    #tab-dashboard-view .dx { gap: 12px; }
+    #tab-dashboard-view .dx-title { font-size: 19px; }
+    #tab-dashboard-view .dx-head-actions { width: 100%; }
+    #tab-dashboard-view .dx-head-actions .dx-btn { flex: 1 1 auto; min-height: 40px; }
+    #tab-dashboard-view .dx-kpis { gap: 8px; }
+    #tab-dashboard-view .dx-kpi { padding: 10px 10px; }
+    #tab-dashboard-view .dx-kpi-val { font-size: 22px; }
+    #tab-dashboard-view .dx-kpi-label { font-size: 12px; }
+    #tab-dashboard-view .dx-rank-grid { grid-template-columns: minmax(0, 1fr); }
+    #tab-dashboard-view .dx-rank-card .dx-chart-box { height: 200px; }
+    #tab-dashboard-view #mobile-quick-player-chips { display: flex; }
+    #tab-dashboard-view #pa-list-toggle-btn { display: flex; }
+    #tab-dashboard-view #pa-player-list-container { max-height: 300px; }
+    #tab-dashboard-view .dx-metrics { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+    #tab-dashboard-view .dx-charts { grid-template-columns: minmax(0, 1fr); }
+    #tab-dashboard-view .dx-chart-box.is-tall { height: 300px; }
+    #tab-dashboard-view #pa-opp-table-desktop { display: none; }
+    #tab-dashboard-view #pa-opp-cards-mobile { display: flex; }
+    #tab-dashboard-view .dx-filter { width: 100%; }
+    #tab-dashboard-view .dx-seg { overflow-x: auto; scrollbar-width: none; }
+    #tab-dashboard-view .dx-seg .dx-seg-btn { min-height: 36px; }
+    #tab-dashboard-view .dx-card-hd .dx-seg { width: 100%; }
+    #tab-dashboard-view .dx-pf-name h4 { font-size: 20px; }
+}

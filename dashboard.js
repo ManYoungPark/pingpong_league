@@ -17,9 +17,54 @@ let selectedScoreChartType = "combo"; // 'combo' | 'line' | 'bar' | 'radar'
 let selectedOppChartType = "stackedBar"; // 'stackedBar' | 'winRateBar' | 'doughnut' | 'polarArea' | 'bubble'
 let dashSyncInProgress = false;
 
+// 화면 표시용 색상 (같은 의미에는 항상 같은 색: 승리=파랑, 패배=빨강, 강조=네이비)
+const DX = {
+    win: "#1d4ed8",
+    lose: "#dc2626",
+    accent: "#1e40af",
+    accentSoft: "#93b4ea",
+    ink: "#0f172a",
+    text: "#475569",
+    grid: "#e8edf3",
+    palette: [
+        "#1e40af", "#2563eb", "#60a5fa", "#0f766e", "#14b8a6", "#5eead4",
+        "#475569", "#94a3b8", "#7c3aed", "#a78bfa", "#b45309", "#d6a756"
+    ]
+};
+
+// Chart.js 공통 모양 (이 파일의 차트에만 적용됨 — 다른 화면은 Chart.js를 쓰지 않음)
+if (window.Chart) {
+    Chart.defaults.font.family = '"Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Noto Sans KR", sans-serif';
+    Chart.defaults.font.size = 12;
+    Chart.defaults.color = DX.text;
+    Chart.defaults.borderColor = DX.grid;
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.plugins.legend.labels.boxWidth = 8;
+    Chart.defaults.plugins.legend.labels.boxHeight = 8;
+    Chart.defaults.plugins.tooltip.padding = 10;
+}
+
+// 화면에 이름 등을 넣을 때 사용하는 간단한 이스케이프
+function dxEsc(v) {
+    return String(v == null ? "" : v)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     initTabs();
     renderHistory();
+
+    // 대시보드 QR 배지: 키보드(Enter/Space)로도 열 수 있게 함
+    const dashQr = document.getElementById("btn-dash-qr");
+    if (dashQr) {
+        dashQr.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                dashQr.click();
+            }
+        });
+    }
 });
 
 /* =========================================
@@ -86,19 +131,36 @@ function renderHistory() {
 /* =========================================
    3. Google Drive Data Sync & Caching
    ========================================= */
-function setDashSyncStatus(text, isLoading = false) {
-    const el = document.getElementById("dash-sync-status");
-    if (!el) return;
-    el.textContent = text;
-    if (isLoading) {
-        el.style.background = "#fef9c3";
-        el.style.color = "#854d0e";
-        el.style.borderColor = "#fde047";
-    } else {
-        el.style.background = "#eff6ff";
-        el.style.color = "#1d4ed8";
-        el.style.borderColor = "#bfdbfe";
-    }
+// level: false/undefined = 정상, true/"error" = 오류, "warn" = 주의(저장된 통계 표시 중 등)
+function setDashSyncStatus(text, isLoading = false, level = false) {
+    const box = document.getElementById("dash-sync-status");
+    if (!box) return;
+    const textEl = document.getElementById("dash-sync-text");
+    const timeEl = document.getElementById("dash-sync-time");
+    let state = isLoading ? "loading" : "ok";
+    if (level === true || level === "error") state = "error";
+    else if (level === "warn") state = "warn";
+    box.dataset.state = state;
+    if (textEl) textEl.textContent = text; else box.textContent = text;
+    if (timeEl) timeEl.textContent = (state === "ok" || state === "warn") ? formatDashUpdatedAt(dashAnalytics && dashAnalytics.updatedAt) : "";
+}
+
+// 통계 계산본에 실제로 기록된 시각만 표시 (알 수 없으면 표시하지 않음)
+function formatDashUpdatedAt(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    const pad = (n) => String(n).padStart(2, "0");
+    return `· 마지막 업데이트 ${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function setDashRefreshBusy(isBusy) {
+    const btn = document.getElementById("btn-dash-refresh");
+    if (!btn) return;
+    btn.disabled = !!isBusy;
+    btn.classList.toggle("is-spinning", !!isBusy);
+    const label = document.getElementById("btn-dash-refresh-text");
+    if (label) label.textContent = isBusy ? "새로고침 중…" : "통계 새로고침";
 }
 
 function loadCachedSnapshots() {
@@ -195,6 +257,7 @@ function deserializeDashAnalytics(serialized) {
 
     return {
         signature: serialized.signature || "",
+        updatedAt: serialized.updatedAt || null,
         tourneyCount: serialized.tourneyCount || 0,
         totalMatches: serialized.totalMatches || 0,
         summaryList: serialized.summaryList || [],
@@ -338,7 +401,7 @@ async function initOrRenderDashboard() {
     if (precomputed) {
         dashAnalytics = precomputed;
         renderAllDashboardViews();
-        setDashSyncStatus(`⚡ 계산된 통계 즉시 로드 완료 (정규 ${dashAnalytics.tourneyCount}개 대회)`, false);
+        setDashSyncStatus(`저장된 통계를 표시했습니다 · 최신 여부를 확인하는 중 (정규 ${dashAnalytics.tourneyCount}개 대회)`, true);
     }
     // 2. 백그라운드에서 새 대회가 올라왔는지만 가볍게 확인
     await syncDashboardData(false);
@@ -348,14 +411,13 @@ async function syncDashboardData(forceRefresh = false) {
     if (dashSyncInProgress) return;
     dashSyncInProgress = true;
 
-    const refreshBtn = document.getElementById("btn-dash-refresh");
-    if (refreshBtn) refreshBtn.disabled = true;
+    setDashRefreshBusy(true);
 
     try {
         if (forceRefresh) {
-            setDashSyncStatus("☁️ 구글 서버에서 전체 통계를 재계산하고 저장하는 중...", true);
+            setDashSyncStatus("서버에서 전체 통계를 다시 계산하고 저장하는 중입니다. 잠시만 기다려 주세요…", true);
         } else if (!dashAnalytics) {
-            setDashSyncStatus("☁️ 구글 서버(stats_cache)에서 계산된 통계를 불러오는 중...", true);
+            setDashSyncStatus("통계를 불러오는 중입니다…", true);
         }
 
         // [구조 0 - 초고속 Supabase DB] Supabase pingpong_stats_cache 가 활성화되어 있으면 0.05초 만에 즉시 로드
@@ -363,16 +425,17 @@ async function syncDashboardData(forceRefresh = false) {
             try {
                 const { data: sbRow, error: sbErr } = await window.pingpongSupabase
                     .from("stats_cache")
-                    .select("stats_json")
+                    .select("stats_json, updated_at")
                     .eq("id", "main")
                     .maybeSingle();
                 if (!sbErr && sbRow && sbRow.stats_json) {
                     const restoredSb = deserializeDashAnalytics(sbRow.stats_json);
                     if (restoredSb && restoredSb.tourneyCount > 0) {
+                        if (!restoredSb.updatedAt && sbRow.updated_at) restoredSb.updatedAt = sbRow.updated_at;
                         dashAnalytics = restoredSb;
                         savePrecomputedAnalyticsLocal(dashAnalytics, dashAnalytics.signature);
                         renderAllDashboardViews();
-                        setDashSyncStatus(`⚡ Supabase DB 통계 0.05초 로드 완료 (정규 ${dashAnalytics.tourneyCount}개 대회)`, false);
+                        setDashSyncStatus(`통계 업데이트 완료 · 정규 ${dashAnalytics.tourneyCount}개 대회`, false);
                         return;
                     }
                 }
@@ -402,9 +465,9 @@ async function syncDashboardData(forceRefresh = false) {
                     }
                     renderAllDashboardViews();
                     const modeLabel = forceRefresh
-                        ? "구글 서버 통계 재계산 및 시트 저장 완료"
-                        : (serverData.fromServerCache ? "구글 서버(stats_cache) 통계 즉시 로드 완료" : "구글 서버 자동 계산 및 로드 완료");
-                    setDashSyncStatus(`✅ ${modeLabel} (정규 ${dashAnalytics.tourneyCount}개 대회)`, false);
+                        ? "통계 새로고침 완료 (서버에서 다시 계산하고 저장함)"
+                        : (serverData.fromServerCache ? "통계 업데이트 완료" : "통계 업데이트 완료 (서버에서 새로 계산함)");
+                    setDashSyncStatus(`${modeLabel} · 정규 ${dashAnalytics.tourneyCount}개 대회`, false);
                     return;
                 }
             }
@@ -425,14 +488,14 @@ async function syncDashboardData(forceRefresh = false) {
 
         // [폴백 1] 강제 동기화가 아니고, 현재 메모리의 사전 계산 통계가 최신 대회 서명(signature)과 일치하면 재계산/다운로드 없이 즉시 종료!
         if (!forceRefresh && dashAnalytics && dashAnalytics.signature === signature) {
-            setDashSyncStatus(`✅ 최신 통계 표시 중 (정규 ${dashAnalytics.tourneyCount}개 대회 · 재계산 없음)`, false);
+            setDashSyncStatus(`최신 통계입니다 · 정규 ${dashAnalytics.tourneyCount}개 대회`, false);
             return;
         }
 
         // [핵심 2] 강제 동기화가 아니고, 새 대회가 추가되었는데 구글 드라이브에 이미 계산된 캐시(__STATS_CACHE_...)가 올라와 있다면
         // 다른 사람들은 40개 대회를 다운받거나 재계산하지 않고 그 계산된 결과 1개만 딱 읽어서 바로 표시!
         if (!forceRefresh && remoteCacheKeys.has(expectedCacheRowKey)) {
-            setDashSyncStatus("⚡ 서버에 미리 계산된 최신 통계를 불러오는 중...", true);
+            setDashSyncStatus("서버에 저장된 최신 통계를 불러오는 중입니다…", true);
             const cacheRes = await fetch(`${DASH_GAS_URL}?action=getData&date=${encodeURIComponent(expectedCacheRowKey)}`);
             const cacheData = await cacheRes.json();
             if (cacheData.success && cacheData.fullData) {
@@ -444,7 +507,7 @@ async function syncDashboardData(forceRefresh = false) {
                         dashAnalytics = restored;
                         savePrecomputedAnalyticsLocal(dashAnalytics, signature);
                         renderAllDashboardViews();
-                        setDashSyncStatus(`✅ 서버 계산본 즉시 로드 완료 (정규 ${dashAnalytics.tourneyCount}개 대회)`, false);
+                        setDashSyncStatus(`통계 업데이트 완료 · 정규 ${dashAnalytics.tourneyCount}개 대회`, false);
                         return;
                     }
                 }
@@ -482,7 +545,7 @@ async function syncDashboardData(forceRefresh = false) {
                         console.warn("Snapshot fetch error:", item.date, err);
                     } finally {
                         completed++;
-                        setDashSyncStatus(`☁️ 새 대회 데이터 불러와 재계산 중... (${completed}/${totalToFetch})`, true);
+                        setDashSyncStatus(`새 대회 기록을 불러와 다시 계산하는 중입니다… (${completed}/${totalToFetch})`, true);
                     }
                 }));
             }
@@ -499,6 +562,7 @@ async function syncDashboardData(forceRefresh = false) {
 
         dashAnalytics = buildAnalyticsFromSnapshots(finalSnapshots);
         dashAnalytics.signature = signature;
+        dashAnalytics.updatedAt = new Date().toISOString(); // 방금 실제로 계산한 시각
 
         // 재계산된 결과를 로컬 캐시 및 구글 드라이브에 저장 (다음 접속자들은 재계산 없이 바로 조회!)
         savePrecomputedAnalyticsLocal(dashAnalytics, signature);
@@ -507,7 +571,7 @@ async function syncDashboardData(forceRefresh = false) {
         }
 
         renderAllDashboardViews();
-        setDashSyncStatus(`✅ 통계 재계산 및 캐시 갱신 완료 (정규 ${dashAnalytics.tourneyCount}개 대회)`, false);
+        setDashSyncStatus(`통계 새로고침 완료 (다시 계산하고 저장함) · 정규 ${dashAnalytics.tourneyCount}개 대회`, false);
 
     } catch (err) {
         console.error("Dashboard sync failed, falling back to precomputed or cache:", err);
@@ -516,12 +580,16 @@ async function syncDashboardData(forceRefresh = false) {
             if (pre) {
                 dashAnalytics = pre;
                 renderAllDashboardViews();
-                setDashSyncStatus(`⚡ 오프라인 사전 계산 통계 표시 중 (정규 ${dashAnalytics.tourneyCount}개 대회)`, false);
+                setDashSyncStatus(`저장된 통계를 표시 중입니다. 서버에 연결하지 못했습니다 · 정규 ${dashAnalytics.tourneyCount}개 대회`, false, "warn");
+            } else {
+                setDashSyncStatus("통계를 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 '통계 새로고침'을 눌러 주세요.", false, "error");
             }
+        } else {
+            setDashSyncStatus(`저장된 통계를 표시 중입니다. 최신 통계를 확인하지 못했습니다 · 정규 ${dashAnalytics.tourneyCount}개 대회`, false, "warn");
         }
     } finally {
         dashSyncInProgress = false;
-        if (refreshBtn) refreshBtn.disabled = false;
+        setDashRefreshBusy(false);
     }
 }
 
@@ -914,9 +982,12 @@ function renderAllDashboardViews() {
     const { tourneyCount, totalMatches, playersMap } = dashAnalytics;
 
     // 1. 상단 KPI
-    document.getElementById("stat-total-tourneys").textContent = `${tourneyCount}회`;
-    document.getElementById("stat-total-matches").textContent = `${totalMatches}경기`;
-    document.getElementById("stat-total-players").textContent = `${playersMap.size}명`;
+    document.getElementById("stat-total-tourneys").innerHTML = `${tourneyCount}<span class="dx-unit">회</span>`;
+    document.getElementById("stat-total-matches").innerHTML = `${totalMatches}<span class="dx-unit">경기</span>`;
+    document.getElementById("stat-total-players").innerHTML = `${playersMap.size}<span class="dx-unit">명</span>`;
+    ["stat-total-tourneys", "stat-total-matches", "stat-total-players"].forEach(id => {
+        document.getElementById(id)?.classList.remove("is-empty");
+    });
 
     // 2. 종합 랭킹 차트 4종
     const winCounts = {};
@@ -931,10 +1002,10 @@ function renderAllDashboardViews() {
         if (p.lowerRunners > 0) runnerLowerCounts[name] = p.lowerRunners;
     });
 
-    renderRankingBarChart("chart-wins", winCounts, "상위/전체 우승 횟수", ["#FFD700", "#C0C0C0", "#CD7F32", "#4bc0c0", "#36a2eb"]);
-    renderRankingBarChart("chart-attendance", attendCounts, "출석 횟수", "#36a2eb");
-    renderRankingBarChart("chart-wins-lower", winLowerCounts, "하위부 우승 횟수", "#4ade80");
-    renderRankingBarChart("chart-runners-lower", runnerLowerCounts, "하위부 준우승 횟수", "#fb923c");
+    renderRankingBarChart("chart-wins", winCounts, "상위/전체 우승 횟수", DX.accent);
+    renderRankingBarChart("chart-attendance", attendCounts, "출석 횟수", DX.accent);
+    renderRankingBarChart("chart-wins-lower", winLowerCounts, "하위부 우승 횟수", DX.accent);
+    renderRankingBarChart("chart-runners-lower", runnerLowerCounts, "하위부 준우승 횟수", DX.accent);
 
     // 3. 1:1 H2H 셀렉트 초기화
     initH2HSearch(Array.from(playersMap.keys()).sort((a, b) => a.localeCompare(b, "ko")));
@@ -977,8 +1048,8 @@ function renderRankingBarChart(canvasId, dataMap, label, colors) {
                 label,
                 data: values,
                 backgroundColor: bgColors,
-                borderRadius: 6,
-                borderWidth: 1
+                borderRadius: 4,
+                borderWidth: 0
             }]
         },
         options: {
@@ -986,7 +1057,7 @@ function renderRankingBarChart(canvasId, dataMap, label, colors) {
             maintainAspectRatio: false,
             plugins: { legend: { display: false } },
             scales: {
-                x: { ticks: { autoSkip: false, font: { size: 12, weight: "700" } } },
+                x: { grid: { display: false }, ticks: { autoSkip: false, font: { size: 12 } } },
                 y: { beginAtZero: true, ticks: { precision: 0 } }
             },
             onClick: (_, elements) => {
@@ -1005,8 +1076,10 @@ function renderRankingBarChart(canvasId, dataMap, label, colors) {
    ========================================= */
 function setPlayerAnalyticsSort(sortMode) {
     currentPaSort = sortMode;
-    document.querySelectorAll(".pa-sort-btn").forEach(btn => {
-        btn.classList.toggle("active", btn.dataset.sort === sortMode);
+    document.querySelectorAll(".dx-seg-btn[data-sort]").forEach(btn => {
+        const on = btn.dataset.sort === sortMode;
+        btn.classList.toggle("active", on);
+        btn.setAttribute("aria-pressed", on ? "true" : "false");
     });
     filterPlayerAnalyticsList();
 }
@@ -1014,17 +1087,7 @@ function setPlayerAnalyticsSort(sortMode) {
 function renderStyledGradeBadge(grade, isLarge = false) {
     if (!grade) return "";
     const gStr = String(grade).includes("부") || String(grade).includes("희망") ? String(grade) : `${grade}부`;
-    const num = parseInt(String(grade), 10);
-    let bg = "#eef2ff", fg = "#4338ca", bd = "#c7d2fe";
-    if (num === 1) { bg = "#ffe4e6"; fg = "#be123c"; bd = "#fecdd3"; }
-    else if (num === 2) { bg = "#ffedd5"; fg = "#c2410c"; bd = "#fed7aa"; }
-    else if (num === 3) { bg = "#dcfce7"; fg = "#15803d"; bd = "#bbf7d0"; }
-    else if (num === 4) { bg = "#e0f2fe"; fg = "#0369a1"; bd = "#bae6fd"; }
-    else if (num === 5) { bg = "#eef2ff"; fg = "#4338ca"; bd = "#c7d2fe"; }
-    else if (num >= 6) { bg = "#f3e8ff"; fg = "#7e22ce"; bd = "#e9d5ff"; }
-    const pad = isLarge ? "4px 10px" : "2px 6px";
-    const fz = isLarge ? "12px" : "10px";
-    return `<span style="background:${bg}; color:${fg}; border:1px solid ${bd}; padding:${pad}; border-radius:999px; font-size:${fz}; font-weight:800; display:inline-flex; align-items:center;">${gStr}</span>`;
+    return `<span class="dx-grade${isLarge ? " is-lg" : ""}">${dxEsc(gStr)}</span>`;
 }
 
 function filterPlayerAnalyticsList() {
@@ -1050,62 +1113,53 @@ function filterPlayerAnalyticsList() {
 
     listEl.innerHTML = "";
     if (players.length === 0) {
-        listEl.innerHTML = `<div style="padding:20px; text-align:center; color:#94a3b8; font-size:13px;">검색 결과가 없습니다.</div>`;
+        listEl.innerHTML = `<div class="dx-empty">검색 결과가 없습니다.</div>`;
         return;
     }
 
     players.forEach((p, idx) => {
         const winRate = p.matchesPlayed > 0 ? ((p.matchesWon / p.matchesPlayed) * 100).toFixed(1) : "0.0";
         const isSelected = (p.name === selectedPlayerName);
-        const card = document.createElement("div");
-        card.dataset.playerName = p.name;
-        card.style.cssText = `
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 10px 12px; border-radius: 12px; cursor: pointer;
-            border: ${isSelected ? "2px solid #2563eb" : "1px solid #e2e8f0"};
-            background: ${isSelected ? "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)" : "#ffffff"};
-            box-shadow: ${isSelected ? "0 4px 12px rgba(37, 99, 235, 0.14)" : "0 1px 2px rgba(15, 23, 42, 0.03)"};
-            transition: all 0.16s ease;
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "dx-prow" + (idx < 3 ? " is-top3" : "") + (isSelected ? " is-selected" : "");
+        row.dataset.playerName = p.name;
+        row.setAttribute("aria-pressed", isSelected ? "true" : "false");
+        row.innerHTML = `
+            <span class="dx-rk">${idx + 1}</span>
+            <span class="dx-pname"><span class="dx-pname-text">${dxEsc(p.name)}</span>${renderStyledGradeBadge(p.grade, false)}</span>
+            <span class="dx-num dx-pts">${p.totalPoints}점</span>
+            <span class="dx-num dx-sub">${p.attendCount}회</span>
+            <span class="dx-num"><span class="dx-wrpill ${Number(winRate) >= 50 ? "is-good" : "is-low"}">${winRate}%</span></span>
         `;
-        const rankIcon = idx === 0 ? "🥇" : (idx === 1 ? "🥈" : (idx === 2 ? "🥉" : `${idx + 1}`));
-        const gradeBadge = renderStyledGradeBadge(p.grade, false);
-        card.innerHTML = `
-            <div style="display:flex; align-items:center; gap:7px; min-width:0;">
-                <span style="font-size:${idx < 3 ? '14px' : '12px'}; font-weight:900; color:${idx < 3 ? '#2563eb' : '#94a3b8'}; width:22px; text-align:center;">${rankIcon}</span>
-                <span style="font-weight:800; font-size:14px; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.name}</span>
-                ${gradeBadge}
-            </div>
-            <div style="display:flex; align-items:center; gap:8px; font-size:12px; flex-shrink:0;">
-                <span style="font-weight:900; color:#1d4ed8;">${p.totalPoints}점</span>
-                <span style="color:#64748b; font-weight:600;">${p.attendCount}회</span>
-                <span style="background:${Number(winRate) >= 50 ? '#dcfce7' : '#f1f5f9'}; color:${Number(winRate) >= 50 ? '#15803d' : '#475569'}; padding:2px 7px; border-radius:999px; font-weight:800; font-size:11px;">${winRate}%</span>
-            </div>
-        `;
-        card.addEventListener("click", () => {
+        row.addEventListener("click", () => {
             selectPlayerForAnalytics(p.name);
-            // 모바일에서 선수 선택 시 편의를 위해 목록을 자동으로 슬림하게 접음
+            // 모바일에서 선수 선택 시 편의를 위해 목록을 자동으로 접음
             if (window.innerWidth <= 768) {
                 const c = document.getElementById("pa-player-list-container");
                 const t = document.getElementById("pa-list-toggle-text");
-                if (c && t) { c.style.display = "none"; t.textContent = "선수 목록 전체보기 (펼치기 ▾)"; }
+                const tb = document.getElementById("pa-list-toggle-btn");
+                if (c && t) { c.style.display = "none"; t.textContent = "선수 목록 펼치기"; }
+                if (tb) tb.setAttribute("aria-expanded", "false");
             }
         });
-        listEl.appendChild(card);
+        listEl.appendChild(row);
     });
 
-    // 📱 모바일 상위 선수 퀵 칩 (상위 5명 + 현재 선택자)
+    // 모바일 상위 선수 퀵 칩 (상위 6명)
     const quickChipsEl = document.getElementById("mobile-quick-player-chips");
     if (quickChipsEl) {
-        const top5 = players.slice(0, 6);
-        quickChipsEl.innerHTML = top5.map((tp, tidx) => {
+        quickChipsEl.innerHTML = players.slice(0, 6).map((tp, tidx) => {
             const isSel = (tp.name === selectedPlayerName);
-            const rankEmoji = tidx === 0 ? "🥇" : (tidx === 1 ? "🥈" : (tidx === 2 ? "🥉" : `${tidx + 1}`));
-            return `<button type="button" class="quick-pchip ${isSel ? 'active' : ''}" onclick="selectPlayerForAnalytics('${tp.name}')">
-                <span>${rankEmoji}</span>
-                <span>${tp.name}</span>
-                <span style="font-size:10px; opacity:0.85;">(${tp.totalPoints}점)</span>
+            return `<button type="button" class="quick-pchip ${isSel ? "active" : ""}" data-name="${dxEsc(tp.name)}">
+                <span>${tidx + 1}</span>
+                <span>${dxEsc(tp.name)}</span>
+                <span style="font-size:11px; opacity:0.85;">${tp.totalPoints}점</span>
             </button>`;
         }).join("");
+        quickChipsEl.querySelectorAll(".quick-pchip").forEach(chip => {
+            chip.addEventListener("click", () => selectPlayerForAnalytics(chip.dataset.name));
+        });
     }
 }
 
@@ -1113,12 +1167,14 @@ function selectPlayerForAnalytics(name) {
     if (!dashAnalytics || !dashAnalytics.playersMap.has(name)) return;
     selectedPlayerName = name;
 
-    // 리스트 선택 하이라이트 갱신
-    document.querySelectorAll("#pa-player-list > div").forEach(el => {
+    // 목록·퀵 칩 선택 표시 갱신
+    document.querySelectorAll("#pa-player-list .dx-prow").forEach(el => {
         const isMe = (el.dataset.playerName === name);
-        el.style.border = isMe ? "2px solid #2563eb" : "1px solid #e2e8f0";
-        el.style.background = isMe ? "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)" : "#ffffff";
-        el.style.boxShadow = isMe ? "0 4px 12px rgba(37, 99, 235, 0.14)" : "0 1px 2px rgba(15, 23, 42, 0.03)";
+        el.classList.toggle("is-selected", isMe);
+        el.setAttribute("aria-pressed", isMe ? "true" : "false");
+    });
+    document.querySelectorAll("#mobile-quick-player-chips .quick-pchip").forEach(chip => {
+        chip.classList.toggle("active", chip.dataset.name === name);
     });
 
     const p = dashAnalytics.playersMap.get(name);
@@ -1153,72 +1209,64 @@ function renderSelectedPlayerProfile(p) {
     const bestWinOpp = [...opps].filter(o => o.played >= 2).sort((a, b) => (b.win / b.played) - (a.win / a.played) || (b.win - a.win))[0];
     const toughOpp = [...opps].filter(o => o.played >= 2).sort((a, b) => (a.win / a.played) - (b.win / b.played) || (b.lose - a.lose))[0];
 
-    const badges = [];
-    if (p.upperWins > 0) badges.push(`<span style="background:linear-gradient(135deg,#fef08a,#fde047); color:#854d0e; border:1px solid #facc15; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:800; box-shadow:0 2px 6px rgba(234,179,8,0.18);">🏆 상위/전체 우승 ${p.upperWins}회</span>`);
-    if (p.upperRunners > 0) badges.push(`<span style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:800;">🥈 상위 준우승 ${p.upperRunners}회</span>`);
-    if (p.upperSemis > 0) badges.push(`<span style="background:#ffedd5; color:#9a3412; border:1px solid #fed7aa; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:800;">🥉 상위 4강 ${p.upperSemis}회</span>`);
-    if (p.lowerWins > 0) badges.push(`<span style="background:#dcfce7; color:#166534; border:1px solid #86efac; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:800;">🍀 하위 우승 ${p.lowerWins}회</span>`);
-    if (p.lowerRunners > 0) badges.push(`<span style="background:#e0f2fe; color:#075985; border:1px solid #bae6fd; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:800;">🥈 하위 준우승 ${p.lowerRunners}회</span>`);
+    const awards = [];
+    if (p.upperWins > 0) awards.push(`<span class="dx-award is-main">상위/전체 우승 <b>${p.upperWins}회</b></span>`);
+    if (p.upperRunners > 0) awards.push(`<span class="dx-award">상위 준우승 <b>${p.upperRunners}회</b></span>`);
+    if (p.upperSemis > 0) awards.push(`<span class="dx-award">상위 4강 <b>${p.upperSemis}회</b></span>`);
+    if (p.lowerWins > 0) awards.push(`<span class="dx-award is-main">하위 우승 <b>${p.lowerWins}회</b></span>`);
+    if (p.lowerRunners > 0) awards.push(`<span class="dx-award">하위 준우승 <b>${p.lowerRunners}회</b></span>`);
 
-    const initial = p.name ? p.name.charAt(0) : "🏓";
-
-    headerEl.style.background = "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)";
-    headerEl.style.border = "1px solid #dbeafe";
-    headerEl.style.boxShadow = "0 8px 20px -6px rgba(37, 99, 235, 0.08)";
+    const oppText = (o, extra) => o ? `${dxEsc(o.name)} (${extra})` : "-";
 
     headerEl.innerHTML = `
-        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid #f1f5f9;">
-            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-                <div style="width:44px; height:44px; border-radius:14px; background:linear-gradient(135deg, #2563eb 0%, #4f46e5 100%); color:#fff; font-size:19px; font-weight:900; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 14px rgba(37,99,235,0.25);">
-                    ${initial}
+        <div class="dx-pf-top">
+            <div>
+                <div class="dx-pf-name">
+                    <h4>${dxEsc(p.name)}</h4>
+                    ${renderStyledGradeBadge(p.grade, true)}
                 </div>
-                <div>
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <span style="font-size:22px; font-weight:900; color:#0f172a; letter-spacing:-0.02em;">${p.name}</span>
-                        ${renderStyledGradeBadge(p.grade, true)}
-                    </div>
-                    <div style="font-size:12px; color:#64748b; font-weight:700; margin-top:2px;">
-                        정규 금요리그 출석 <b style="color:#1e293b;">${p.attendCount}회</b> / ${totalTourneys}회 (출석률 <b style="color:#2563eb;">${attendRate}%</b>)
-                    </div>
+                <div class="dx-pf-meta">
+                    정규 금요리그 출석 <b>${p.attendCount}회</b> / ${totalTourneys}회 (출석률 <b>${attendRate}%</b>)
                 </div>
             </div>
-            <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                ${badges.length > 0 ? badges.join("") : `<span style="font-size:12px; color:#94a3b8; background:#f8fafc; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0;">꾸준히 활약 중인 선수</span>`}
+            <div class="dx-awards">
+                ${awards.length > 0 ? awards.join("") : `<span class="dx-award is-none">입상 기록 없음</span>`}
             </div>
         </div>
 
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap:12px;">
-            <div style="background:#fff; border:1px solid #e2e8f0; border-top:3px solid #2563eb; border-radius:12px; padding:12px 14px; box-shadow:0 2px 6px rgba(15,23,42,0.02);">
-                <div style="font-size:11px; color:#64748b; font-weight:700;">통산 누적 승점</div>
-                <div style="font-size:24px; font-weight:900; color:#1d4ed8; margin:4px 0;">${p.totalPoints}점</div>
-                <div style="font-size:11px; color:#475569;">대회당 평균 <b>${avgPts}점</b> 획득</div>
+        <div class="dx-metrics">
+            <div class="dx-metric">
+                <div class="dx-metric-label">통산 누적 승점</div>
+                <div class="dx-metric-val">${p.totalPoints}점</div>
+                <div class="dx-metric-note">출석 대회당 평균 <b>${avgPts}점</b></div>
             </div>
-            <div style="background:#fff; border:1px solid #e2e8f0; border-top:3px solid #4f46e5; border-radius:12px; padding:12px 14px; box-shadow:0 2px 6px rgba(15,23,42,0.02);">
-                <div style="font-size:11px; color:#64748b; font-weight:700;">통산 매치 승률</div>
-                <div style="font-size:24px; font-weight:900; color:#0f172a; margin:4px 0;">${winRate}%</div>
-                <div style="font-size:11px; color:#475569;"><b>${p.matchesPlayed}전 ${p.matchesWon}승 ${p.matchesLost}패</b> (예선 ${p.groupWon}승/본선 ${p.bracketWon}승)</div>
+            <div class="dx-metric">
+                <div class="dx-metric-label">통산 매치 승률</div>
+                <div class="dx-metric-val">${winRate}%</div>
+                <div class="dx-metric-note">총 ${p.matchesPlayed}경기 중 <b>${p.matchesWon}승 ${p.matchesLost}패</b><br>예선 ${p.groupWon}승 · 본선 ${p.bracketWon}승</div>
             </div>
-            <div style="background:#fff; border:1px solid #e2e8f0; border-top:3px solid ${setDiff >= 0 ? '#10b981' : '#ef4444'}; border-radius:12px; padding:12px 14px; box-shadow:0 2px 6px rgba(15,23,42,0.02);">
-                <div style="font-size:11px; color:#64748b; font-weight:700;">통산 세트 득실</div>
-                <div style="font-size:24px; font-weight:900; color:${setDiff >= 0 ? '#16a34a' : '#ef4444'}; margin:4px 0;">${setDiff >= 0 ? '+' : ''}${setDiff}</div>
-                <div style="font-size:11px; color:#475569;">${p.setsFor}득 / ${p.setsAgainst}실 (득실률 <b>${setRatio}%</b>)</div>
-            </div>
-            <div style="background:#fff; border:1px solid #e2e8f0; border-top:3px solid #f59e0b; border-radius:12px; padding:12px 14px; box-shadow:0 2px 6px rgba(15,23,42,0.02);">
-                <div style="font-size:11px; color:#64748b; font-weight:700;">맞대결 & 동반출전 요약</div>
-                <div style="font-size:12px; color:#1e293b; margin-top:4px; line-height:1.55;">
-                    • 최다 대결: <b>${mostPlayedOpp ? `${mostPlayedOpp.name} (${mostPlayedOpp.played}전 ${mostPlayedOpp.win}승 ${mostPlayedOpp.lose}패)` : "-"}</b><br>
-                    • 최다 동반대회: <b>${mostCoAttendOpp ? `${mostCoAttendOpp.name} (${mostCoAttendOpp.coAttend}회)` : "-"}</b><br>
-                    • 강세/열세(2전↑): <span style="color:#1d4ed8;font-weight:800;">${bestWinOpp ? `${bestWinOpp.name}(${Math.round(bestWinOpp.win/bestWinOpp.played*100)}%)` : "-"}</span> / <span style="color:#ef4444;font-weight:800;">${toughOpp ? `${toughOpp.name}(${Math.round(toughOpp.win/toughOpp.played*100)}%)` : "-"}</span>
-                </div>
+            <div class="dx-metric">
+                <div class="dx-metric-label">통산 세트 득실</div>
+                <div class="dx-metric-val ${setDiff >= 0 ? "is-pos" : "is-neg"}">${setDiff >= 0 ? "+" : ""}${setDiff}</div>
+                <div class="dx-metric-note">${p.setsFor}득 / ${p.setsAgainst}실 (득실률 <b>${setRatio}%</b>)</div>
             </div>
         </div>
+
+        <dl class="dx-facts">
+            <div class="dx-fact"><dt>최다 대결 상대</dt><dd>${oppText(mostPlayedOpp, mostPlayedOpp ? `${mostPlayedOpp.played}전 ${mostPlayedOpp.win}승 ${mostPlayedOpp.lose}패` : "")}</dd></div>
+            <div class="dx-fact"><dt>최다 동반 대회</dt><dd>${oppText(mostCoAttendOpp, mostCoAttendOpp ? `${mostCoAttendOpp.coAttend}회` : "")}</dd></div>
+            <div class="dx-fact"><dt>강세 상대 (2전 이상 중 승률 최고)</dt><dd class="is-win">${oppText(bestWinOpp, bestWinOpp ? `${Math.round(bestWinOpp.win / bestWinOpp.played * 100)}%` : "")}</dd></div>
+            <div class="dx-fact"><dt>열세 상대 (2전 이상 중 승률 최저)</dt><dd class="is-lose">${oppText(toughOpp, toughOpp ? `${Math.round(toughOpp.win / toughOpp.played * 100)}%` : "")}</dd></div>
+        </dl>
     `;
 }
 
 function changeScoreChartType(ctype) {
     selectedScoreChartType = ctype;
-    document.querySelectorAll("#pa-score-chart-types .pa-ctype-btn").forEach(btn => {
-        btn.classList.toggle("active", btn.dataset.ctype === ctype);
+    document.querySelectorAll("#pa-score-chart-types .dx-seg-btn").forEach(btn => {
+        const on = btn.dataset.ctype === ctype;
+        btn.classList.toggle("active", on);
+        btn.setAttribute("aria-pressed", on ? "true" : "false");
     });
     if (selectedPlayerName && dashAnalytics?.playersMap.has(selectedPlayerName)) {
         renderSelectedPlayerScoreChart(dashAnalytics.playersMap.get(selectedPlayerName));
@@ -1227,8 +1275,10 @@ function changeScoreChartType(ctype) {
 
 function changeOppChartType(octype) {
     selectedOppChartType = octype;
-    document.querySelectorAll("#pa-opp-chart-types .pa-octype-btn").forEach(btn => {
-        btn.classList.toggle("active", btn.dataset.octype === octype);
+    document.querySelectorAll("#pa-opp-chart-types .dx-seg-btn").forEach(btn => {
+        const on = btn.dataset.octype === octype;
+        btn.classList.toggle("active", on);
+        btn.setAttribute("aria-pressed", on ? "true" : "false");
     });
     if (selectedPlayerName && dashAnalytics?.playersMap.has(selectedPlayerName)) {
         renderSelectedPlayerOpponentChart(dashAnalytics.playersMap.get(selectedPlayerName));
@@ -1269,9 +1319,9 @@ function renderSelectedPlayerScoreChart(p) {
                 datasets: [{
                     label: `${p.name} 능력치 지수 (100점 만점 환산)`,
                     data: [attendScore, matchWinScore, setScore, bracketScore, podiumScore, avgPtsScore],
-                    backgroundColor: "rgba(37, 99, 235, 0.2)",
-                    borderColor: "#2563eb",
-                    pointBackgroundColor: "#1d4ed8",
+                    backgroundColor: "rgba(30, 64, 175, 0.14)",
+                    borderColor: DX.accent,
+                    pointBackgroundColor: DX.accent,
                     borderWidth: 2
                 }]
             },
@@ -1299,8 +1349,8 @@ function renderSelectedPlayerScoreChart(p) {
                     {
                         label: "누적 승점 (점)",
                         data: cumData,
-                        borderColor: "#2563eb",
-                        backgroundColor: "rgba(37, 99, 235, 0.12)",
+                        borderColor: DX.accent,
+                        backgroundColor: "rgba(30, 64, 175, 0.08)",
                         fill: true,
                         tension: 0.3,
                         pointRadius: 4
@@ -1308,8 +1358,8 @@ function renderSelectedPlayerScoreChart(p) {
                     {
                         label: "대회별 획득 점수 (점)",
                         data: ptsData,
-                        borderColor: "#f59e0b",
-                        backgroundColor: "#f59e0b",
+                        borderColor: "#60a5fa",
+                        backgroundColor: "#60a5fa",
                         fill: false,
                         tension: 0.2,
                         pointRadius: 4
@@ -1345,13 +1395,13 @@ function renderSelectedPlayerScoreChart(p) {
                     {
                         label: "획득 점수 (점)",
                         data: ptsData,
-                        backgroundColor: "#3b82f6",
+                        backgroundColor: DX.accentSoft,
                         borderRadius: 4
                     },
                     {
                         label: "당일 승리 수 (승)",
                         data: dayWins,
-                        backgroundColor: "#10b981",
+                        backgroundColor: DX.win,
                         borderRadius: 4
                     }
                 ]
@@ -1386,8 +1436,8 @@ function renderSelectedPlayerScoreChart(p) {
                     type: "line",
                     label: "누적 승점",
                     data: cumData,
-                    borderColor: "#7c3aed",
-                    backgroundColor: "rgba(124, 58, 237, 0.1)",
+                    borderColor: DX.accent,
+                    backgroundColor: "rgba(30, 64, 175, 0.08)",
                     borderWidth: 2.5,
                     pointRadius: 3,
                     tension: 0.25,
@@ -1397,7 +1447,7 @@ function renderSelectedPlayerScoreChart(p) {
                     type: "bar",
                     label: "대회별 획득 점수",
                     data: ptsData,
-                    backgroundColor: ptsData.map(v => v >= 5 ? "#f59e0b" : "#60a5fa"),
+                    backgroundColor: DX.accentSoft,
                     borderRadius: 4,
                     yAxisID: "y"
                 }
@@ -1460,10 +1510,7 @@ function renderSelectedPlayerOpponentChart(p) {
     const playedArr = topOpps.map(o => o.played);
     const winRates = topOpps.map(o => Math.round((o.win / o.played) * 100));
 
-    const palette = [
-        "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899",
-        "#06b6d4", "#84cc16", "#f97316", "#6366f1", "#14b8a6", "#eab308"
-    ];
+    const palette = DX.palette;
 
     const onClickOpponent = (_, elements) => {
         if (elements && elements.length > 0) {
@@ -1481,7 +1528,7 @@ function renderSelectedPlayerOpponentChart(p) {
                 datasets: [{
                     label: "상대 승률 (%)",
                     data: winRates,
-                    backgroundColor: winRates.map(wr => wr >= 60 ? "#2563eb" : (wr >= 50 ? "#10b981" : "#f87171")),
+                    backgroundColor: winRates.map(wr => wr >= 50 ? DX.win : DX.lose),
                     borderRadius: 5
                 }]
             },
@@ -1489,7 +1536,7 @@ function renderSelectedPlayerOpponentChart(p) {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    x: { ticks: { autoSkip: false, font: { size: 12, weight: "700" } } },
+                    x: { grid: { display: false }, ticks: { autoSkip: false, font: { size: 12 } } },
                     y: { beginAtZero: true, max: 100, title: { display: true, text: "승률 (%)" } }
                 },
                 plugins: {
@@ -1523,7 +1570,7 @@ function renderSelectedPlayerOpponentChart(p) {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: "right", labels: { boxWidth: 12, font: { size: 11 } } },
+                    legend: { position: window.innerWidth <= 768 ? "bottom" : "right", labels: { boxWidth: 10, font: { size: 12 } } },
                     tooltip: {
                         callbacks: {
                             afterLabel: (item) => {
@@ -1589,13 +1636,13 @@ function renderSelectedPlayerOpponentChart(p) {
                 {
                     label: "승리 (승)",
                     data: wins,
-                    backgroundColor: "#2563eb",
+                    backgroundColor: DX.win,
                     borderRadius: 4
                 },
                 {
                     label: "패배 (패)",
                     data: losses,
-                    backgroundColor: "#f87171",
+                    backgroundColor: DX.lose,
                     borderRadius: 4
                 }
             ]
@@ -1610,8 +1657,8 @@ function renderSelectedPlayerOpponentChart(p) {
                     stacked: true,
                     ticks: {
                         autoSkip: false,
-                        font: { size: 12, weight: "700" },
-                        color: "#1e293b"
+                        font: { size: 12 },
+                        color: DX.ink
                     }
                 }
             },
@@ -1643,6 +1690,7 @@ function renderSelectedPlayerOpponentTable() {
 
     const tbody = document.getElementById("pa-opp-tbody");
     if (!tbody) return;
+    const mobileCardsEl = document.getElementById("pa-opp-cards-mobile");
 
     const filterTxt = (document.getElementById("pa-opp-search")?.value || "").trim().toLowerCase();
     const opps = Array.from(p.opponents.values()).filter(o => {
@@ -1656,82 +1704,75 @@ function renderSelectedPlayerOpponentTable() {
 
     tbody.innerHTML = "";
     if (opps.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="padding:18px; color:#94a3b8;">조건에 맞는 상대 기록이 없습니다.</td></tr>`;
+        const emptyMsg = filterTxt ? "조건에 맞는 상대 기록이 없습니다." : "표시할 상대 기록이 없습니다.";
+        tbody.innerHTML = `<tr><td colspan="6" class="is-msg">${emptyMsg}</td></tr>`;
+        if (mobileCardsEl) mobileCardsEl.innerHTML = `<div class="dx-empty">${emptyMsg}</div>`;
         return;
     }
 
+    const diffClass = (d) => d > 0 ? "dx-pos" : (d < 0 ? "dx-neg" : "dx-zero");
+    const diffText = (d) => `${d > 0 ? "+" : ""}${d}`;
+
     opps.forEach(o => {
         const oppGrade = dashAnalytics.playersMap.get(o.name)?.grade;
-        const gradeBadge = oppGrade ? `<span class="grade-badge">${oppGrade}부</span>` : "";
+        const gradeBadge = oppGrade ? renderStyledGradeBadge(oppGrade) : "";
         const wr = o.played > 0 ? Math.round((o.win / o.played) * 100) : null;
         const sDiff = o.setsFor - o.setsAgainst;
 
         const tr = document.createElement("tr");
-        tr.style.cssText = "border-bottom:1px solid #f1f5f9; cursor:pointer; transition:background 0.15s;";
-        tr.onmouseover = () => { tr.style.background = "#f8fafc"; };
-        tr.onmouseout = () => { tr.style.background = "transparent"; };
+        tr.tabIndex = 0;
+        tr.title = `${o.name} 맞대결 기록 보기`;
 
-        const wrBarHtml = (wr !== null)
-            ? `<div style="display:flex; align-items:center; gap:6px; justify-content:center;">
-                 <div style="width:70px; height:8px; background:#fee2e2; border-radius:999px; overflow:hidden;">
-                     <div style="width:${wr}%; height:100%; background:${wr >= 50 ? '#2563eb' : '#ef4444'};"></div>
-                 </div>
-                 <span style="font-weight:800; font-size:12px; color:${wr >= 50 ? '#1d4ed8' : '#ef4444'}; width:36px; text-align:right;">${wr}%</span>
-               </div>`
-            : `<span style="color:#94a3b8; font-size:12px;">대결 없음</span>`;
+        const wrHtml = (wr !== null)
+            ? `<span class="dx-wr"><span class="dx-wr-track"><span class="dx-wr-fill ${wr < 50 ? "is-low" : ""}" style="width:${wr}%; display:block;"></span></span><span class="dx-wr-num">${wr}%</span></span>`
+            : `<span class="dx-zero">대결 없음</span>`;
 
         tr.innerHTML = `
-            <td style="padding:8px; font-weight:800; color:#0f172a;">${o.name} ${gradeBadge}</td>
-            <td style="padding:8px; color:#475569;"><b>${o.coAttend}회</b> <small style="color:#94a3b8;">(같은조 ${o.sameGroup}회)</small></td>
-            <td style="padding:8px; font-weight:800;">${o.played}전</td>
-            <td style="padding:8px;">
-                <span style="color:#1d4ed8; font-weight:800;">${o.win}승</span> - <span style="color:#ef4444; font-weight:800;">${o.lose}패</span>
-            </td>
-            <td style="padding:8px; font-weight:700; color:${sDiff > 0 ? '#16a34a' : (sDiff < 0 ? '#ef4444' : '#64748b')};">
-                ${o.played > 0 ? `${sDiff > 0 ? '+' : ''}${sDiff} (${o.setsFor}/${o.setsAgainst})` : '-'}
-            </td>
-            <td style="padding:8px;">${wrBarHtml}</td>
+            <td><span class="dx-oname">${dxEsc(o.name)}${gradeBadge}</span></td>
+            <td><b>${o.coAttend}회</b> <span class="dx-zero">(같은 조 ${o.sameGroup}회)</span></td>
+            <td>${o.played}전</td>
+            <td><span class="dx-w">${o.win}승</span> <span class="dx-zero">-</span> <span class="dx-l">${o.lose}패</span></td>
+            <td>${o.played > 0 ? `<span class="${diffClass(sDiff)}">${diffText(sDiff)}</span> <span class="dx-zero">(${o.setsFor}/${o.setsAgainst})</span>` : `<span class="dx-zero">-</span>`}</td>
+            <td>${wrHtml}</td>
         `;
         tr.addEventListener("click", () => showOpponentMatchDetail(p.name, o.name));
+        tr.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                showOpponentMatchDetail(p.name, o.name);
+            }
+        });
         tbody.appendChild(tr);
     });
 
-    // 📱 모바일 전용 카드형 렌더링
-    const mobileCardsEl = document.getElementById("pa-opp-cards-mobile");
+    // 모바일 전용 카드형 렌더링
     if (mobileCardsEl) {
-        if (opps.length === 0) {
-            mobileCardsEl.innerHTML = `<div style="padding:16px; text-align:center; color:#94a3b8; font-size:13px;">조건에 맞는 상대 기록이 없습니다.</div>`;
-        } else {
-            mobileCardsEl.innerHTML = opps.map(o => {
-                const oppGrade = dashAnalytics.playersMap.get(o.name)?.grade;
-                const gradeBadge = oppGrade ? `<span class="grade-badge" style="font-size:11px; padding:2px 7px;">${oppGrade}부</span>` : "";
-                const wr = o.played > 0 ? Math.round((o.win / o.played) * 100) : null;
-                const sDiff = o.setsFor - o.setsAgainst;
-                const isSelected = (selectedPlayerName && p.name === selectedPlayerName);
-                return `
-                    <div class="opp-card-item" onclick="showOpponentMatchDetail('${p.name}', '${o.name}')">
-                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-                            <div style="display:flex; align-items:center; gap:6px;">
-                                <span style="font-weight:900; font-size:15px; color:#0f172a;">${o.name}</span>
-                                ${gradeBadge}
-                            </div>
-                            <div style="display:flex; align-items:center; gap:4px; font-size:13px; font-weight:800;">
-                                <span style="color:#1d4ed8;">${o.win}승</span>
-                                <span style="color:#94a3b8;">-</span>
-                                <span style="color:#ef4444;">${o.lose}패</span>
-                                <span style="background:${wr >= 50 ? '#dcfce7' : '#fee2e2'}; color:${wr >= 50 ? '#15803d' : '#b91c1c'}; padding:2px 7px; border-radius:999px; font-size:11px; margin-left:4px;">
-                                    ${wr !== null ? `${wr}%` : '대결없음'}
-                                </span>
-                            </div>
-                        </div>
-                        <div style="display:flex; align-items:center; justify-content:space-between; font-size:12px; color:#64748b;">
-                            <span>🤝 동반 참가 <b>${o.coAttend}회</b> (같은조 ${o.sameGroup}회)</span>
-                            <span>세트 득실 <b style="color:${sDiff > 0 ? '#16a34a' : (sDiff < 0 ? '#ef4444' : '#64748b')};">${sDiff > 0 ? '+' : ''}${sDiff}</b></span>
-                        </div>
-                    </div>
-                `;
-            }).join("");
-        }
+        const myName = p.name;
+        mobileCardsEl.innerHTML = opps.map(o => {
+            const oppGrade = dashAnalytics.playersMap.get(o.name)?.grade;
+            const gradeBadge = oppGrade ? renderStyledGradeBadge(oppGrade) : "";
+            const wr = o.played > 0 ? Math.round((o.win / o.played) * 100) : null;
+            const sDiff = o.setsFor - o.setsAgainst;
+            return `
+                <button type="button" class="opp-card-item" data-opp="${dxEsc(o.name)}">
+                    <span class="dx-oc-top">
+                        <span class="dx-oname">${dxEsc(o.name)}${gradeBadge}</span>
+                        <span class="dx-oc-rec">
+                            <span class="dx-w">${o.win}승</span><span class="dx-zero">-</span><span class="dx-l">${o.lose}패</span>
+                            <span class="dx-wr-num">${wr !== null ? `${wr}%` : "대결 없음"}</span>
+                        </span>
+                    </span>
+                    <span class="dx-oc-bot">
+                        <span>함께 참가 ${o.coAttend}회 (같은 조 ${o.sameGroup}회)</span>
+                        <span>세트 득실 <b class="${diffClass(sDiff)}">${diffText(sDiff)}</b></span>
+                    </span>
+                </button>
+            `;
+        }).join("");
+        mobileCardsEl.onclick = (e) => {
+            const card = e.target.closest(".opp-card-item");
+            if (card) showOpponentMatchDetail(myName, card.dataset.opp);
+        };
     }
 }
 
@@ -1747,15 +1788,13 @@ function showOpponentMatchDetail(myName, oppName) {
 
     let rowsHtml = "";
     if (matches.length === 0) {
-        rowsHtml = `<div style="color:#64748b; font-size:12px; padding:6px 0;">같은 대회에 ${o.coAttend}회 함께 참가했으나 직접 맞대결한 기록은 없습니다.</div>`;
+        rowsHtml = `<div class="dx-detail-sum" style="margin-top:8px;">같은 대회에 ${o.coAttend}회 함께 참가했으나 직접 맞대결한 기록은 없습니다.</div>`;
     } else {
-        rowsHtml = `<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap:6px; margin-top:8px;">` +
+        rowsHtml = `<div class="dx-mgrid">` +
             matches.map(m => `
-                <div style="background:#fff; border:1px solid #dbeafe; border-radius:8px; padding:6px 10px; display:flex; align-items:center; justify-content:space-between; font-size:12px;">
-                    <span style="color:#475569; font-weight:700;">${m.date} <small style="color:#94a3b8;">(${m.stage})</small></span>
-                    <span style="font-weight:900; color:${m.isWin ? '#1d4ed8' : '#ef4444'};">
-                        ${m.isWin ? '승' : '패'} (${m.myScore}:${m.opScore})
-                    </span>
+                <div class="dx-mrow">
+                    <span class="dx-mdate">${dxEsc(m.date)}${m.stage ? ` <small>(${dxEsc(m.stage)})</small>` : ""}</span>
+                    <span class="dx-mres ${m.isWin ? "is-win" : "is-lose"}">${m.isWin ? "승" : "패"} (${m.myScore}:${m.opScore})</span>
                 </div>
             `).join("") +
             `</div>`;
@@ -1763,14 +1802,19 @@ function showOpponentMatchDetail(myName, oppName) {
 
     box.style.display = "block";
     box.innerHTML = `
-        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-            <div style="font-weight:900; font-size:14px; color:#1e3a8a;">
-                ⚔️ [${myName}] vs [${oppName}] 맞대결 기록 — 총 ${o.played}전 ${o.win}승 ${o.lose}패 (승률 ${wr}% · 동반출전 ${o.coAttend}회)
+        <div class="dx-detail-hd">
+            <div>
+                <div class="dx-detail-title">${dxEsc(myName)} vs ${dxEsc(oppName)} 맞대결 기록</div>
+                <div class="dx-detail-sum">총 ${o.played}전 ${o.win}승 ${o.lose}패 · 승률 ${wr}% · 함께 참가 ${o.coAttend}회</div>
             </div>
-            <button type="button" class="btn" onclick="document.getElementById('pa-opp-match-detail').style.display='none'" style="padding:2px 8px; font-size:11px;">닫기</button>
+            <button type="button" class="dx-btn" id="pa-opp-detail-close">닫기</button>
         </div>
         ${rowsHtml}
     `;
+    document.getElementById("pa-opp-detail-close")?.addEventListener("click", () => {
+        box.style.display = "none";
+    });
+    box.scrollIntoView({ block: "nearest" });
 }
 
 /* =========================================
@@ -1871,13 +1915,15 @@ function showH2HResult(p1, p2) {
 function toggleMobilePlayerList() {
     const box = document.getElementById("pa-player-list-container");
     const txt = document.getElementById("pa-list-toggle-text");
+    const btn = document.getElementById("pa-list-toggle-btn");
     if (!box || !txt) return;
     const isCollapsed = box.style.display === "none";
     if (isCollapsed) {
         box.style.display = "flex";
-        txt.textContent = "선수 목록 접기 ▴";
+        txt.textContent = "선수 목록 접기";
     } else {
         box.style.display = "none";
-        txt.textContent = "선수 목록 전체보기 (펼치기 ▾)";
+        txt.textContent = "선수 목록 펼치기";
     }
+    if (btn) btn.setAttribute("aria-expanded", isCollapsed ? "true" : "false");
 }
