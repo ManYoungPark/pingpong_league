@@ -5,6 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>🏓 대덕밸리 탁구동호회 · 리그전 & 토너먼트 통합 시스템</title>
+
     <link rel="stylesheet" as="style" crossorigin
         href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
     <style>
@@ -2418,6 +2419,66 @@
 </head>
 
 <body>
+    <!-- 💬 카카오톡 인앱 브라우저 감지 시 상단 안내 배너 & 수동 탈출 버튼 -->
+    <div id="kakao-inapp-banner" style="display:none; background:#fee500; color:#191919; padding:12px 16px; font-size:13px; font-weight:700; border-bottom:2px solid #e5ce00; box-shadow:0 2px 8px rgba(0,0,0,0.1); position:relative; z-index:99999;">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:18px;">⚠️</span>
+                <span>카카오톡 브라우저는 실시간 중계가 불안정할 수 있습니다. <b>외부 브라우저</b>(크롬/사파리/삼성인터넷)로 열어주세요!</span>
+            </div>
+            <div style="display:flex; gap:6px;">
+                <button type="button" onclick="openKakaoExternal()" style="background:#191919; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:800; cursor:pointer;">
+                    🌐 다른 브라우저로 열기
+                </button>
+                <button type="button" onclick="copyCurrentUrlForKakao()" style="background:#fff; color:#191919; border:1px solid #191919; padding:6px 10px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer;">
+                    📋 링크 복사
+                </button>
+            </div>
+        </div>
+        <div style="margin-top:6px; font-size:11px; color:#555; font-weight:500;">
+            👉 우측 상단 <b>더보기 메뉴(··· 또는 ⋮)</b>를 누른 후 <b>[다른 브라우저로 열기]</b> 또는 <b>[Safari로 열기]</b>를 누르셔도 됩니다.
+        </div>
+    </div>
+    <script>
+        function openKakaoExternal() {
+            var ua = navigator.userAgent || "";
+            var currentUrl = location.href;
+            if (/Android/i.test(ua)) {
+                var scheme = location.protocol.replace(':', '');
+                var cleanUrl = currentUrl.replace(/https?:\/\//i, '');
+                location.href = 'intent://' + cleanUrl + '#Intent;scheme=' + scheme + ';action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end;';
+            } else {
+                location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(currentUrl);
+            }
+        }
+
+        function copyCurrentUrlForKakao() {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(location.href).then(function() {
+                    alert("✅ 링크 주소가 복사되었습니다!\n크롬, 사파리, 삼성 인터넷 등의 주소창에 붙여넣기 하시면 가장 안정적으로 이용하실 수 있습니다.");
+                }).catch(function() {
+                    prompt("아래 주소를 복사하여 브라우저 주소창에 붙여넣어 주세요:", location.href);
+                });
+            } else {
+                prompt("아래 주소를 복사하여 브라우저 주소창에 붙여넣어 주세요:", location.href);
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            var ua = navigator.userAgent || navigator.vendor || window.opera || "";
+            if (/KAKAOTALK/i.test(ua)) {
+                // 1. 카카오톡 전용 노란색 안내 배너 즉시 표시
+                var banner = document.getElementById("kakao-inapp-banner");
+                if (banner) banner.style.display = "block";
+
+                // 2. 0.3초 후 외부 브라우저(안드로이드: 크롬/삼성인터넷, iOS: 사파리) 자동 전환 시도
+                setTimeout(function() {
+                    openKakaoExternal();
+                }, 350);
+            }
+        });
+    </script>
+
     <header>
         <h1>
             <span style="color:#111827; margin-right:4px;">대덕밸리동호회</span>
