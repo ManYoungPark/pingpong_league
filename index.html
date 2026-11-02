@@ -4625,7 +4625,7 @@
             let inPool = [];
             for (const name of INITIAL_NAMES) {
                 const s = state.get(name);
-                if (s?.where === "pool") inPool.push(name);
+                if (!s || s.where === "pool" || s.team === "pool" || s.where !== "team") inPool.push(name);
             }
 
             // Sorting Logic
