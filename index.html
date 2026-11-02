@@ -2140,7 +2140,7 @@
     <script src="stats_cache.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="dashboard.js"></script>
-    <script src="supabase_live.js?v=20261103_player_del"></script>
+    <script src="supabase_live.js?v=20261103_player_rest"></script>
 
     <style id="ui-upgrade-theme">
         :root {
@@ -3483,8 +3483,9 @@
                 if (Array.isArray(cachedPlayers) && cachedPlayers.length > 0) {
                     cachedPlayers.forEach((p, idx) => {
                         const g = isNaN(Number(p.grade)) ? String(p.grade) : Number(p.grade);
-                        PLAYER_INFO.set(p.name, { id: p.id || `p${idx + 1}`, name: p.name, grade: g });
-                        if (!INITIAL_NAMES.includes(p.name)) INITIAL_NAMES.push(p.name);
+                        const isActive = p.active !== false;
+                        PLAYER_INFO.set(p.name, { id: p.id || `p${idx + 1}`, name: p.name, grade: g, active: isActive });
+                        if (isActive && !INITIAL_NAMES.includes(p.name)) INITIAL_NAMES.push(p.name);
                     });
                 }
             }
@@ -3496,9 +3497,12 @@
 
         function saveNames() {
             try {
-                const dataToSave = INITIAL_NAMES.map(name => {
-                    return PLAYER_INFO.get(name) || { name, grade: 0, id: 'unknown' };
-                });
+                const dataToSave = Array.from(PLAYER_INFO.entries()).map(([name, info]) => ({
+                    id: info.id,
+                    name: name,
+                    grade: info.grade,
+                    active: info.active !== false
+                }));
                 localStorage.setItem(CACHED_PLAYERS_KEY, JSON.stringify(dataToSave));
             } catch (e) { console.error("Save failed", e); }
         }
