@@ -22,10 +22,41 @@
     let sbAvailable = false;
     let localBroadcast = null;
 
+    // 🔐 관리자(진행자) PIN 비밀번호: 1111
+    const ADMIN_PIN = "1111";
+
     // 역할 모드: 'host' (진행자 편집/송출) | 'viewer' (실시간 관전 전용)
-    // URL 파라미터(?mode=viewer 또는 ?mode=host) 우선, 없으면 localStorage(기본값: 'host'이나 진행 중 경기 감지 시 선택 가능)
+    // 안전 원칙: 일반 접속은 무조건 안전한 'viewer'(관전자)가 기본값입니다.
+    // PIN(1111) 인증이 완료된 진행자 기기(아이패드 등)만 'host'로 동작합니다.
     const urlParams = new URLSearchParams(window.location.search);
-    let currentRole = urlParams.get("mode") || localStorage.getItem("pingpong_live_role") || "host";
+    const reqMode = urlParams.get("mode");
+    const reqPin = urlParams.get("pin");
+    const savedRole = localStorage.getItem("pingpong_live_role");
+    const savedPin = localStorage.getItem("pingpong_admin_token");
+
+    let currentRole = "viewer";
+    let pendingHostPrompt = false;
+
+    if (reqMode === "host") {
+        if (reqPin === ADMIN_PIN || savedPin === ADMIN_PIN) {
+            currentRole = "host";
+            localStorage.setItem("pingpong_admin_token", ADMIN_PIN);
+            localStorage.setItem("pingpong_live_role", "host");
+        } else {
+            currentRole = "viewer";
+            pendingHostPrompt = true;
+        }
+    } else if (reqMode === "viewer") {
+        currentRole = "viewer";
+        localStorage.setItem("pingpong_live_role", "viewer");
+    } else {
+        // 파라미터 없는 일반 접속: 관리자 토큰(1111)이 저장되어 있고 이전 모드가 host인 경우만 host 유지
+        if (savedPin === ADMIN_PIN && savedRole === "host") {
+            currentRole = "host";
+        } else {
+            currentRole = "viewer";
+        }
+    }
     let lastAppliedTimestamp = 0;
     let isApplyingRemoteState = false;
     let pushDebounceTimer = null;
@@ -160,19 +191,27 @@
             const bar = document.createElement("div");
             bar.id = "live-bar-wrap";
             bar.innerHTML = `
-                <button type="button" id="btn-live-role" class="live-badge-btn role-host" title="클릭하여 [진행자 송출 모드]와 [실시간 관전 모드]를 전환합니다">
+                <button type="button" id="btn-live-role" class="live-badge-btn role-host" title="클릭하여 모드를 전환합니다 (진행자 전환 시 비밀번호 1111 필요)">
                     <span class="live-dot pulse-blue" id="live-dot-ind"></span>
                     <span id="live-role-label">✏️ 진행자 모드 (실시간 송출)</span>
+                </button>
+                <button type="button" class="btn" id="btn-copy-viewer-url" style="padding:4px 10px; font-size:12px; border-radius:999px; background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; font-weight:700;" title="일반 회원들이 실시간으로 볼 수 있는 관전 전용 링크를 복사하여 카톡에 보냅니다">
+                    📢 카톡 관전 링크 복사
                 </button>
                 <span id="live-sync-status">📡 연결 준비 중...</span>
                 <button type="button" class="btn" id="btn-open-db-players" style="padding:4px 10px; font-size:12px; border-radius:999px;" title="회원 추가/삭제 및 부수(1~7부)를 DB에서 직접 수정합니다">
                     👥 회원·부수 관리
                 </button>
+                <button type="button" class="btn" id="btn-lock-viewer" style="padding:4px 8px; font-size:11.5px; border-radius:999px; background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1;" title="진행자 권한을 잠그고 일반 관전 모드로 전환합니다">
+                    🔒 관전자로 잠금
+                </button>
             `;
             headerH1.appendChild(bar);
 
             document.getElementById("btn-live-role").addEventListener("click", toggleLiveRole);
+            document.getElementById("btn-copy-viewer-url").addEventListener("click", copyViewerUrlForKakao);
             document.getElementById("btn-open-db-players").addEventListener("click", openPlayerManagerModal);
+            document.getElementById("btn-lock-viewer").addEventListener("click", logoutHostMode);
         }
 
         // 관전 모드 안내 배너 주입
@@ -191,7 +230,7 @@
             `;
             tabMatch.insertBefore(banner, tabMatch.firstChild);
             document.getElementById("btn-viewer-refresh").addEventListener("click", () => fetchLatestLiveState(true));
-            document.getElementById("btn-viewer-to-host").addEventListener("click", () => setLiveRole("host"));
+            document.getElementById("btn-viewer-to-host").addEventListener("click", () => requestHostMode());
         }
 
         // 토스트 메시지 엘리먼트
@@ -272,8 +311,59 @@
     }
 
     function toggleLiveRole() {
-        const nextRole = currentRole === "host" ? "viewer" : "host";
-        setLiveRole(nextRole);
+        if (currentRole === "host") {
+            logoutHostMode();
+        } else {
+            requestHostMode();
+        }
+    }
+
+    window.requestHostMode = requestHostMode;
+    window.logoutHostMode = logoutHostMode;
+    window.copyViewerUrlForKakao = copyViewerUrlForKakao;
+
+    // 🔐 PIN 비밀번호(1111) 확인 후 진행자 모드로 승인
+    function requestHostMode() {
+        if (currentRole === "host") return;
+        if (localStorage.getItem("pingpong_admin_token") === ADMIN_PIN) {
+            setLiveRole("host");
+            return;
+        }
+        const pin = prompt("👑 경기 진행자(관리자) 비밀번호 4자리를 입력하세요:", "");
+        if (pin === null) return; // 사용자가 취소함
+        if (pin.trim() === ADMIN_PIN) {
+            localStorage.setItem("pingpong_admin_token", ADMIN_PIN);
+            setLiveRole("host");
+            showLiveToast("👑 진행자(관리자) 권한이 승인되었습니다. 조 편성 및 점수 입력이 가능합니다.");
+        } else {
+            alert("❌ 비밀번호가 올바르지 않습니다. (실시간 관전 모드가 유지됩니다)");
+        }
+    }
+
+    // 🔒 진행자 모드 로그아웃 (관전자로 잠금)
+    function logoutHostMode() {
+        if (confirm("관전자 모드로 전환하시겠습니까?\n(다시 진행자 모드로 바꾸려면 비밀번호 1111이 필요합니다)")) {
+            localStorage.removeItem("pingpong_admin_token");
+            setLiveRole("viewer");
+        }
+    }
+
+    // 📢 카톡 단톡방 전송용 관전 링크 복사 함수
+    function copyViewerUrlForKakao() {
+        const u = new URL(window.location.href);
+        u.searchParams.set("mode", "viewer");
+        u.searchParams.delete("pin");
+        const shareUrl = u.toString();
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                showLiveToast("📢 [카톡 공유용 관전 링크]가 복사되었습니다! 단톡방에 붙여넣기 하세요.");
+            }).catch(() => {
+                prompt("카카오톡으로 공유할 관전용 링크입니다 (복사하여 전송):", shareUrl);
+            });
+        } else {
+            prompt("카카오톡으로 공유할 관전용 링크입니다 (복사하여 전송):", shareUrl);
+        }
     }
 
     function setLiveRole(role) {
@@ -293,6 +383,10 @@
         const btn = document.getElementById("btn-live-role");
         const dot = document.getElementById("live-dot-ind");
         const lbl = document.getElementById("live-role-label");
+        const copyBtn = document.getElementById("btn-copy-viewer-url");
+        const lockBtn = document.getElementById("btn-lock-viewer");
+        const playersBtn = document.getElementById("btn-open-db-players");
+
         if (!btn || !dot || !lbl) return;
 
         if (currentRole === "viewer") {
@@ -300,11 +394,19 @@
             btn.className = "live-badge-btn role-viewer";
             dot.className = "live-dot pulse-green";
             lbl.textContent = "👀 실시간 관전 모드 (자동 갱신)";
+            btn.title = "현재 실시간 관전 모드입니다. 클릭 시 진행자 모드로 전환(비밀번호 필요)";
+            if (copyBtn) copyBtn.style.display = "none";
+            if (lockBtn) lockBtn.style.display = "none";
+            if (playersBtn) playersBtn.style.display = "none";
         } else {
             document.body.classList.remove("live-viewer-mode");
             btn.className = "live-badge-btn role-host";
             dot.className = "live-dot pulse-blue";
             lbl.textContent = "✏️ 진행자 모드 (실시간 송출)";
+            btn.title = "현재 진행자 모드입니다. 클릭 시 관전자 모드로 전환";
+            if (copyBtn) copyBtn.style.display = "inline-flex";
+            if (lockBtn) lockBtn.style.display = "inline-flex";
+            if (playersBtn) playersBtn.style.display = "inline-flex";
         }
     }
 
@@ -913,6 +1015,13 @@
                 fetchLatestLiveState(false);
             }
         });
+
+        // 👑 URL에 ?mode=host 로 접속했으나 PIN 인증이 필요한 경우 프롬프트 실행
+        if (pendingHostPrompt) {
+            setTimeout(() => {
+                requestHostMode();
+            }, 600);
+        }
     }
 
     if (document.readyState === "loading") {
