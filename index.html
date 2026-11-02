@@ -1616,6 +1616,162 @@
             color: #db2777 !important;
             border-color: #fbcfe8 !important;
         }
+
+        /* =========================================================
+           📱 Mobile Dashboard Optimization (< 768px)
+           ========================================================= */
+        @media (max-width: 768px) {
+            /* 1. 상단 랭킹 차트 2열 그리드 & 높이 슬림화 */
+            #tab-dashboard-view .tm-dash-header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+            }
+            #tab-dashboard-view .tm-cards {
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 8px !important;
+            }
+            #tab-dashboard-view .tm-card {
+                padding: 10px 8px !important;
+            }
+            #tab-dashboard-view .tm-card .val {
+                font-size: 18px !important;
+            }
+            #tab-dashboard-view .tm-card .label {
+                font-size: 11px !important;
+            }
+
+            /* 2. 명예의 전당 4대 차트: 모바일에서 2열 배치 & 컴팩트 높이 (170px) */
+            .hof-charts-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 10px !important;
+            }
+            .hof-chart-card .card-hd {
+                padding: 6px 10px !important;
+            }
+            .hof-chart-card .title {
+                font-size: 11.5px !important;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .hof-chart-card .chart-wrap {
+                height: 160px !important;
+                padding: 6px !important;
+            }
+
+            /* 3. 모바일 선수 선택 영역 컴팩트 아코디언 & 폭 최적화 */
+            .player-analytics-layout {
+                grid-template-columns: minmax(0, 1fr) !important;
+                padding: 8px !important;
+                gap: 12px !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+            }
+            #pa-player-selector-box, #pa-detail-panel {
+                min-width: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+            }
+            #pa-player-list-container {
+                max-height: 280px !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+            }
+            #mobile-quick-player-chips {
+                display: flex !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+            }
+            #pa-list-toggle-btn {
+                display: flex !important;
+            }
+
+            /* 차트 2종 그리드 모바일 1열화 (minmax 360px 방지) */
+            #pa-detail-panel > div:nth-child(2) {
+                grid-template-columns: minmax(0, 1fr) !important;
+            }
+
+            /* 4. 상대 전적: 모바일 카드형 뷰 (너비 100% 핏 & 줄바꿈 없는 깔끔한 카드) */
+            #pa-opp-table-desktop {
+                display: none !important;
+            }
+            #pa-opp-cards-mobile {
+                display: flex !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+            }
+            .opp-card-item {
+                width: 100% !important;
+                box-sizing: border-box !important;
+            }
+            .tm-dash-header h3 {
+                font-size: 15px !important;
+                white-space: nowrap !important;
+            }
+        }
+
+        #mobile-quick-player-chips {
+            display: none;
+            gap: 6px;
+            overflow-x: auto;
+            padding: 4px 0 8px;
+            scrollbar-width: none;
+        }
+        #mobile-quick-player-chips::-webkit-scrollbar {
+            display: none;
+        }
+        .quick-pchip {
+            flex-shrink: 0;
+            padding: 5px 10px;
+            border-radius: 999px;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .quick-pchip.active {
+            background: #2563eb !important;
+            color: #ffffff !important;
+            border-color: #2563eb !important;
+        }
+        #pa-list-toggle-btn {
+            display: none;
+            width: 100%;
+            padding: 7px;
+            font-size: 12px;
+            font-weight: 700;
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin-top: 6px;
+        }
+        #pa-opp-cards-mobile {
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .opp-card-item {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px 14px;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+            transition: all 0.15s ease;
+        }
+        .opp-card-item:hover, .opp-card-item:active {
+            border-color: #93c5fd;
+            background: #f8fafc;
+        }
     </style>
     <style>
         /* [New] Tabs Styles */
@@ -1891,7 +2047,9 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="mock_data.js"></script>
     <script src="stats_cache.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="dashboard.js"></script>
+    <script src="supabase_live.js"></script>
 
     <style id="ui-upgrade-theme">
         :root {
@@ -2655,7 +2813,7 @@
                 <div class="tm-dash-header"
                     style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <h3 style="margin:0;">📊 대덕밸리 종합 통계 & 선수 분석</h3>
+                        <h3 style="margin:0; font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📊 대덕밸리 종합 통계 & 분석</h3>
                         <span id="dash-sync-status" class="pill"
                             style="background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; font-weight:700;">☁️ 데이터 준비
                             중...</span>
@@ -2690,41 +2848,41 @@
                 </div>
 
                 <!-- 종합 랭킹 차트 4종 (명예의 전당 / 최다 출석 / 하위부 최다 우승 / 하위부 최다 준우승) -->
-                <div
+                <div class="hof-charts-grid"
                     style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 24px;">
                     <!-- Chart 1 -->
-                    <div class="card" style="margin-bottom: 0;">
+                    <div class="card hof-chart-card" style="margin-bottom: 0;">
                         <div class="card-hd" style="padding: 10px 14px;">
                             <div class="title" style="font-size: 13.5px;">👑 명예의 전당 (상위/전체 최다 우승)</div>
                         </div>
-                        <div style="padding: 10px 12px; height: 220px;">
+                        <div class="chart-wrap" style="padding: 10px 12px; height: 220px;">
                             <canvas id="chart-wins"></canvas>
                         </div>
                     </div>
                     <!-- Chart 2 -->
-                    <div class="card" style="margin-bottom: 0;">
+                    <div class="card hof-chart-card" style="margin-bottom: 0;">
                         <div class="card-hd" style="padding: 10px 14px;">
                             <div class="title" style="font-size: 13.5px;">🔥 성실함의 상징 (최다 출석)</div>
                         </div>
-                        <div style="padding: 10px 12px; height: 220px;">
+                        <div class="chart-wrap" style="padding: 10px 12px; height: 220px;">
                             <canvas id="chart-attendance"></canvas>
                         </div>
                     </div>
                     <!-- Chart 3 (Lower Winner) -->
-                    <div class="card" style="margin-bottom: 0;">
+                    <div class="card hof-chart-card" style="margin-bottom: 0;">
                         <div class="card-hd" style="padding: 10px 14px;">
                             <div class="title" style="font-size: 13.5px;">🍀 하위부 최다 우승 (Legend of Lower)</div>
                         </div>
-                        <div style="padding: 10px 12px; height: 220px;">
+                        <div class="chart-wrap" style="padding: 10px 12px; height: 220px;">
                             <canvas id="chart-wins-lower"></canvas>
                         </div>
                     </div>
                     <!-- Chart 4 (Lower Runner-up) -->
-                    <div class="card" style="margin-bottom: 0;">
+                    <div class="card hof-chart-card" style="margin-bottom: 0;">
                         <div class="card-hd" style="padding: 10px 14px;">
                             <div class="title" style="font-size: 13.5px;">🥈 하위부 최다 준우승 (Prince of Lower)</div>
                         </div>
-                        <div style="padding: 10px 12px; height: 220px;">
+                        <div class="chart-wrap" style="padding: 10px 12px; height: 220px;">
                             <canvas id="chart-runners-lower"></canvas>
                         </div>
                     </div>
@@ -2743,15 +2901,19 @@
 
                     <div style="padding: 16px; display: grid; grid-template-columns: 310px 1fr; gap: 20px;"
                         class="player-analytics-layout">
-                        <!-- 좌측: 선수 검색 및 리스트 -->
-                        <div
+                        <!-- 좌측: 선수 검색 및 리스트 (모바일 퀵 칩 + 아코디언 최적화) -->
+                        <div id="pa-player-selector-box"
                             style="border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; padding: 12px; display:flex; flex-direction:column; max-height: 780px;">
+                            
+                            <!-- 📱 모바일 전용 상위 선수 퀵 선택 칩 (가로 스크롤) -->
+                            <div id="mobile-quick-player-chips"></div>
+
                             <div style="margin-bottom: 8px;">
                                 <input type="text" id="pa-search-input" placeholder="🔍 선수 이름 검색..."
                                     oninput="filterPlayerAnalyticsList()"
                                     style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; font-weight:700; outline:none;" />
                             </div>
-                            <div style="display:flex; gap:4px; margin-bottom:10px;">
+                            <div style="display:flex; gap:4px; margin-bottom:8px;">
                                 <button type="button" class="btn pa-sort-btn active" data-sort="points"
                                     onclick="setPlayerAnalyticsSort('points')"
                                     style="flex:1; padding:5px 4px; font-size:11px;">점수순</button>
@@ -2765,10 +2927,15 @@
                                     onclick="setPlayerAnalyticsSort('name')"
                                     style="flex:1; padding:5px 4px; font-size:11px;">이름순</button>
                             </div>
-                            <div id="pa-player-list"
-                                style="overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:6px; padding-right:2px;">
-                                <!-- 선수 카드 목록 렌더링 영역 -->
+                            <div id="pa-player-list-container" style="overflow-y:auto; flex:1; display:flex; flex-direction:column;">
+                                <div id="pa-player-list"
+                                    style="display:flex; flex-direction:column; gap:6px; padding-right:2px;">
+                                    <!-- 선수 카드 목록 렌더링 영역 -->
+                                </div>
                             </div>
+                            <button type="button" id="pa-list-toggle-btn" onclick="toggleMobilePlayerList()">
+                                <span id="pa-list-toggle-text">선수 목록 접기 ▴</span>
+                            </button>
                         </div>
 
                         <!-- 우측: 선택된 선수의 상세 분석 보드 -->
@@ -2849,31 +3016,34 @@
                                     <div id="pa-opp-match-detail"
                                         style="display:none; margin-bottom:12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:12px;">
                                     </div>
-                                    <div
-                                        style="max-height:280px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px;">
+                                    <!-- 💻 데스크톱: 가로 스크롤 보호 테이블 (열 너비 깨짐 원천 방지) -->
+                                    <div id="pa-opp-table-desktop"
+                                        style="max-height:280px; overflow-y:auto; overflow-x:auto; border:1px solid #e2e8f0; border-radius:8px;">
                                         <table
-                                            style="width:100%; border-collapse:collapse; font-size:13px; text-align:center;">
+                                            style="width:100%; min-width:580px; border-collapse:collapse; font-size:13px; text-align:center; white-space:nowrap;">
                                             <thead style="position:sticky; top:0; background:#f1f5f9; z-index:1;">
                                                 <tr>
                                                     <th style="padding:8px; border-bottom:1px solid #cbd5e1;">상대 선수</th>
-                                                    <th style="padding:8px; border-bottom:1px solid #cbd5e1;">함께 참가한 대회
-                                                    </th>
+                                                    <th style="padding:8px; border-bottom:1px solid #cbd5e1;">함께 참가한 대회</th>
                                                     <th style="padding:8px; border-bottom:1px solid #cbd5e1;">맞대결 수</th>
-                                                    <th style="padding:8px; border-bottom:1px solid #cbd5e1;">전적 (승-패)
-                                                    </th>
+                                                    <th style="padding:8px; border-bottom:1px solid #cbd5e1;">전적 (승-패)</th>
                                                     <th style="padding:8px; border-bottom:1px solid #cbd5e1;">세트 득실</th>
-                                                    <th
-                                                        style="padding:8px; border-bottom:1px solid #cbd5e1; min-width:140px;">
-                                                        상대 승률</th>
+                                                    <th style="padding:8px; border-bottom:1px solid #cbd5e1; min-width:140px;">상대 승률</th>
                                                 </tr>
                                             </thead>
                                             <tbody id="pa-opp-tbody">
                                                 <tr>
-                                                    <td colspan="6" style="padding:20px; color:#94a3b8;">선수를 선택하면 상대별
-                                                        전적이 표시됩니다.</td>
+                                                    <td colspan="6" style="padding:20px; color:#94a3b8;">선수를 선택하면 상대별 전적이 표시됩니다.</td>
                                                 </tr>
                                             </tbody>
                                         </table>
+                                    </div>
+
+                                    <!-- 📱 모바일: 카드형 뷰 (터치 친화적, 줄바꿈 없음) -->
+                                    <div id="pa-opp-cards-mobile" style="max-height:360px; overflow-y:auto;">
+                                        <div style="padding:20px; text-align:center; color:#94a3b8; font-size:13px;">
+                                            선수를 선택하면 상대별 전적이 카드 형태로 표시됩니다.
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -3332,60 +3502,15 @@
             }
         }
 
-        // ✅ Check Storage and Ask User
+        // ✅ Check Storage and Ask User (로컬 팝업 제거 -> 클라우드 DB 단일 진실 소스로 통합)
         function checkStorageAndInit() {
-            // 4. Force Hide Persistent Areas (Fix for Bug)
             const tmArea = document.getElementById("tournament-area");
             if (tmArea) tmArea.style.setProperty('display', 'none', 'important');
 
             const monthlyArea = document.getElementById("monthly-team-area");
             if (monthlyArea) monthlyArea.style.setProperty('display', 'none', 'important');
 
-            const datePickerEl = document.getElementById("datePicker");
-            const currentDate = datePickerEl ? datePickerEl.value : "";
-
-            const raw = localStorage.getItem(BACKUP_KEY);
-            if (raw) {
-                try {
-                    const data = JSON.parse(raw);
-                    const timestamp = data.timestamp;
-                    const backupDate = data.date;
-                    const oneHourInMs = 60 * 60 * 1000;
-
-                    if (timestamp && (Date.now() - timestamp < oneHourInMs)) {
-                        // 날짜가 다르면 묻지 않고 이전 백업 삭제 후 통과
-                        if (backupDate && currentDate && backupDate !== currentDate) {
-                            localStorage.removeItem(BACKUP_KEY);
-                        } else if (confirm("이전 작업 데이터가 발견되었습니다.\n불러오시겠습니까?")) {
-                            if (loadAllData()) {
-                                console.log("Data restored.");
-                                // UI Regeneration
-                                createTeams(state.groupsCount);
-                                renderAllTeams();
-
-                                // If tournament was active, try to show it
-                                if (bracketState.size > 0) {
-                                    setTimeout(() => {
-                                        runTournamentGeneration(true);
-                                    }, 100);
-                                }
-                                return;
-                            }
-                        } else {
-                            // User chose NOT to load -> Clear backup
-                            localStorage.removeItem(BACKUP_KEY);
-                        }
-                    } else {
-                        // 1시간이 지난 오래된 백업은 정리합니다.
-                        localStorage.removeItem(BACKUP_KEY);
-                    }
-                } catch (e) {
-                    console.error("Backup data parsing error", e);
-                    localStorage.removeItem(BACKUP_KEY);
-                }
-            }
-
-            // Default Init
+            // 로컬 스토리지 애매한 팝업 제거, 기본 초기화 후 클라우드 DB(Supabase) 실시간 복구에 일임
             initState();
             renderPool();
             createTeams(4);

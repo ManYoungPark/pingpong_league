@@ -1,0 +1,22 @@
+name: Supabase Keep-Alive Ping
+
+on:
+  schedule:
+    # 매주 월, 목 오전 9시(KST)마다 실행하여 Supabase 무료 플랜 7일 미사용 일시중지(Pause) 방지
+    - cron: '0 0 * * 1,4'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        run: |
+          SUPABASE_URL="https://lkltfigaylemgsehkkdg.supabase.co"
+          SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxrbHRmaWdheWxlbWdzZWhra2RnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwMDM2NzksImV4cCI6MjA3MzU3OTY3OX0.75jPhekoPJfsoeaTPSApbGVhq75ObzdYvYAXT_CBUak"
+          curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_KEY" \
+            -H "Accept-Profile: pingpong" \
+            "$SUPABASE_URL/rest/v1/live_state?select=id&limit=1" || true
+

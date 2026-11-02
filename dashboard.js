@@ -358,6 +358,27 @@ async function syncDashboardData(forceRefresh = false) {
             setDashSyncStatus("☁️ 구글 서버(stats_cache)에서 계산된 통계를 불러오는 중...", true);
         }
 
+        // [구조 0 - 초고속 Supabase DB] Supabase pingpong_stats_cache 가 활성화되어 있으면 0.05초 만에 즉시 로드
+        if (!forceRefresh && window.pingpongSupabase) {
+            try {
+                const { data: sbRow, error: sbErr } = await window.pingpongSupabase
+                    .from("stats_cache")
+                    .select("stats_json")
+                    .eq("id", "main")
+                    .maybeSingle();
+                if (!sbErr && sbRow && sbRow.stats_json) {
+                    const restoredSb = deserializeDashAnalytics(sbRow.stats_json);
+                    if (restoredSb && restoredSb.tourneyCount > 0) {
+                        dashAnalytics = restoredSb;
+                        savePrecomputedAnalyticsLocal(dashAnalytics, dashAnalytics.signature);
+                        renderAllDashboardViews();
+                        setDashSyncStatus(`⚡ Supabase DB 통계 0.05초 로드 완료 (정규 ${dashAnalytics.tourneyCount}개 대회)`, false);
+                        return;
+                    }
+                }
+            } catch (_) {}
+        }
+
         // [구조 2 - 핵심] 구글 서버(Google Apps Script)에 저장된 통계(getStats) 또는 서버 재계산(rebuildStats) 요청
         try {
             const serverAction = forceRefresh ? "rebuildStats" : "getStats";
@@ -369,6 +390,16 @@ async function syncDashboardData(forceRefresh = false) {
                 if (restoredFromServer && restoredFromServer.tourneyCount > 0) {
                     dashAnalytics = restoredFromServer;
                     savePrecomputedAnalyticsLocal(dashAnalytics, dashAnalytics.signature);
+                    if (window.pingpongSupabase) {
+                        window.pingpongSupabase.from("stats_cache").upsert({
+                            id: "main",
+                            signature: dashAnalytics.signature || "",
+                            tourney_count: dashAnalytics.tourneyCount || 0,
+                            total_matches: dashAnalytics.totalMatches || 0,
+                            stats_json: serverData.stats,
+                            updated_at: new Date().toISOString()
+                        }, { onConflict: "id" }).catch(() => {});
+                    }
                     renderAllDashboardViews();
                     const modeLabel = forceRefresh
                         ? "구글 서버 통계 재계산 및 시트 저장 완료"
@@ -1050,9 +1081,32 @@ function filterPlayerAnalyticsList() {
                 <span style="background:${Number(winRate) >= 50 ? '#dcfce7' : '#f1f5f9'}; color:${Number(winRate) >= 50 ? '#15803d' : '#475569'}; padding:2px 7px; border-radius:999px; font-weight:800; font-size:11px;">${winRate}%</span>
             </div>
         `;
-        card.addEventListener("click", () => selectPlayerForAnalytics(p.name));
+        card.addEventListener("click", () => {
+            selectPlayerForAnalytics(p.name);
+            // 모바일에서 선수 선택 시 편의를 위해 목록을 자동으로 슬림하게 접음
+            if (window.innerWidth <= 768) {
+                const c = document.getElementById("pa-player-list-container");
+                const t = document.getElementById("pa-list-toggle-text");
+                if (c && t) { c.style.display = "none"; t.textContent = "선수 목록 전체보기 (펼치기 ▾)"; }
+            }
+        });
         listEl.appendChild(card);
     });
+
+    // 📱 모바일 상위 선수 퀵 칩 (상위 5명 + 현재 선택자)
+    const quickChipsEl = document.getElementById("mobile-quick-player-chips");
+    if (quickChipsEl) {
+        const top5 = players.slice(0, 6);
+        quickChipsEl.innerHTML = top5.map((tp, tidx) => {
+            const isSel = (tp.name === selectedPlayerName);
+            const rankEmoji = tidx === 0 ? "🥇" : (tidx === 1 ? "🥈" : (tidx === 2 ? "🥉" : `${tidx + 1}`));
+            return `<button type="button" class="quick-pchip ${isSel ? 'active' : ''}" onclick="selectPlayerForAnalytics('${tp.name}')">
+                <span>${rankEmoji}</span>
+                <span>${tp.name}</span>
+                <span style="font-size:10px; opacity:0.85;">(${tp.totalPoints}점)</span>
+            </button>`;
+        }).join("");
+    }
 }
 
 function selectPlayerForAnalytics(name) {
@@ -1641,6 +1695,44 @@ function renderSelectedPlayerOpponentTable() {
         tr.addEventListener("click", () => showOpponentMatchDetail(p.name, o.name));
         tbody.appendChild(tr);
     });
+
+    // 📱 모바일 전용 카드형 렌더링
+    const mobileCardsEl = document.getElementById("pa-opp-cards-mobile");
+    if (mobileCardsEl) {
+        if (opps.length === 0) {
+            mobileCardsEl.innerHTML = `<div style="padding:16px; text-align:center; color:#94a3b8; font-size:13px;">조건에 맞는 상대 기록이 없습니다.</div>`;
+        } else {
+            mobileCardsEl.innerHTML = opps.map(o => {
+                const oppGrade = dashAnalytics.playersMap.get(o.name)?.grade;
+                const gradeBadge = oppGrade ? `<span class="grade-badge" style="font-size:11px; padding:2px 7px;">${oppGrade}부</span>` : "";
+                const wr = o.played > 0 ? Math.round((o.win / o.played) * 100) : null;
+                const sDiff = o.setsFor - o.setsAgainst;
+                const isSelected = (selectedPlayerName && p.name === selectedPlayerName);
+                return `
+                    <div class="opp-card-item" onclick="showOpponentMatchDetail('${p.name}', '${o.name}')">
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="font-weight:900; font-size:15px; color:#0f172a;">${o.name}</span>
+                                ${gradeBadge}
+                            </div>
+                            <div style="display:flex; align-items:center; gap:4px; font-size:13px; font-weight:800;">
+                                <span style="color:#1d4ed8;">${o.win}승</span>
+                                <span style="color:#94a3b8;">-</span>
+                                <span style="color:#ef4444;">${o.lose}패</span>
+                                <span style="background:${wr >= 50 ? '#dcfce7' : '#fee2e2'}; color:${wr >= 50 ? '#15803d' : '#b91c1c'}; padding:2px 7px; border-radius:999px; font-size:11px; margin-left:4px;">
+                                    ${wr !== null ? `${wr}%` : '대결없음'}
+                                </span>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; justify-content:space-between; font-size:12px; color:#64748b;">
+                            <span>🤝 동반 참가 <b>${o.coAttend}회</b> (같은조 ${o.sameGroup}회)</span>
+                            <span>세트 득실 <b style="color:${sDiff > 0 ? '#16a34a' : (sDiff < 0 ? '#ef4444' : '#64748b')};">${sDiff > 0 ? '+' : ''}${sDiff}</b></span>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        }
+    }
 }
 
 function showOpponentMatchDetail(myName, oppName) {
@@ -1772,4 +1864,20 @@ function showH2HResult(p1, p2) {
         <div class="h2h-total">총 ${matches.length}전 · 함께 참가한 대회 ${coAttend}회</div>
     `;
     listEl.innerHTML = html;
+}
+
+
+// 📱 모바일 선수 목록 접기/펼치기 토글
+function toggleMobilePlayerList() {
+    const box = document.getElementById("pa-player-list-container");
+    const txt = document.getElementById("pa-list-toggle-text");
+    if (!box || !txt) return;
+    const isCollapsed = box.style.display === "none";
+    if (isCollapsed) {
+        box.style.display = "flex";
+        txt.textContent = "선수 목록 접기 ▴";
+    } else {
+        box.style.display = "none";
+        txt.textContent = "선수 목록 전체보기 (펼치기 ▾)";
+    }
 }

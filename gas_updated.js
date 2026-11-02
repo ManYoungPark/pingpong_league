@@ -103,6 +103,25 @@ function doGet(e) {
             });
         }
 
+        // 5. 실시간 경기 중계 상태 조회 (CacheService 초고속 메모리 캐시 우선 -> live_state 시트 폴백)
+        if (action === 'getLive') {
+            try {
+                var cache = CacheService.getScriptCache();
+                var cachedLive = cache.get('PINGPONG_LIVE_STATE');
+                if (cachedLive) {
+                    return createTextResponse({ success: true, fromCache: true, liveData: JSON.parse(cachedLive) });
+                }
+            } catch (ce) {}
+            var liveSheet = ss.getSheetByName('live_state');
+            if (liveSheet && liveSheet.getLastRow() >= 2) {
+                var rawLive = liveSheet.getRange(2, 2).getValue();
+                if (rawLive) {
+                    return createTextResponse({ success: true, fromCache: false, liveData: JSON.parse(rawLive) });
+                }
+            }
+            return createTextResponse({ success: false, msg: 'No live state' });
+        }
+
         return createTextResponse({ success: false, msg: 'Invalid action' });
     } catch (err) {
         return createTextResponse({ success: false, msg: err.toString() });
@@ -138,6 +157,21 @@ function doPost(e) {
         if (data.action === 'rebuildStats') {
             var rebuiltOnly = rebuildStatsCacheOnServer(ss);
             return createTextResponse({ success: true, stats: rebuiltOnly });
+        }
+
+        // 실시간 경기 중계 상태 저장 (CacheService + live_state 시트)
+        if (data.action === 'saveLive' && data.liveData) {
+            var liveStr = typeof data.liveData === 'string' ? data.liveData : JSON.stringify(data.liveData);
+            try {
+                CacheService.getScriptCache().put('PINGPONG_LIVE_STATE', liveStr, 21600);
+            } catch (ce) {}
+            var lSheet = ss.getSheetByName('live_state');
+            if (!lSheet) {
+                lSheet = ss.insertSheet('live_state');
+                lSheet.appendRow(['날짜', '실시간JSON', '업데이트시각']);
+            }
+            lSheet.getRange(2, 1, 1, 3).setValues([[date, liveStr, new Date().toISOString()]]);
+            return createTextResponse({ success: true, mode: 'liveSaved' });
         }
 
         // 기존 Code.gs 로직 100% 유지: 데이터 내부의 진짜 날짜(full.metadata.date)가 있다면 그것을 우선 사용
