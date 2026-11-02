@@ -61,6 +61,7 @@
     let isApplyingRemoteState = false;
     let pushDebounceTimer = null;
     let pollTimer = null;
+    let currentDbModalTab = "active";
     const CLIENT_ID = "client_" + Math.random().toString(36).slice(2, 10);
 
     // ------------------------------------------------------------------
@@ -251,7 +252,19 @@
                     </div>
                     <button type="button" class="btn" id="btn-close-db-players" style="padding:5px 12px;">닫기 ✕</button>
                 </div>
-                <div style="padding:12px 20px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <!-- 탭 전환 (활동 회원 vs 쉬는 회원) -->
+                <div style="padding:10px 20px 0; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; gap:8px;">
+                    <button type="button" id="db-tab-active" class="db-tab-btn active" style="padding:8px 16px; border-radius:10px 10px 0 0; font-size:13px; font-weight:800; border:1px solid #cbd5e1; border-bottom:none; background:#fff; color:#0f172a; cursor:pointer; display:flex; align-items:center; gap:6px;">
+                        <span>🟢 활동 회원</span>
+                        <span id="db-count-active" style="padding:2px 7px; border-radius:999px; background:#dcfce7; color:#15803d; font-size:11.5px; font-weight:800;">0</span>
+                    </button>
+                    <button type="button" id="db-tab-inactive" class="db-tab-btn" style="padding:8px 16px; border-radius:10px 10px 0 0; font-size:13px; font-weight:700; border:1px solid transparent; border-bottom:none; background:transparent; color:#64748b; cursor:pointer; display:flex; align-items:center; gap:6px;">
+                        <span>⏸️ 쉬는 회원 (출장/휴면)</span>
+                        <span id="db-count-inactive" style="padding:2px 7px; border-radius:999px; background:#f1f5f9; color:#64748b; font-size:11.5px; font-weight:800;">0</span>
+                    </button>
+                </div>
+
+                <div style="padding:12px 20px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                     <input type="text" id="db-new-player-name" placeholder="신규 회원 이름 입력" style="padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-weight:700; font-size:13px; flex:1; min-width:140px;" />
                     <select id="db-new-player-grade" style="padding:8px 10px; border:1px solid #cbd5e1; border-radius:8px; font-weight:800; font-size:13px;">
                         <option value="선수">선수부</option>
@@ -267,7 +280,7 @@
                     <button type="button" class="btn primary" id="btn-add-db-player" style="padding:8px 14px; font-size:13px;">+ 회원 추가</button>
                     <input type="text" id="db-search-player" placeholder="🔍 이름 검색..." style="padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; width:140px; margin-left:auto;" />
                 </div>
-                <div id="db-player-list-body" style="padding:14px 20px; overflow-y:auto; flex:1; display:grid; grid-template-columns:repeat(auto-fill, minmax(195px, 1fr)); gap:8px;">
+                <div id="db-player-list-body" style="padding:14px 20px; overflow-y:auto; flex:1; display:grid; grid-template-columns:repeat(auto-fill, minmax(215px, 1fr)); gap:8px;">
                 </div>
             </div>
         `;
@@ -278,6 +291,33 @@
         });
         document.getElementById("btn-add-db-player").addEventListener("click", handleAddDbPlayer);
         document.getElementById("db-search-player").addEventListener("input", renderPlayerManagerList);
+
+        const tabActive = document.getElementById("db-tab-active");
+        const tabInactive = document.getElementById("db-tab-inactive");
+        if (tabActive && tabInactive) {
+            tabActive.addEventListener("click", () => {
+                currentDbModalTab = "active";
+                tabActive.style.background = "#fff";
+                tabActive.style.color = "#0f172a";
+                tabActive.style.borderColor = "#cbd5e1";
+                tabActive.style.borderBottomColor = "transparent";
+                tabInactive.style.background = "transparent";
+                tabInactive.style.color = "#64748b";
+                tabInactive.style.borderColor = "transparent";
+                renderPlayerManagerList();
+            });
+            tabInactive.addEventListener("click", () => {
+                currentDbModalTab = "inactive";
+                tabInactive.style.background = "#fff";
+                tabInactive.style.color = "#0f172a";
+                tabInactive.style.borderColor = "#cbd5e1";
+                tabInactive.style.borderBottomColor = "transparent";
+                tabActive.style.background = "transparent";
+                tabActive.style.color = "#64748b";
+                tabActive.style.borderColor = "transparent";
+                renderPlayerManagerList();
+            });
+        }
 
         // 관전 모드일 때 점수 테이블/토너먼트 클릭 차단 인터셉터
         document.addEventListener("click", (e) => {
@@ -664,7 +704,6 @@
             const { data, error } = await sbClient
                 .from("players")
                 .select("*")
-                .eq("active", true)
                 .order("sort_order", { ascending: true });
 
             if (!error && Array.isArray(data) && data.length > 0) {
@@ -685,15 +724,29 @@
         let hasNew = false;
         playerRows.forEach((p, idx) => {
             const g = isNaN(Number(p.grade)) ? String(p.grade) : Number(p.grade);
+            const isActive = p.active !== false;
             if (typeof PLAYER_INFO !== "undefined") {
-                PLAYER_INFO.set(p.name, { id: p.id || `p${idx + 1}`, name: p.name, grade: g });
+                PLAYER_INFO.set(p.name, { id: p.id || `p${idx + 1}`, name: p.name, grade: g, active: isActive });
             }
-            if (typeof INITIAL_NAMES !== "undefined" && !INITIAL_NAMES.includes(p.name)) {
-                INITIAL_NAMES.push(p.name);
-                hasNew = true;
-            }
-            if (typeof state !== "undefined" && !state.has(p.name)) {
-                state.set(p.name, { where: "pool" });
+            if (isActive) {
+                if (typeof INITIAL_NAMES !== "undefined" && !INITIAL_NAMES.includes(p.name)) {
+                    INITIAL_NAMES.push(p.name);
+                    hasNew = true;
+                }
+                if (typeof state !== "undefined" && !state.has(p.name)) {
+                    state.set(p.name, { where: "pool" });
+                }
+            } else {
+                if (typeof INITIAL_NAMES !== "undefined") {
+                    const i = INITIAL_NAMES.indexOf(p.name);
+                    if (i !== -1) {
+                        INITIAL_NAMES.splice(i, 1);
+                        hasNew = true;
+                    }
+                }
+                if (typeof state !== "undefined" && state.has(p.name)) {
+                    state.delete(p.name);
+                }
             }
         });
 
@@ -727,20 +780,52 @@
         if (!container || typeof PLAYER_INFO === "undefined") return;
         const q = (document.getElementById("db-search-player")?.value || "").trim().toLowerCase();
 
-        const entries = Array.from(PLAYER_INFO.entries())
-            .map(([name, info]) => ({ name, id: info.id, grade: String(info.grade) }))
-            .filter(item => !q || item.name.toLowerCase().includes(q))
+        const allEntries = Array.from(PLAYER_INFO.entries())
+            .map(([name, info]) => ({
+                name,
+                id: info.id,
+                grade: String(info.grade),
+                active: info.active !== false
+            }))
             .sort((a, b) => a.name.localeCompare(b.name, "ko"));
 
+        const activeCount = allEntries.filter(e => e.active).length;
+        const inactiveCount = allEntries.filter(e => !e.active).length;
+
+        const countActEl = document.getElementById("db-count-active");
+        const countInactEl = document.getElementById("db-count-inactive");
+        if (countActEl) countActEl.textContent = activeCount;
+        if (countInactEl) countInactEl.textContent = inactiveCount;
+
+        const filtered = allEntries
+            .filter(item => (currentDbModalTab === "active" ? item.active : !item.active))
+            .filter(item => !q || item.name.toLowerCase().includes(q));
+
         const grades = ["선수", "1", "2", "3", "4", "5", "6", "7", "희망"];
-        container.innerHTML = entries.map(item => `
-            <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border:1px solid #e2e8f0; border-radius:10px; background:#fff; gap:6px;">
-                <span style="font-weight:800; font-size:13.5px; color:#0f172a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${item.name}</span>
-                <div style="display:flex; align-items:center; gap:5px; flex-shrink:0;">
-                    <select data-pname="${item.name}" class="db-grade-select" style="padding:3px 6px; border:1px solid #cbd5e1; border-radius:6px; font-weight:800; font-size:12px;">
+        if (filtered.length === 0) {
+            container.innerHTML = `
+                <div style="grid-column:1/-1; text-align:center; padding:32px 16px; color:#94a3b8; font-weight:600; font-size:13.5px;">
+                    ${currentDbModalTab === "active" ? "활동 중인 회원이 없습니다." : "쉬는(출장/휴면) 회원이 없습니다."}
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = filtered.map(item => `
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border:${item.active ? '1px solid #e2e8f0' : '1px dashed #cbd5e1'}; border-radius:10px; background:${item.active ? '#fff' : '#f8fafc'}; gap:6px;">
+                <div style="display:flex; align-items:center; gap:5px; overflow:hidden;">
+                    <span style="font-weight:800; font-size:13.5px; color:${item.active ? '#0f172a' : '#64748b'}; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; ${!item.active ? 'text-decoration:line-through;' : ''}">${item.name}</span>
+                    ${!item.active ? '<span style="font-size:10.5px; padding:1px 5px; border-radius:4px; background:#e2e8f0; color:#475569; font-weight:700; flex-shrink:0;">휴면</span>' : ''}
+                </div>
+                <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
+                    <select data-pname="${item.name}" class="db-grade-select" style="padding:3px 5px; border:1px solid #cbd5e1; border-radius:6px; font-weight:800; font-size:12px; ${!item.active ? 'color:#64748b;' : ''}">
                         ${grades.map(g => `<option value="${g}" ${String(item.grade) === g ? "selected" : ""}>${g}부</option>`).join("")}
                     </select>
-                    <button type="button" class="btn-delete-db-player" data-pname="${item.name}" title="${item.name} 회원 삭제" style="padding:3px 7px; border:1px solid #fecaca; background:#fff1f2; color:#e11d48; border-radius:6px; font-weight:800; font-size:12px; cursor:pointer; line-height:1.2;">✕</button>
+                    ${item.active
+                        ? `<button type="button" class="btn-toggle-db-active" data-pname="${item.name}" data-action="rest" title="장기출장/휴면으로 전환 (대진표 명단에서 숨김)" style="padding:3px 6px; border:1px solid #fed7aa; background:#fff7ed; color:#ea580c; border-radius:6px; font-weight:800; font-size:11px; cursor:pointer; line-height:1.2;">쉬기 ⏸️</button>`
+                        : `<button type="button" class="btn-toggle-db-active" data-pname="${item.name}" data-action="activate" title="활동 회원으로 복귀 (대진표 명단에 다시 표시)" style="padding:3px 7px; border:1px solid #bbf7d0; background:#f0fdf4; color:#15803d; border-radius:6px; font-weight:800; font-size:11px; cursor:pointer; line-height:1.2;">복귀 ▶️</button>`
+                    }
+                    <button type="button" class="btn-delete-db-player" data-pname="${item.name}" title="${item.name} 회원 영구 삭제" style="padding:3px 6px; border:1px solid #fecaca; background:#fff1f2; color:#e11d48; border-radius:6px; font-weight:800; font-size:11px; cursor:pointer; line-height:1.2;">✕</button>
                 </div>
             </div>
         `).join("");
@@ -753,12 +838,88 @@
             });
         });
 
+        container.querySelectorAll(".btn-toggle-db-active").forEach(btn => {
+            btn.addEventListener("click", async (e) => {
+                const pname = e.currentTarget.getAttribute("data-pname");
+                const action = e.currentTarget.getAttribute("data-action");
+                await togglePlayerActiveStatus(pname, action === "activate");
+            });
+        });
+
         container.querySelectorAll(".btn-delete-db-player").forEach(btn => {
             btn.addEventListener("click", async (e) => {
                 const pname = e.currentTarget.getAttribute("data-pname");
                 await handleDeleteDbPlayer(pname);
             });
         });
+    }
+
+    async function togglePlayerActiveStatus(name, newActive) {
+        if (!name) return;
+        const msg = newActive
+            ? `[${name}] 회원을 '활동 회원'으로 복귀시키시겠습니까?\n\n(게임 대진표 명단에 다시 나타납니다)`
+            : `[${name}] 회원을 '쉬는 회원(출장/휴면)'으로 전환하시겠습니까?\n\n(게임 대진표 명단에서 숨겨지며, 복귀 시 언제든 다시 활성화할 수 있습니다)`;
+        if (!confirm(msg)) return;
+
+        // 1. 메모리 상태 갱신
+        if (typeof PLAYER_INFO !== "undefined") {
+            const cur = PLAYER_INFO.get(name) || { id: "p_" + Date.now(), name, grade: 5 };
+            PLAYER_INFO.set(name, { ...cur, active: newActive });
+        }
+
+        if (typeof INITIAL_NAMES !== "undefined") {
+            if (newActive) {
+                if (!INITIAL_NAMES.includes(name)) INITIAL_NAMES.push(name);
+                INITIAL_NAMES.sort((a, b) => a.localeCompare(b, "ko"));
+                if (typeof state !== "undefined" && !state.has(name)) {
+                    state.set(name, { where: "pool" });
+                }
+            } else {
+                const i = INITIAL_NAMES.indexOf(name);
+                if (i !== -1) INITIAL_NAMES.splice(i, 1);
+                if (typeof state !== "undefined" && state.has(name)) {
+                    state.delete(name);
+                }
+            }
+            window.INITIAL_NAMES = INITIAL_NAMES;
+        }
+
+        // 2. 로컬 캐시 갱신
+        if (typeof saveNames === "function") {
+            try { saveNames(); } catch (_) {}
+        }
+        try {
+            const listToCache = Array.from(PLAYER_INFO.entries()).map(([nm, info]) => ({
+                id: info.id,
+                name: nm,
+                grade: info.grade,
+                active: info.active !== false
+            }));
+            localStorage.setItem("pingpong_cached_players_v1", JSON.stringify(listToCache));
+        } catch (_) {}
+
+        // 3. UI 갱신
+        renderPlayerManagerList();
+        if (typeof renderPool === "function") renderPool();
+        if (typeof renderAllTeams === "function") renderAllTeams();
+
+        // 4. Supabase DB 갱신
+        if (sbClient && sbAvailable) {
+            try {
+                await sbClient.from("players").update({
+                    active: newActive,
+                    updated_at: new Date().toISOString()
+                }).eq("name", name);
+            } catch (err) {
+                console.warn("DB active toggle failed:", err);
+            }
+        }
+
+        if (newActive) {
+            showLiveToast(`🟢 [${name}] 회원이 활동 회원으로 복귀했습니다! (게임 명단에 표시됨)`);
+        } else {
+            showLiveToast(`⏸️ [${name}] 회원이 쉬는 회원으로 변경되었습니다. (게임 명단에서 숨김)`);
+        }
     }
 
     async function handleDeleteDbPlayer(name) {
