@@ -487,9 +487,22 @@
                 tournamentType = payload.tournamentType;
             }
 
+            // Ensure all players in INITIAL_NAMES exist in state (defaulting to pool)
+            if (typeof INITIAL_NAMES !== "undefined") {
+                INITIAL_NAMES.forEach(nm => {
+                    if (!state.has(nm) || state.get(nm)?.where !== "team") {
+                        if (!state.has(nm)) state.set(nm, { where: "pool" });
+                    }
+                });
+            }
+
             if (typeof createTeams === "function" && typeof renderAllTeams === "function") {
                 createTeams(state.groupsCount);
                 renderAllTeams();
+            }
+
+            if (typeof renderPool === "function") {
+                renderPool();
             }
 
             const tmArea = document.getElementById("tournament-area");
@@ -664,20 +677,31 @@
     function applyPlayerListToApp(playerRows) {
         if (!Array.isArray(playerRows) || playerRows.length === 0) return;
 
-        // PLAYER_INFO 갱신
-        if (typeof PLAYER_INFO !== "undefined") {
-            playerRows.forEach((p, idx) => {
-                const g = isNaN(Number(p.grade)) ? String(p.grade) : Number(p.grade);
-                PLAYER_INFO.set(p.name, { id: p.id || `p${idx + 1}`, grade: g });
-                if (typeof state !== "undefined" && !state.has(p.name)) {
-                    state.set(p.name, { team: "pool", order: p.sort_order || idx + 1 });
-                }
-            });
+        let hasNew = false;
+        playerRows.forEach((p, idx) => {
+            const g = isNaN(Number(p.grade)) ? String(p.grade) : Number(p.grade);
+            if (typeof PLAYER_INFO !== "undefined") {
+                PLAYER_INFO.set(p.name, { id: p.id || `p${idx + 1}`, name: p.name, grade: g });
+            }
+            if (typeof INITIAL_NAMES !== "undefined" && !INITIAL_NAMES.includes(p.name)) {
+                INITIAL_NAMES.push(p.name);
+                hasNew = true;
+            }
+            if (typeof state !== "undefined" && !state.has(p.name)) {
+                state.set(p.name, { where: "pool" });
+            }
+        });
+
+        if (hasNew && typeof INITIAL_NAMES !== "undefined") {
+            INITIAL_NAMES.sort((a, b) => a.localeCompare(b, "ko"));
+            if (typeof saveNames === "function") {
+                try { saveNames(); } catch (_) {}
+            }
         }
-        // UI 리렌더링
-        if (typeof renderAllTeams === "function") {
-            renderAllTeams();
-        }
+
+        // UI 리렌더링 (이름 목록 칩 풀 + 조별 대진표)
+        if (typeof renderPool === "function") renderPool();
+        if (typeof renderAllTeams === "function") renderAllTeams();
     }
 
     function openPlayerManagerModal() {
@@ -730,9 +754,10 @@
             const existing = PLAYER_INFO.get(name) || { id: "p_" + Date.now() };
             PLAYER_INFO.set(name, { ...existing, grade: gVal });
         }
-        if (typeof savePlayersToStorage === "function") {
-            try { savePlayersToStorage(); } catch (_) {}
+        if (typeof saveNames === "function") {
+            try { saveNames(); } catch (_) {}
         }
+        if (typeof renderPool === "function") renderPool();
         if (typeof renderAllTeams === "function") renderAllTeams();
 
         if (sbClient && sbAvailable) {
@@ -765,14 +790,19 @@
         const newId = "p" + String(Date.now()).slice(-5);
 
         if (typeof PLAYER_INFO !== "undefined") {
-            PLAYER_INFO.set(name, { id: newId, grade: gVal });
+            PLAYER_INFO.set(name, { id: newId, name: name, grade: gVal });
         }
-        if (typeof state !== "undefined" && !state.has(name)) {
-            state.set(name, { team: "pool", order: state.size + 1 });
+        if (typeof INITIAL_NAMES !== "undefined" && !INITIAL_NAMES.includes(name)) {
+            INITIAL_NAMES.push(name);
+            INITIAL_NAMES.sort((a, b) => a.localeCompare(b, "ko"));
         }
-        if (typeof savePlayersToStorage === "function") {
-            try { savePlayersToStorage(); } catch (_) {}
+        if (typeof state !== "undefined") {
+            state.set(name, { where: "pool" });
         }
+        if (typeof saveNames === "function") {
+            try { saveNames(); } catch (_) {}
+        }
+        if (typeof renderPool === "function") renderPool();
         if (typeof renderAllTeams === "function") renderAllTeams();
 
         if (sbClient && sbAvailable) {

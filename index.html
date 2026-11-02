@@ -825,12 +825,102 @@
 
         .tm-panel-row {
             display: flex;
-            gap: 12px;
-            /* Decreased gap (24 -> 12) */
+            gap: 16px;
             align-items: flex-start;
             justify-content: center;
             flex-wrap: wrap;
             width: 100%;
+        }
+
+        /* 📱 토너먼트 모바일/태블릿 상·하위 탭 전환 바 */
+        .tm-mobile-tabs {
+            display: none;
+            width: 100%;
+            max-width: 440px;
+            margin: 0 auto 16px;
+            background: #f1f5f9;
+            padding: 5px;
+            border-radius: 14px;
+            gap: 6px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+        }
+        .tm-tab-btn {
+            flex: 1;
+            padding: 9px 14px;
+            border-radius: 10px;
+            border: none;
+            background: transparent;
+            color: #64748b;
+            font-size: 13.5px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .tm-tab-btn.active {
+            background: #ffffff;
+            color: #1d4ed8;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* ↔️ 가로 스크롤 보호 래퍼 & 힌트 뱃지 */
+        .tm-scroll-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 16px;
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 transparent;
+            padding-bottom: 4px;
+        }
+        .tm-scroll-wrapper::-webkit-scrollbar {
+            height: 6px;
+        }
+        .tm-scroll-wrapper::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 999px;
+        }
+        .tm-scroll-hint {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            font-size: 11px;
+            font-weight: 800;
+            color: #2563eb;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 999px;
+            padding: 3px 10px;
+            margin-bottom: 6px;
+        }
+        @media (max-width: 1024px) {
+            .tm-scroll-hint {
+                display: inline-flex;
+            }
+            .tm-mobile-tabs {
+                display: flex;
+            }
+            .tm-panel-row {
+                flex-direction: column !important;
+                align-items: stretch !important;
+            }
+            /* 1024px 이하에서는 선택된 탭만 표시 */
+            .tm-panel-row[data-active-tab="upper"] > .tm-panel.lower-panel {
+                display: none !important;
+            }
+            .tm-panel-row[data-active-tab="lower"] > .tm-panel.upper-panel {
+                display: none !important;
+            }
+        }
+        @media (min-width: 1025px) {
+            .tm-panel-row > .tm-panel {
+                display: flex !important; /* PC는 둘 다 항상 표시 */
+            }
         }
 
         .tm-panel {
@@ -2765,18 +2855,34 @@
                         style="background:#fef3c7; color:#b45309; border-color:#fde68a;" title="카카오톡 전송 시 화질 저하가 없도록 [1.조별리그]와 [2.본선토너먼트] 2장으로 나누어 초고화질 저장합니다">📸 카톡용 2장 분할저장</button>
                 </div>
 
-                <div class="tm-panel-row">
-                    <div class="tm-panel">
+                <!-- 📱 모바일/태블릿 상·하위 토너먼트 탭 스위처 -->
+                <div class="tm-mobile-tabs" id="tm-match-mobile-tabs">
+                    <button type="button" class="tm-tab-btn active" data-target="upper" onclick="switchTournamentTab('match', 'upper')">
+                        🏆 상위 토너먼트
+                    </button>
+                    <button type="button" class="tm-tab-btn" data-target="lower" onclick="switchTournamentTab('match', 'lower')">
+                        🥈 하위 토너먼트
+                    </button>
+                </div>
+
+                <div class="tm-panel-row" id="tm-match-panel-row" data-active-tab="upper">
+                    <div class="tm-panel upper-panel">
                         <div class="tm-title" id="tm-titleUpper">상위 토너먼트</div>
-                        <div id="tm-wrap-upper" class="tm-wrap">
-                            <svg id="tm-lines-upper" class="tm-lines"></svg>
+                        <span class="tm-scroll-hint">↔️ 좌우로 밀어서 전체 대진표 확인</span>
+                        <div class="tm-scroll-wrapper">
+                            <div id="tm-wrap-upper" class="tm-wrap">
+                                <svg id="tm-lines-upper" class="tm-lines"></svg>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="tm-panel">
+                    <div class="tm-panel lower-panel">
                         <div class="tm-title" id="tm-titleLower">하위 토너먼트</div>
-                        <div id="tm-wrap-lower" class="tm-wrap">
-                            <svg id="tm-lines-lower" class="tm-lines"></svg>
+                        <span class="tm-scroll-hint">↔️ 좌우로 밀어서 전체 대진표 확인</span>
+                        <div class="tm-scroll-wrapper">
+                            <div id="tm-wrap-lower" class="tm-wrap">
+                                <svg id="tm-lines-lower" class="tm-lines"></svg>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2849,17 +2955,33 @@
                     <div class="tm-controls">
                         <h2 class="tm-title">🏆 본선 토너먼트</h2>
                     </div>
-                    <div class="tm-panel-row">
-                        <div class="tm-panel">
+                    <!-- 📱 모바일/태블릿 상·하위 토너먼트 탭 스위처 -->
+                    <div class="tm-mobile-tabs" id="tm-history-mobile-tabs">
+                        <button type="button" class="tm-tab-btn active" data-target="upper" onclick="switchTournamentTab('history', 'upper')">
+                            🏆 상위 토너먼트
+                        </button>
+                        <button type="button" class="tm-tab-btn" data-target="lower" onclick="switchTournamentTab('history', 'lower')">
+                            🥈 하위 토너먼트
+                        </button>
+                    </div>
+
+                    <div class="tm-panel-row" id="h-tm-panel-row" data-active-tab="upper">
+                        <div class="tm-panel upper-panel">
                             <div class="tm-title" id="h-tm-titleUpper">상위 토너먼트</div>
-                            <div id="h-tm-wrap-upper" class="tm-wrap">
-                                <svg id="h-tm-lines-upper" class="tm-lines"></svg>
+                            <span class="tm-scroll-hint">↔️ 좌우로 밀어서 전체 대진표 확인</span>
+                            <div class="tm-scroll-wrapper">
+                                <div id="h-tm-wrap-upper" class="tm-wrap">
+                                    <svg id="h-tm-lines-upper" class="tm-lines"></svg>
+                                </div>
                             </div>
                         </div>
-                        <div class="tm-panel">
+                        <div class="tm-panel lower-panel">
                             <div class="tm-title" id="h-tm-titleLower">하위 토너먼트</div>
-                            <div id="h-tm-wrap-lower" class="tm-wrap">
-                                <svg id="h-tm-lines-lower" class="tm-lines"></svg>
+                            <span class="tm-scroll-hint">↔️ 좌우로 밀어서 전체 대진표 확인</span>
+                            <div class="tm-scroll-wrapper">
+                                <div id="h-tm-wrap-lower" class="tm-wrap">
+                                    <svg id="h-tm-lines-lower" class="tm-lines"></svg>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -4503,7 +4625,7 @@
             let inPool = [];
             for (const name of INITIAL_NAMES) {
                 const s = state.get(name);
-                if (s?.where === "pool") inPool.push(name);
+                if (!s || s.where === "pool" || s.team === "pool" || s.where !== "team") inPool.push(name);
             }
 
             // Sorting Logic
@@ -6336,19 +6458,30 @@
             const baseText = `${titleText} (${B}강, BYE ${byeCount}개)`;
             titleEl.innerHTML = `<span class="tm-status-badge ongoing">진행</span> <span>${baseText}</span>`;
 
-            // ✅ Dynamic Height: Prevent overlap (Reduced factor for compactness)
+            // 💡 Dynamic Height & Safe Min-Width: 노드 겹침(overlap) 100% 원천 방지
             const minH = Math.max(500, B * 40 + 60);
             wrapEl.style.height = `${minH}px`;
 
-            const W = wrapEl.clientWidth;
-            const H = wrapEl.clientHeight;
-            const boxW = 85, boxH = 34; // Slightly increased
+            const boxW = 85, boxH = 34;
             const champW = 110;
-
+            const padX = 45;
             const rounds = Math.log2(B);
-            const padX = 55;
-            const champX = W - padX - champW;
-            const step = (champX - padX) / rounds;
+
+            // 라운드당 최소 120px(노드 85px + 연결선 35px) 여백 보장 -> 16강 기준 최소 660px
+            const minRequiredW = padX * 2 + rounds * 120 + champW;
+            const containerW = wrapEl.parentElement ? wrapEl.parentElement.clientWidth : 0;
+            const W = Math.max(containerW, minRequiredW);
+
+            wrapEl.style.width = `${W}px`;
+            wrapEl.style.minWidth = `${minRequiredW}px`;
+            svg.style.width = `${W}px`;
+            svg.setAttribute("width", `${W}`);
+
+            const H = wrapEl.clientHeight;
+            const champX = (direction === 1) ? (W - padX - champW) : padX;
+            const step = (direction === 1)
+                ? (champX - padX) / rounds
+                : (W - padX * 2 - champW) / rounds;
 
             const padY = 20;
             const usableH = H - padY * 2;
@@ -6617,16 +6750,19 @@
             const sumUpperCard = document.querySelector("#final-summary .summary-card.upper");
             const sumLowerCard = document.querySelector("#final-summary .summary-card.lower");
 
+            const matchTabs = document.getElementById("tm-match-mobile-tabs");
             if (isFull) {
                 lowerPanel.style.display = "none";
                 upperPanel.style.flex = "1";
                 sumLowerCard.style.display = "none";
                 sumUpperCard.querySelector(".card-title").textContent = "전체 토너먼트";
+                if (matchTabs) matchTabs.style.display = "none";
             } else {
                 lowerPanel.style.display = "block";
                 upperPanel.style.flex = "1";
                 sumLowerCard.style.display = "block";
                 sumUpperCard.querySelector(".card-title").textContent = "상위 토너먼트";
+                if (matchTabs && window.innerWidth <= 1024) matchTabs.style.display = "flex";
             }
 
             // Show UI first to ensure layout is calculated
@@ -8457,15 +8593,18 @@
             const hUpperPanel = document.getElementById("h-tm-wrap-upper").closest(".tm-panel");
             const hLowerPanel = document.getElementById("h-tm-wrap-lower").closest(".tm-panel");
 
+            const historyTabs = document.getElementById("tm-history-mobile-tabs");
             if (h_type === "full") {
                 hLowerPanel.style.display = "none";
                 hUpperPanel.style.flex = "1";
+                if (historyTabs) historyTabs.style.display = "none";
 
                 const Bu = checkMaxBracket("U");
                 h_createBracketUI("h-tm-wrap-upper", "h-tm-lines-upper", "U", 1, Bu, process("U", Bu), "h-tm-titleUpper", "전체 토너먼트");
             } else {
                 hLowerPanel.style.display = "block";
                 hUpperPanel.style.flex = "1";
+                if (historyTabs && window.innerWidth <= 1024) historyTabs.style.display = "flex";
 
                 const Bu = checkMaxBracket("U");
                 const Bl = checkMaxBracket("L");
@@ -8597,7 +8736,18 @@
             title.innerHTML = `<span class="tm-status-badge ${badgeClass}">${badgeText}</span> <span>${baseText}</span>`;
             wrap.style.height = `${Math.max(500, B * 40 + 60)}px`;
 
-            const W = wrap.clientWidth, H = wrap.clientHeight, rounds = Math.log2(B), boxW = 85, boxH = 34, champW = 110, padX = 55, padY = 20;
+            const boxW = 85, boxH = 34, champW = 110, padX = 45, padY = 20;
+            const rounds = Math.log2(B);
+            const minRequiredW = padX * 2 + rounds * 120 + champW;
+            const containerW = wrap.parentElement ? wrap.parentElement.clientWidth : 0;
+            const W = Math.max(containerW, minRequiredW);
+
+            wrap.style.width = `${W}px`;
+            wrap.style.minWidth = `${minRequiredW}px`;
+            svg.style.width = `${W}px`;
+            svg.setAttribute("width", `${W}`);
+
+            const H = wrap.clientHeight;
             const step = (W - padX * 2 - champW) / rounds, usableH = H - padY * 2;
             const nodeId = (r, i) => `h-${prefix}-r${r}-${i}`;
 
@@ -9178,6 +9328,37 @@
             </div>
         </div>
     </div>
+
+    <!-- 📱 상·하위 토너먼트 모바일 탭 전환 함수 -->
+    <script>
+        window.switchTournamentTab = function(section, target) {
+            const rowId = (section === 'history') ? 'h-tm-panel-row' : 'tm-match-panel-row';
+            const tabsId = (section === 'history') ? 'tm-history-mobile-tabs' : 'tm-match-mobile-tabs';
+            
+            const row = document.getElementById(rowId);
+            if (row) row.setAttribute('data-active-tab', target);
+            
+            const tabBox = document.getElementById(tabsId);
+            if (tabBox) {
+                tabBox.querySelectorAll('.tm-tab-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.target === target);
+                });
+            }
+
+            // 활성화된 브래킷 선 다시 그리기 (리사이즈/디스플레이 변경 대응)
+            if (window.lastEngines) {
+                const prefix = (target === 'upper') ? 'U' : 'L';
+                if (window.lastEngines[prefix] && typeof window.lastEngines[prefix].redrawAllLines === 'function') {
+                    setTimeout(() => window.lastEngines[prefix].redrawAllLines(), 50);
+                }
+            }
+            if (typeof h_renderLinesForPrefix === 'function') {
+                const hPrefix = (target === 'upper') ? 'U' : 'L';
+                setTimeout(() => h_renderLinesForPrefix(hPrefix), 50);
+            }
+        };
+    </script>
+
 </body>
 
 </html>
