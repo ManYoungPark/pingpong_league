@@ -677,6 +677,11 @@
     function applyPlayerListToApp(playerRows) {
         if (!Array.isArray(playerRows) || playerRows.length === 0) return;
 
+        // 최신 DB 회원 명단을 로컬 캐시에 영구 저장 (오프라인 지원)
+        try {
+            localStorage.setItem("pingpong_cached_players_v1", JSON.stringify(playerRows));
+        } catch (_) {}
+
         let hasNew = false;
         playerRows.forEach((p, idx) => {
             const g = isNaN(Number(p.grade)) ? String(p.grade) : Number(p.grade);

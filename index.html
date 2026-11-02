@@ -2140,7 +2140,7 @@
     <script src="stats_cache.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="dashboard.js"></script>
-    <script src="supabase_live.js?v=20261102_52"></script>
+    <script src="supabase_live.js?v=20261102_db_first"></script>
 
     <style id="ui-upgrade-theme">
         :root {
@@ -3466,138 +3466,40 @@
             document.getElementById("headerTitle").onchange = () => saveAllData();
         })();
 
-        // ✅ Load Names: LocalStorage -> names.json (Async) -> Default Fallback
-        // ✅ Load Names: LocalStorage -> names.json (Async) -> Default Fallback
-        const STORAGE_KEY = 'my_tournament_players_v2';
-
-        // 1. Fallback Defaults (Network Error / File protocol)
-        // 1. Fallback Defaults (Network Error / File protocol)
-        const DEFAULT_PLAYERS = [
-            { id: "p001", name: "박만영", grade: 1 },
-            { id: "p002", name: "이정우", grade: 5 },
-            { id: "p003", name: "김경태", grade: 1 },
-            { id: "p004", name: "박병재", grade: 1 },
-            { id: "p005", name: "안성대", grade: 6 },
-            { id: "p006", name: "유호성", grade: 1 },
-            { id: "p007", name: "조복연", grade: 4 },
-            //   { id: "p008", name: "강희철", grade: 4 },
-            { id: "p009", name: "김미경", grade: 6 },
-            { id: "p010", name: "김성호", grade: 6 },
-            { id: "p011", name: "김세중", grade: 6 },
-            //   { id: "p012", name: "김순동", grade: 5 },
-            { id: "p013", name: "김형찬", grade: 1 },
-            { id: "p014", name: "김홍석", grade: 6 },
-            { id: "p015", name: "류계열", grade: 4 },
-            { id: "p016", name: "박덕례", grade: 6 },
-            { id: "p017", name: "박혜란", grade: 6 },
-            { id: "p018", name: "백낙천", grade: 3 },
-            { id: "p019", name: "서상국", grade: 3 },
-            { id: "p020", name: "송광용", grade: 5 },
-            { id: "p021", name: "김종탁", grade: 5 },
-            { id: "p022", name: "오장진", grade: 4 },
-            { id: "p023", name: "윤교찬", grade: 6 },
-            { id: "p024", name: "이교탁", grade: 7 },
-            { id: "p025", name: "이영숙", grade: 4 },
-            { id: "p026", name: "임규호", grade: 6 },
-            { id: "p027", name: "정경자", grade: 5 },
-            { id: "p028", name: "정선철", grade: 5 },
-            { id: "p029", name: "조상배", grade: 5 },
-            { id: "p030", name: "최매완", grade: 4 },
-            { id: "p031", name: "박현신", grade: 6 },
-            { id: "p032", name: "홍순관", grade: 6 },
-            { id: "p033", name: "홍현숙", grade: 6 },
-            { id: "p034", name: "박승기", grade: 4 },
-            { id: "p035", name: "전영주", grade: 6 },
-            { id: "p036", name: "최병희", grade: 1 },
-            { id: "p037", name: "조창수", grade: 3 },
-            { id: "p038", name: "이영찬", grade: 7 },
-            { id: "p039", name: "김은희", grade: 7 },
-            { id: "p040", name: "e김성규", grade: 2 },
-            { id: "p041", name: "e김상곤", grade: 2 },
-            { id: "p042", name: "e한민호", grade: 2 },
-            { id: "p043", name: "e김준호", grade: 4 },
-
-            { id: "p044", name: "e이재성", grade: 3 },
-            { id: "p045", name: "e김상진", grade: 3 },
-            { id: "p046", name: "e김희숙", grade: 6 },
-
-            { id: "p047", name: "e김홍철", grade: 2 },
-            { id: "p048", name: "이영기", grade: 3 },
-            { id: "p049", name: "e최광호", grade: 5 }
-        ];
-
-        // Player Info Lookup (name -> {id, grade})
+        // =====================================================================
+        // 👥 회원 명단 & 부수 시스템 (Supabase DB 단일 원본 + 로컬 자동 캐시)
+        // =====================================================================
+        const CACHED_PLAYERS_KEY = 'pingpong_cached_players_v1';
         const PLAYER_INFO = new Map();
-        DEFAULT_PLAYERS.forEach(p => PLAYER_INFO.set(p.name, p));
-
-        // Initialize with Defaults first
-        let INITIAL_NAMES = DEFAULT_PLAYERS.map(p => p.name);
-        window.INITIAL_NAMES = INITIAL_NAMES;
+        let INITIAL_NAMES = [];
         window.PLAYER_INFO = PLAYER_INFO;
+        window.INITIAL_NAMES = INITIAL_NAMES;
 
-        // 2. Try LocalStorage (User's custom list)
-        // ❌ USER REQUEST: Disable LocalStorage for names. Always use program defaults.
-        let hasLocalStorage = false;
-        /*
+        // 1. 브라우저 로컬 캐시에서 즉시 불러오기 (오프라인 및 0.001초 즉시 렌더링)
         try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (raw) {
-                const stored = JSON.parse(raw);
-                if (Array.isArray(stored) && stored.length > 0) {
-                    // Check if stored items are objects (v2) or strings (v1 legacy handling)
-                    if (typeof stored[0] === 'object') {
-                        // v2: [{name, grade, id}, ...]
-                        INITIAL_NAMES = stored.map(p => p.name);
-                        stored.forEach(p => PLAYER_INFO.set(p.name, p));
-                    } else {
-                        // v1 legacy fallback (shouldn't happen with new key, but safe to have)
-                        INITIAL_NAMES = stored;
-                    }
-                    hasLocalStorage = true;
+            const cachedRaw = localStorage.getItem(CACHED_PLAYERS_KEY);
+            if (cachedRaw) {
+                const cachedPlayers = JSON.parse(cachedRaw);
+                if (Array.isArray(cachedPlayers) && cachedPlayers.length > 0) {
+                    cachedPlayers.forEach((p, idx) => {
+                        const g = isNaN(Number(p.grade)) ? String(p.grade) : Number(p.grade);
+                        PLAYER_INFO.set(p.name, { id: p.id || `p${idx + 1}`, name: p.name, grade: g });
+                        if (!INITIAL_NAMES.includes(p.name)) INITIAL_NAMES.push(p.name);
+                    });
                 }
             }
         } catch (e) {
-            console.error("LS load failed", e);
+            console.warn("Cached players load warning:", e);
         }
-        */
 
         INITIAL_NAMES.sort((a, b) => a.localeCompare(b, 'ko'));
 
-        // 3. Try Fetching names.json (Async) - ONLY if LS is empty
-        // If the user has already customized the list (LS exists), we do NOT overwrite it with the file.
-        // This ensures 'Add Player' changes are respected.
-        // 3. Try Fetching names.json (Async) - ONLY if LS is empty
-        // ❌ USER REQUEST: Disable name.json loading too. Only use DEFAULT_PLAYERS in code.
-        /*
-        (async function loadNamesFromJson() {
-            if (hasLocalStorage) return; // Skip if user has data
-
-            try {
-                const response = await fetch('names.json');
-                if (!response.ok) throw new Error("JSON load failed");
-                const jsonNames = await response.json();
-
-                if (Array.isArray(jsonNames) && jsonNames.length > 0) {
-                    INITIAL_NAMES = jsonNames;
-                    INITIAL_NAMES.sort((a, b) => a.localeCompare(b, 'ko'));
-
-                    // Since this is async, we need to refresh the pool UI if it was already rendered
-                    renderPool();
-                    console.log("Loaded names from names.json");
-                }
-            } catch (err) {
-                console.warn("names.json fetch failed (likely local file protocol). Using defaults.", err);
-            }
-        })();
-        */
-
         function saveNames() {
             try {
-                // Save full player objects to persist grades
                 const dataToSave = INITIAL_NAMES.map(name => {
                     return PLAYER_INFO.get(name) || { name, grade: 0, id: 'unknown' };
                 });
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+                localStorage.setItem(CACHED_PLAYERS_KEY, JSON.stringify(dataToSave));
             } catch (e) { console.error("Save failed", e); }
         }
 
