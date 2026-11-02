@@ -2140,7 +2140,7 @@
     <script src="stats_cache.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="dashboard.js"></script>
-    <script src="supabase_live.js"></script>
+    <script src="supabase_live.js?v=20261102_52"></script>
 
     <style id="ui-upgrade-theme">
         :root {
@@ -3532,6 +3532,8 @@
 
         // Initialize with Defaults first
         let INITIAL_NAMES = DEFAULT_PLAYERS.map(p => p.name);
+        window.INITIAL_NAMES = INITIAL_NAMES;
+        window.PLAYER_INFO = PLAYER_INFO;
 
         // 2. Try LocalStorage (User's custom list)
         // ❌ USER REQUEST: Disable LocalStorage for names. Always use program defaults.
