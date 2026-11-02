@@ -344,6 +344,7 @@
             }
         });
         document.getElementById("btn-qr-kakao")?.addEventListener("click", copyViewerUrlForKakao);
+        renderMiniQrCodes();
 
 
         document.getElementById("btn-close-db-players").addEventListener("click", () => {
@@ -469,6 +470,41 @@
     }
 
     window.openQrModal = openQrModal;
+
+    function renderMiniQrCodes() {
+        const shareUrl = getViewerShareUrl();
+        const targets = [
+            document.getElementById("header-mini-qr"),
+            document.getElementById("dash-mini-qr")
+        ];
+
+        targets.forEach(el => {
+            if (!el) return;
+            el.innerHTML = "";
+            if (typeof QRCode !== "undefined") {
+                try {
+                    new QRCode(el, {
+                        text: shareUrl,
+                        width: 46,
+                        height: 46,
+                        colorDark: "#0f172a",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.M
+                    });
+                } catch (_) {
+                    renderMiniFallback(el, shareUrl);
+                }
+            } else {
+                renderMiniFallback(el, shareUrl);
+            }
+        });
+    }
+
+    function renderMiniFallback(container, text) {
+        const enc = encodeURIComponent(text);
+        container.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=46x46&data=${enc}" alt="QR" width="46" height="46" style="display:block; border-radius:4px;" />`;
+    }
+
 
 
     // 🔐 PIN 비밀번호(1111) 확인 후 진행자 모드로 승인

@@ -1864,36 +1864,64 @@
             background: #f8fafc;
         }
     
-        /* 📱 QR Access Button in Header Nav */
-        .nav-qr-btn {
+        /* 📱 Always-visible Inline QR Code Badge in Header */
+        .header-qr-badge {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            padding: 8px 16px;
-            border-radius: 999px;
-            border: 1px solid #059669;
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: #ffffff !important;
-            font-size: 13.5px;
-            font-weight: 800;
+            gap: 7px;
+            padding: 3px 10px 3px 4px;
+            background: #ffffff;
+            border: 1.5px solid #10b981;
+            border-radius: 12px;
             cursor: pointer;
-            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.28);
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            white-space: nowrap;
+            user-select: none;
+            flex-shrink: 0;
             margin-left: 2px;
         }
-        .nav-qr-btn:hover {
-            background: linear-gradient(135deg, #059669, #047857);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.38);
+        .header-qr-badge:hover {
+            border-color: #059669;
+            transform: translateY(-1px) scale(1.02);
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.32);
+            background: #f0fdf4;
         }
-        .nav-qr-btn:active {
-            transform: translateY(0);
+        .header-qr-badge:active {
+            transform: translateY(0) scale(1);
         }
-        .qr-btn-icon {
-            display: inline-flex;
+        .mini-qr-box {
+            width: 46px;
+            height: 46px;
+            background: #ffffff;
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
+        }
+        .mini-qr-box img, .mini-qr-box canvas {
+            display: block !important;
+            width: 46px !important;
+            height: 46px !important;
+        }
+        .mini-qr-label {
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+            line-height: 1.25;
+            white-space: nowrap;
+        }
+        .qr-label-title {
+            font-size: 11.5px;
+            font-weight: 900;
+            color: #065f46;
+            letter-spacing: -0.3px;
+        }
+        .qr-label-sub {
+            font-size: 9.5px;
+            font-weight: 700;
+            color: #10b981;
         }
 
         @media (max-width: 640px) {
@@ -1913,10 +1941,23 @@
                 font-size: 12.5px !important;
                 white-space: nowrap;
             }
-            .nav-qr-btn {
-                padding: 7px 12px !important;
-                font-size: 12.5px !important;
-                margin-left: 0;
+            .header-qr-badge {
+                padding: 2px 7px 2px 3px;
+                gap: 5px;
+            }
+            .mini-qr-box {
+                width: 38px;
+                height: 38px;
+            }
+            .mini-qr-box img, .mini-qr-box canvas {
+                width: 38px !important;
+                height: 38px !important;
+            }
+            .qr-label-title {
+                font-size: 10px;
+            }
+            .qr-label-sub {
+                font-size: 8.5px;
             }
         }
 
@@ -2198,7 +2239,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="dashboard.js"></script>
     <script src="qrcode.min.js"></script>
-    <script src="supabase_live.js?v=20261103_qr_share"></script>
+    <script src="supabase_live.js?v=20261103_qr_inline"></script>
 
     <style id="ui-upgrade-theme">
         :root {
@@ -2643,17 +2684,13 @@
             <button class="tab-btn active" data-target="tab-match">🏓 현재 경기</button>
             <button class="tab-btn" data-target="tab-history">📚 기록실</button>
             <button class="tab-btn" data-target="tab-dashboard-view">📊 대시보드</button>
-            <button type="button" class="nav-qr-btn" id="btn-header-qr" title="스마트폰으로 스캔하여 실시간 관전 화면으로 바로 접속">
-                <span class="qr-btn-icon">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="3" width="7" height="7"></rect>
-                        <rect x="14" y="3" width="7" height="7"></rect>
-                        <rect x="14" y="14" width="7" height="7"></rect>
-                        <rect x="3" y="14" width="7" height="7"></rect>
-                    </svg>
-                </span>
-                <span>QR 접속</span>
-            </button>
+            <div class="header-qr-badge" id="btn-header-qr" title="스마트폰 카메라로 바로 스캔하세요! (클릭 시 크게 확대)">
+                <div id="header-mini-qr" class="mini-qr-box"></div>
+                <div class="mini-qr-label">
+                    <span class="qr-label-title">📱 실시간 관전</span>
+                    <span class="qr-label-sub">QR 스캔 · 확대 🔍</span>
+                </div>
+            </div>
         </nav>
     </header>
 
@@ -3071,11 +3108,13 @@
                             중...</span>
                     </div>
                     <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                        <button type="button" class="btn" id="btn-dash-qr"
-                            style="font-size:12px; padding:6px 12px; background:#ecfdf5; color:#059669; border-color:#a7f3d0; font-weight:800; display:inline-flex; align-items:center; gap:5px;"
-                            title="스마트폰으로 스캔할 수 있는 실시간 관전 QR 코드를 엽니다">
-                            <span>📱 관전 QR 코드</span>
-                        </button>
+                        <div class="header-qr-badge" id="btn-dash-qr" title="스마트폰 카메라로 바로 스캔하세요! (클릭 시 크게 확대)">
+                            <div id="dash-mini-qr" class="mini-qr-box"></div>
+                            <div class="mini-qr-label">
+                                <span class="qr-label-title">📱 실시간 관전</span>
+                                <span class="qr-label-sub">QR 스캔 · 확대 🔍</span>
+                            </div>
+                        </div>
                         <button type="button" class="btn" id="btn-dash-refresh" onclick="syncDashboardData(true)"
                             style="font-size:12px; padding:6px 12px;" title="원본 데이터를 다시 읽어 통계를 강제 재계산하고 서버 캐시를 갱신합니다">
                             🔄 최신 동기화 (재계산)
