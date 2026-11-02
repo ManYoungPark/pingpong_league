@@ -1863,6 +1863,63 @@
             border-color: #93c5fd;
             background: #f8fafc;
         }
+    
+        /* 📱 QR Access Button in Header Nav */
+        .nav-qr-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 999px;
+            border: 1px solid #059669;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #ffffff !important;
+            font-size: 13.5px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.28);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            white-space: nowrap;
+            margin-left: 2px;
+        }
+        .nav-qr-btn:hover {
+            background: linear-gradient(135deg, #059669, #047857);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.38);
+        }
+        .nav-qr-btn:active {
+            transform: translateY(0);
+        }
+        .qr-btn-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media (max-width: 640px) {
+            .tabs {
+                gap: 4px !important;
+                padding: 4px !important;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                justify-content: flex-start;
+                scrollbar-width: none;
+            }
+            .tabs::-webkit-scrollbar {
+                display: none;
+            }
+            .tab-btn {
+                padding: 7px 12px !important;
+                font-size: 12.5px !important;
+                white-space: nowrap;
+            }
+            .nav-qr-btn {
+                padding: 7px 12px !important;
+                font-size: 12.5px !important;
+                margin-left: 0;
+            }
+        }
+
     </style>
     <style>
         /* [New] Tabs Styles */
@@ -2140,7 +2197,8 @@
     <script src="stats_cache.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="dashboard.js"></script>
-    <script src="supabase_live.js?v=20261103_player_rest"></script>
+    <script src="qrcode.min.js"></script>
+    <script src="supabase_live.js?v=20261103_qr_share"></script>
 
     <style id="ui-upgrade-theme">
         :root {
@@ -2585,6 +2643,17 @@
             <button class="tab-btn active" data-target="tab-match">🏓 현재 경기</button>
             <button class="tab-btn" data-target="tab-history">📚 기록실</button>
             <button class="tab-btn" data-target="tab-dashboard-view">📊 대시보드</button>
+            <button type="button" class="nav-qr-btn" id="btn-header-qr" title="스마트폰으로 스캔하여 실시간 관전 화면으로 바로 접속">
+                <span class="qr-btn-icon">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                </span>
+                <span>QR 접속</span>
+            </button>
         </nav>
     </header>
 
@@ -3001,7 +3070,12 @@
                             style="background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; font-weight:700;">☁️ 데이터 준비
                             중...</span>
                     </div>
-                    <div style="display:flex; gap:6px; align-items:center;">
+                    <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                        <button type="button" class="btn" id="btn-dash-qr"
+                            style="font-size:12px; padding:6px 12px; background:#ecfdf5; color:#059669; border-color:#a7f3d0; font-weight:800; display:inline-flex; align-items:center; gap:5px;"
+                            title="스마트폰으로 스캔할 수 있는 실시간 관전 QR 코드를 엽니다">
+                            <span>📱 관전 QR 코드</span>
+                        </button>
                         <button type="button" class="btn" id="btn-dash-refresh" onclick="syncDashboardData(true)"
                             style="font-size:12px; padding:6px 12px;" title="원본 데이터를 다시 읽어 통계를 강제 재계산하고 서버 캐시를 갱신합니다">
                             🔄 최신 동기화 (재계산)

@@ -286,6 +286,66 @@
         `;
         document.body.appendChild(modalWrap);
 
+        // 관전 QR 코드 모달 주입
+        const qrModalWrap = document.createElement("div");
+        qrModalWrap.id = "qrModalWrap";
+        qrModalWrap.style.cssText = "display:none; position:fixed; inset:0; background:rgba(15,23,42,0.65); backdrop-filter:blur(6px); z-index:16000; align-items:center; justify-content:center; padding:16px;";
+        qrModalWrap.innerHTML = `
+            <div style="background:#fff; width:100%; max-width:420px; border-radius:24px; box-shadow:0 25px 60px rgba(0,0,0,0.3); overflow:hidden; display:flex; flex-direction:column; text-align:center;">
+                <div style="padding:16px 20px 14px; background:linear-gradient(135deg, #f0fdf4, #ecfdf5); border-bottom:1px solid #d1fae5; display:flex; align-items:center; justify-content:space-between;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:20px;">📱</span>
+                        <h3 style="margin:0; font-size:16.5px; font-weight:900; color:#065f46;">실시간 관전 QR 코드</h3>
+                    </div>
+                    <button type="button" class="btn" id="btn-close-qr-modal" style="padding:4px 10px; font-size:12.5px; font-weight:800; border-radius:8px; border:1px solid #a7f3d0; background:#fff; color:#047857; cursor:pointer;">닫기 ✕</button>
+                </div>
+                <div style="padding:22px 20px 20px; display:flex; flex-direction:column; align-items:center; gap:14px;">
+                    <div id="qr-code-box" style="background:#ffffff; padding:12px; border-radius:18px; border:2px solid #e2e8f0; box-shadow:0 6px 18px rgba(0,0,0,0.06); display:inline-flex; align-items:center; justify-content:center; min-width:224px; min-height:224px;"></div>
+                    <div style="display:inline-flex; align-items:center; gap:6px; background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; padding:6px 14px; border-radius:999px; font-size:12px; font-weight:800;">
+                        <span>📷 스마트폰 기본 카메라로 비추면 바로 연결됩니다</span>
+                    </div>
+                    <div style="width:100%; display:flex; gap:6px; align-items:center;">
+                        <input type="text" id="qr-share-url-input" readonly style="flex:1; padding:8px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:12px; background:#f8fafc; color:#334155; font-family:monospace; font-weight:600;" />
+                        <button type="button" id="btn-copy-qr-url" class="btn primary" style="padding:8px 14px; font-size:12.5px; font-weight:800; white-space:nowrap; background:#059669; border-color:#059669;">📋 복사</button>
+                    </div>
+                    <button type="button" id="btn-qr-kakao" style="width:100%; padding:10px; border-radius:12px; background:#fee500; color:#371d1e; font-weight:800; font-size:13px; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 2px 6px rgba(0,0,0,0.08);">
+                        <span>💬 카카오톡 단톡방에 관전 링크 공유</span>
+                    </button>
+                    <div style="font-size:11.5px; color:#64748b; line-height:1.5;">
+                        💡 진행자가 입력하는 조별 리그 및 토너먼트 경기 결과가 관전자 기기에 <b>실시간 자동 반영</b>됩니다.
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(qrModalWrap);
+
+        const btnHeaderQr = document.getElementById("btn-header-qr");
+        if (btnHeaderQr) btnHeaderQr.addEventListener("click", openQrModal);
+
+        const btnDashQr = document.getElementById("btn-dash-qr");
+        if (btnDashQr) btnDashQr.addEventListener("click", openQrModal);
+
+        document.getElementById("btn-close-qr-modal")?.addEventListener("click", () => {
+            qrModalWrap.style.display = "none";
+        });
+        qrModalWrap.addEventListener("click", (e) => {
+            if (e.target === qrModalWrap) qrModalWrap.style.display = "none";
+        });
+        document.getElementById("btn-copy-qr-url")?.addEventListener("click", () => {
+            const urlInput = document.getElementById("qr-share-url-input");
+            if (urlInput && urlInput.value) {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(urlInput.value).then(() => {
+                        showLiveToast("📋 [관전 링크]가 클립보드에 복사되었습니다!");
+                    });
+                } else {
+                    prompt("관전용 링크입니다:", urlInput.value);
+                }
+            }
+        });
+        document.getElementById("btn-qr-kakao")?.addEventListener("click", copyViewerUrlForKakao);
+
+
         document.getElementById("btn-close-db-players").addEventListener("click", () => {
             modalWrap.style.display = "none";
         });
@@ -361,6 +421,55 @@
     window.requestHostMode = requestHostMode;
     window.logoutHostMode = logoutHostMode;
     window.copyViewerUrlForKakao = copyViewerUrlForKakao;
+
+    function getViewerShareUrl() {
+        if (window.location.hostname && !["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+            const u = new URL(window.location.href);
+            u.searchParams.set("mode", "viewer");
+            u.searchParams.delete("pin");
+            return u.toString();
+        }
+        return "https://manyoungpark.github.io/pingpong_league/?mode=viewer";
+    }
+
+    function openQrModal() {
+        const modal = document.getElementById("qrModalWrap");
+        if (!modal) return;
+        const shareUrl = getViewerShareUrl();
+        const input = document.getElementById("qr-share-url-input");
+        if (input) input.value = shareUrl;
+
+        const qrBox = document.getElementById("qr-code-box");
+        if (qrBox) {
+            qrBox.innerHTML = "";
+            if (typeof QRCode !== "undefined") {
+                try {
+                    new QRCode(qrBox, {
+                        text: shareUrl,
+                        width: 200,
+                        height: 200,
+                        colorDark: "#0f172a",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.M
+                    });
+                } catch (e) {
+                    console.warn("QRCode local render error:", e);
+                    renderQrFallback(qrBox, shareUrl);
+                }
+            } else {
+                renderQrFallback(qrBox, shareUrl);
+            }
+        }
+        modal.style.display = "flex";
+    }
+
+    function renderQrFallback(container, text) {
+        const enc = encodeURIComponent(text);
+        container.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${enc}" alt="QR Code" width="200" height="200" style="display:block; border-radius:8px;" />`;
+    }
+
+    window.openQrModal = openQrModal;
+
 
     // 🔐 PIN 비밀번호(1111) 확인 후 진행자 모드로 승인
     function requestHostMode() {
