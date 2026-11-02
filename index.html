@@ -2606,6 +2606,7 @@
     </style>
 
     <link rel="stylesheet" href="dashboard_redesign.css?v=20261103_dx3">
+    <link rel="stylesheet" href="grouping_setup.css?v=20261103_gs3">
 </head>
 
 <body>
@@ -2701,33 +2702,49 @@
             <div class="right-col">
 
                 <section class="card" id="card-settings">
-                    <div class="card-hd">
-                        <div class="title">설정</div>
-                        <span class="pill">조 개수 / 경기 방식</span>
+                    <div class="card-hd gs-head">
+                        <div class="title">조편성</div>
+                        <label class="gs-format" for="matchFormat">
+                            <span class="label">경기:</span>
+                            <select class="select" id="matchFormat">
+                                <option value="bo3">3판 2선승</option>
+                                <option value="bo5">5판 3선승</option>
+                            </select>
+                        </label>
+                        <button type="button" class="btn gs-reset" id="btn-reset" onclick="openReset()"
+                            title="모든 배정과 점수를 초기화합니다 (비밀번호 필요)">🔄 초기화</button>
                     </div>
-                    <div class="controls">
-                        <span class="label">조 개수:</span>
-                        <button class="btn primary" data-g="2">2조</button>
-                        <button class="btn primary" data-g="3">3조</button>
-                        <button class="btn primary" data-g="4">4조</button>
-                        <button class="btn primary" data-g="5">5조</button>
-                        <button class="btn primary" data-g="6">6조</button>
 
-                        <span class="label" style="margin-left:8px;">경기:</span>
-                        <select class="select" id="matchFormat">
-                            <option value="bo3">3판 2선승</option>
-                            <option value="bo5">5판 3선승</option>
-                        </select>
+                    <div class="gs-modes">
+                        <div class="gs-mode" id="gs-mode-manual">
+                            <div class="gs-mode-title">수동 조편성</div>
+                            <p class="gs-mode-desc">아래 이름 목록에서 이름을 끌어다 조에 놓거나, 이름을 눌러 조를 선택하세요.</p>
+                            <div class="controls gs-group-count">
+                                <span class="label">조 개수:</span>
+                                <button class="btn primary" data-g="2">2조</button>
+                                <button class="btn primary" data-g="3">3조</button>
+                                <button class="btn primary" data-g="4">4조</button>
+                                <button class="btn primary" data-g="5">5조</button>
+                                <button class="btn primary" data-g="6">6조</button>
+                            </div>
+                        </div>
+                        <div class="gs-mode" id="gs-mode-auto">
+                            <div class="gs-mode-title">자동 조편성</div>
+                            <p class="gs-mode-desc">참가 선수를 고르면 완전 랜덤 또는 부수 균등 방식으로 자동 배정합니다.</p>
+                            <button type="button" class="btn primary gs-auto-btn" id="btn-auto-assign"
+                                onclick="openRandomAssignModal()">🎲 랜덤 배정</button>
+                        </div>
+                    </div>
 
-                        <button type="button" class="btn" onclick="openReset()">🔄 초기화</button>
+                    <!-- 개발 전용 도구: 배포 사이트에서는 숨김 (localhost / 127.0.0.1 / file:// 또는 주소에 ?dev=1) -->
+                    <div class="gs-devtools" id="dev-tools" hidden>
+                        <span class="gs-devtools-label">개발용</span>
                         <button type="button" class="btn" onclick="runAutoTestScenario()">🧪 테스트(3조)</button>
                         <button type="button" class="btn" onclick="runRealDataTest()">📡 최신 데이터 테스트</button>
                         <button type="button" class="btn" onclick="runAutoTestScenario4Groups()">🎲 테스트(4조 랜덤)</button>
                         <button type="button" class="btn" onclick="runAutoTestScenarioMixed()">🧩 테스트(혼합 22명)</button>
-                        <!-- <button type="button" class="btn primary" id="btn-gen-tournament">🏆 본선 토너먼트 생성</button> -->
                         <button type="button" class="btn" id="btn-show-sample">👀 예시 보기</button>
                     </div>
-                    <!-- Fix: removed extra closing div -->
                 </section>
 
                 <section class="card" id="card-pool">
@@ -2741,15 +2758,6 @@
                                 <button type="button" class="btn" id="btn-sort-grade"
                                     style="padding:4px 8px; font-size:11px;" onclick="setPoolSort('grade')">부수순</button>
                             </div>
-                            <button type="button" class="btn"
-                                style="padding:4px 8px; font-size:11px; background:#f0fdf4; color:#15803d; border-color:#bbf7d0; margin-left:auto;"
-                                onclick="addPlayer()">+ 이름 추가</button>
-                            <button type="button" class="btn"
-                                style="padding:4px 8px; font-size:11px; background:#f0f9ff; color:#0369a1; border-color:#bae6fd;"
-                                onclick="openRandomAssignModal()">🎲 랜덤 배정</button>
-                            <button type="button" class="btn"
-                                style="padding:4px 8px; font-size:11px; background:#f0fdf4; color:#15803d; border-color:#bbf7d0;"
-                                onclick="downloadNamesJSON()" title="현재 명단을 names.json으로 다운로드">💾 저장</button>
                         </div>
                         <!--                        <span class="pill">여기로 드롭하면 회수</span>-->
                     </div>
@@ -3761,19 +3769,72 @@
         // ID removed in HTML, so we mock it to prevent crash if listener exists
         const resetBtn = { addEventListener: () => { } };
 
-        function openReset() {
-            if (!confirm("모든 데이터를 초기화하시겠습니까? (이전 배정/점수 삭제됨)")) return;
+        // 🔐 초기화 비밀번호 (화면 확인용 간단 잠금 — 진행자 PIN과 동일)
+        const RESET_PIN = "1111";
 
-            // ✅ Ask about Names Reset
-            if (localStorage.getItem(STORAGE_KEY)) {
-                if (confirm("저장된 '선수 명단'도 삭제하고 코드의 기본값으로 되돌리시겠습니까?\n(코드에서 이름을 수정한 경우 '확인'을 눌러야 적용됩니다.)")) {
-                    localStorage.removeItem(STORAGE_KEY);
-                    alert("명단이 초기화되었습니다. 페이지를 새로고침합니다.");
-                    location.reload();
-                    return;
+        let _pinModalCallback = null;
+        function ensurePinModal() {
+            let m = document.getElementById("gsPinModal");
+            if (m) return m;
+            m = document.createElement("div");
+            m.id = "gsPinModal";
+            m.className = "gs-pin";
+            m.setAttribute("aria-hidden", "true");
+            m.innerHTML = `
+                <div class="gs-pin-backdrop" data-pin-cancel="1"></div>
+                <form class="gs-pin-box" role="dialog" aria-modal="true" aria-labelledby="gsPinTitle" autocomplete="off">
+                    <div class="gs-pin-title" id="gsPinTitle">초기화 확인</div>
+                    <p class="gs-pin-msg">모든 배정과 점수가 삭제됩니다.<br>계속하려면 비밀번호를 입력하세요.</p>
+                    <input type="password" id="gsPinInput" class="gs-pin-input" inputmode="numeric"
+                        maxlength="12" autocomplete="off" placeholder="비밀번호" aria-label="비밀번호" />
+                    <div class="gs-pin-err" id="gsPinErr" role="alert"></div>
+                    <div class="gs-pin-actions">
+                        <button type="button" class="btn" data-pin-cancel="1">취소</button>
+                        <button type="submit" class="btn primary">확인</button>
+                    </div>
+                </form>`;
+            document.body.appendChild(m);
+            m.addEventListener("click", (e) => { if (e.target.closest("[data-pin-cancel]")) closePinModal(); });
+            m.addEventListener("keydown", (e) => { if (e.key === "Escape") closePinModal(); });
+            m.querySelector("form").addEventListener("submit", (e) => {
+                e.preventDefault();
+                const input = document.getElementById("gsPinInput");
+                if (input.value.trim() === RESET_PIN) {
+                    const cb = _pinModalCallback;
+                    closePinModal();
+                    if (typeof cb === "function") cb();
+                } else {
+                    document.getElementById("gsPinErr").textContent = "비밀번호가 올바르지 않습니다.";
+                    input.value = "";
+                    input.focus();
                 }
-            }
+            });
+            return m;
+        }
+        function closePinModal() {
+            const m = document.getElementById("gsPinModal");
+            if (!m) return;
+            m.classList.remove("open");
+            m.setAttribute("aria-hidden", "true");
+            _pinModalCallback = null;
+        }
+        function requestResetPin(onSuccess) {
+            const m = ensurePinModal();
+            _pinModalCallback = onSuccess;
+            document.getElementById("gsPinErr").textContent = "";
+            document.getElementById("gsPinInput").value = "";
+            m.classList.add("open");
+            m.setAttribute("aria-hidden", "false");
+            setTimeout(() => document.getElementById("gsPinInput").focus(), 0);
+        }
 
+        function openReset() {
+            requestResetPin(doReset);
+        }
+
+        function doReset() {
+            // (과거의 '선수 명단 로컬 저장 삭제' 단계는 STORAGE_KEY 가 정의된 적이 없어 오류를 내던 코드라 제거함.
+            //  선수 명단은 DB에서 불러오므로 초기화 대상이 아님)
             initState();
             renderPool();
             createTeams(4); // Default 4 Groups
@@ -5630,6 +5691,16 @@
             btn.addEventListener("click", () => createTeams(Number(btn.dataset.g)));
         });
         matchFormatEl.addEventListener("change", () => renderAllTeams());
+
+        // 🛠️ 개발 전용 도구(테스트·예시 보기): 로컬 개발 환경에서만 표시, 배포 사이트에서는 숨김
+        (function toggleDevTools() {
+            const host = location.hostname;
+            const isDev = location.protocol === "file:" ||
+                ["localhost", "127.0.0.1", "[::1]", ""].includes(host) ||
+                /[?&]dev=1(&|$)/.test(location.search);
+            const el = document.getElementById("dev-tools");
+            if (el) el.hidden = !isDev;
+        })();
 
         /* 
         resetBtn.addEventListener("click", () => {
