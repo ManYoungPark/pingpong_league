@@ -735,11 +735,12 @@
         const grades = ["선수", "1", "2", "3", "4", "5", "6", "7", "희망"];
         container.innerHTML = entries.map(item => `
             <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border:1px solid #e2e8f0; border-radius:10px; background:#fff; gap:6px;">
-                <span style="font-weight:800; font-size:13.5px; color:#0f172a;">${item.name}</span>
-                <div style="display:flex; align-items:center; gap:4px;">
+                <span style="font-weight:800; font-size:13.5px; color:#0f172a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${item.name}</span>
+                <div style="display:flex; align-items:center; gap:5px; flex-shrink:0;">
                     <select data-pname="${item.name}" class="db-grade-select" style="padding:3px 6px; border:1px solid #cbd5e1; border-radius:6px; font-weight:800; font-size:12px;">
                         ${grades.map(g => `<option value="${g}" ${String(item.grade) === g ? "selected" : ""}>${g}부</option>`).join("")}
                     </select>
+                    <button type="button" class="btn-delete-db-player" data-pname="${item.name}" title="${item.name} 회원 삭제" style="padding:3px 7px; border:1px solid #fecaca; background:#fff1f2; color:#e11d48; border-radius:6px; font-weight:800; font-size:12px; cursor:pointer; line-height:1.2;">✕</button>
                 </div>
             </div>
         `).join("");
@@ -751,6 +752,66 @@
                 await updatePlayerGradeInDB(pname, newGrade);
             });
         });
+
+        container.querySelectorAll(".btn-delete-db-player").forEach(btn => {
+            btn.addEventListener("click", async (e) => {
+                const pname = e.currentTarget.getAttribute("data-pname");
+                await handleDeleteDbPlayer(pname);
+            });
+        });
+    }
+
+    async function handleDeleteDbPlayer(name) {
+        if (!name) return;
+        if (!confirm(`정말 [${name}] 회원을 명단에서 삭제하시겠습니까?\n(삭제 시 모든 기기 및 DB에서 영구 삭제됩니다)`)) {
+            return;
+        }
+
+        // 1. 메모리 상태에서 삭제
+        if (typeof PLAYER_INFO !== "undefined") {
+            PLAYER_INFO.delete(name);
+        }
+        if (typeof INITIAL_NAMES !== "undefined") {
+            const idx = INITIAL_NAMES.indexOf(name);
+            if (idx !== -1) INITIAL_NAMES.splice(idx, 1);
+            window.INITIAL_NAMES = INITIAL_NAMES;
+        }
+        if (typeof state !== "undefined") {
+            state.delete(name);
+        }
+
+        // 2. 로컬 캐시 갱신
+        if (typeof saveNames === "function") {
+            try { saveNames(); } catch (_) {}
+        }
+        try {
+            const listToCache = Array.from(PLAYER_INFO.entries()).map(([nm, info]) => ({
+                id: info.id,
+                name: nm,
+                grade: info.grade
+            }));
+            localStorage.setItem("pingpong_cached_players_v1", JSON.stringify(listToCache));
+        } catch (_) {}
+
+        // 3. UI 갱신
+        renderPlayerManagerList();
+        if (typeof renderPool === "function") renderPool();
+        if (typeof renderAllTeams === "function") renderAllTeams();
+
+        // 4. Supabase DB에서 삭제
+        if (sbClient && sbAvailable) {
+            try {
+                await sbClient.from("players").delete().eq("name", name);
+                showLiveToast(`🗑️ [${name}] 회원이 DB에서 완전히 삭제되었습니다.`);
+                return;
+            } catch (err) {
+                console.warn("DB delete failed, trying soft delete:", err);
+                try {
+                    await sbClient.from("players").update({ active: false }).eq("name", name);
+                } catch (_) {}
+            }
+        }
+        showLiveToast(`🗑️ [${name}] 회원이 삭제되었습니다.`);
     }
 
     async function updatePlayerGradeInDB(name, newGrade) {
