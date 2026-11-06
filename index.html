@@ -2239,7 +2239,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="dashboard.js"></script>
     <script src="qrcode.min.js"></script>
-    <script src="supabase_live.js?v=20261103_qr_inline"></script>
+    <script src="supabase_live.js?v=20261107_date_fix"></script>
 
     <style id="ui-upgrade-theme">
         :root {
@@ -3497,10 +3497,22 @@
         var estTableCount = 6;
         var estMinsPerMatch = 12;
 
+        // 📅 한국 로컬 시간(KST) 기준 날짜 문자열 (YYYY-MM-DD) 반환 (오전 9시 이전 UTC 시차 버그 완벽 방지)
+        function getLocalDateStr(d = new Date()) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, "0");
+            const day = String(d.getDate()).padStart(2, "0");
+            return `${y}-${m}-${day}`;
+        }
+        window.getLocalDateStr = getLocalDateStr;
+
         function updateTournamentType(dateStr) {
-            const dateObj = new Date(dateStr);
-            const day = dateObj.getDay(); // 0(일) ~ 6(토)
+            if (!dateStr) return;
+            const parts = dateStr.split('-');
+            const dt = parts.length === 3 ? new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])) : new Date(dateStr);
+            const day = dt.getDay(); // 0(일) ~ 6(토)
             const titleEl = document.getElementById("headerTitle");
+            if (!titleEl) return;
 
             if (day === 5) titleEl.value = "금요리그";
             else if (day === 6) titleEl.value = "월례대회";
@@ -3509,10 +3521,10 @@
 
         (function initHeader() {
             const picker = document.getElementById("datePicker");
-            const today = new Date().toISOString().split('T')[0];
+            const today = getLocalDateStr();
             picker.value = today;
 
-            // 자동 대회명 설정
+            // 자동 대회명 설정 (금요일이면 자동으로 금요리그)
             updateTournamentType(today);
 
             // 날짜 변경 이벤트
@@ -3606,11 +3618,18 @@
                 if (data.groupsCount) state.groupsCount = data.groupsCount;
                 if (data.matchFormat) matchFormatEl.value = data.matchFormat;
 
-                if (data.date) {
-                    const datePickerEl = document.getElementById("datePicker");
-                    if (datePickerEl) {
+                // 날짜 복원: 과거 백업 날짜가 오늘 실제 날짜를 덮어쓰지 않도록 스마트 보정
+                const datePickerEl = document.getElementById("datePicker");
+                if (datePickerEl) {
+                    const todayStr = getLocalDateStr();
+                    if (data.date && data.date === todayStr) {
+                        // 오늘 저장했던 백업이면 그대로 유지
                         datePickerEl.value = data.date;
                         updateTournamentType(data.date);
+                    } else {
+                        // 새로운 날에 접속한 경우: 과거 날짜로 덮어쓰지 않고 오늘 실제 날짜 유지
+                        datePickerEl.value = todayStr;
+                        updateTournamentType(todayStr);
                     }
                 }
 
@@ -7657,7 +7676,7 @@
 
             // 1. Calculate Points
             const selectedDate = document.getElementById("datePicker").value;
-            const today = selectedDate || new Date().toISOString().split('T')[0];
+            const today = selectedDate || getLocalDateStr();
             const pointMap = new Map(); // name -> {points, type, details[]}
 
             // (1) Attendance (+2)
@@ -7807,7 +7826,7 @@
                         const serializeMap = (m) => Array.from(m.entries());
                         const serializeDeepMap = (m) => Array.from(m.entries()).map(([k, v]) => [k, Array.from(v.entries())]);
 
-                        const finalSelectedDate = safeGetValue("datePicker") || new Date().toISOString().split('T')[0];
+                        const finalSelectedDate = safeGetValue("datePicker") || getLocalDateStr();
 
                         const fullDataSnapshot = {
                             metadata: {
@@ -8011,7 +8030,7 @@
                         const cloneDate = clonedDoc.getElementById("datePicker");
                         if (origDate && cloneDate) {
                             const dSpan = clonedDoc.createElement("span");
-                            dSpan.textContent = origDate.value || new Date().toISOString().slice(0, 10);
+                            dSpan.textContent = origDate.value || getLocalDateStr();
                             dSpan.style.cssText = "display:inline-flex;align-items:center;padding:4px 14px;border-radius:999px;background:#f1f5f9;color:#0f172a;border:1.5px solid #cbd5e1;font-size:18px;font-weight:800;";
                             cloneDate.parentNode.replaceChild(dSpan, cloneDate);
                         }
@@ -8035,7 +8054,7 @@
                     }
                 });
 
-                const dateStr = (document.getElementById("datePicker")?.value) || new Date().toISOString().slice(0, 10);
+                const dateStr = (document.getElementById("datePicker")?.value) || getLocalDateStr();
                 const filename = `대덕밸리_대진표_${dateStr}${fileSuffix}.png`;
 
                 await new Promise((resolve) => {

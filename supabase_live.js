@@ -612,7 +612,7 @@
         return {
             clientId: CLIENT_ID,
             timestamp: Date.now(),
-            date: dateEl ? dateEl.value : new Date().toISOString().slice(0, 10),
+            date: dateEl ? dateEl.value : (typeof getLocalDateStr === 'function' ? getLocalDateStr() : new Date().toLocaleDateString('sv-SE')),
             headerTitle: titleEl ? titleEl.value : "금요리그",
             groupsCount: state.groupsCount || 4,
             matchFormat: fmtEl ? fmtEl.value : "bo3",
@@ -641,7 +641,14 @@
         try {
             if (payload.date) {
                 const dateEl = document.getElementById("datePicker");
-                if (dateEl && dateEl.value !== payload.date) dateEl.value = payload.date;
+                const todayStr = (typeof getLocalDateStr === "function") ? getLocalDateStr() : "";
+                const isPastDate = Boolean(todayStr && payload.date < todayStr);
+                // 진행자(host) 모드일 때 과거 날짜로 진행자의 오늘 날짜를 덮어쓰지 않음
+                if (currentRole === "host" && isPastDate) {
+                    // 과거 날짜 덮어쓰기 무시 (오늘 날짜 유지)
+                } else if (dateEl && dateEl.value !== payload.date) {
+                    dateEl.value = payload.date;
+                }
             }
             if (payload.headerTitle) {
                 const titleEl = document.getElementById("headerTitle");
@@ -1348,7 +1355,7 @@
 
                     if (data && data.is_live && data.state_json && Object.keys(data.state_json).length > 0) {
                         const hasLocalActive = typeof resultsByTeam !== "undefined" && resultsByTeam.size > 0;
-                        const todayStr = new Date().toISOString().slice(0, 10);
+                        const todayStr = (typeof getLocalDateStr === 'function') ? getLocalDateStr() : new Date().toLocaleDateString('sv-SE');
                         const serverDate = data.state_json.date || data.match_date;
 
                         if (currentRole === "viewer") {
