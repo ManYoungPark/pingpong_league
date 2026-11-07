@@ -8609,6 +8609,30 @@
             return resolveFinalRanks(teamId, autoPack, manual);
         }
 
+        function h_collectGroupRanks() {
+            const groupCount = h_state.groupsCount || 4;
+            const groupRanks = [];
+            for (let g = 1; g <= groupCount; g++) {
+                const teamId = `team-${g}`;
+                const players = Array.from(h_state.entries())
+                    .filter(([_, v]) => v.where === "team" && v.teamId === teamId)
+                    .map(([k, _]) => k);
+                const autoPack = computeRanking_h(teamId, players);
+                const finalPack = resolveFinalRanks_h(teamId, autoPack);
+                const list = [];
+                for (const p of players) {
+                    const f = finalPack.get(p);
+                    let rk = 999;
+                    if (f && f.finalRank !== null && f.finalRank !== undefined) rk = f.finalRank;
+                    else if (f && f.autoRank !== null && f.autoRank !== undefined) rk = f.autoRank;
+                    list.push({ name: p, rank: rk, label: `${g}조 ${rk}위`, group: g });
+                }
+                list.sort((a, b) => a.rank - b.rank);
+                groupRanks.push(list);
+            }
+            return groupRanks;
+        }
+
         function h_renderBrackets() {
             function checkMaxBracket(prefix) {
                 for (let i = 33; i <= 64; i++) if (h_bracketState.has(`${prefix}-r1-${i}`)) return 64;
@@ -8620,7 +8644,7 @@
                 return 8;
             }
 
-            const process = (prefix, B) => {
+            const legacyProcess = (prefix, B) => {
                 const slots = new Array(B).fill(null);
                 for (let i = 1; i <= B; i++) {
                     const val = h_bracketState.get(`${prefix}-r1-${i}`);
@@ -8640,24 +8664,55 @@
             const h_type = h_tournamentType || "split";
             const hUpperPanel = document.getElementById("h-tm-wrap-upper").closest(".tm-panel");
             const hLowerPanel = document.getElementById("h-tm-wrap-lower").closest(".tm-panel");
-
             const historyTabs = document.getElementById("tm-history-mobile-tabs");
+
+            const groupRanks = h_collectGroupRanks();
+            const groupCount = groupRanks.length || 4;
+            const totalPlayers = groupRanks.reduce((acc, g) => acc + g.length, 0);
+
             if (h_type === "full") {
                 hLowerPanel.style.display = "none";
                 hUpperPanel.style.flex = "1";
                 if (historyTabs) historyTabs.style.display = "none";
 
-                const Bu = checkMaxBracket("U");
-                h_createBracketUI("h-tm-wrap-upper", "h-tm-lines-upper", "U", 1, Bu, process("U", Bu), "h-tm-titleUpper", "전체 토너먼트");
+                let Bu = 16, slotsU = [];
+                if (totalPlayers > 0) {
+                    const full = generateTournament(groupRanks.flat().sort((a, b) => a.rank - b.rank), groupCount);
+                    Bu = full.B;
+                    slotsU = full.slots;
+                } else {
+                    Bu = checkMaxBracket("U");
+                    slotsU = legacyProcess("U", Bu);
+                }
+                window.h_lastBu = Bu;
+                window.h_lastSlotsU = slotsU;
+                h_createBracketUI("h-tm-wrap-upper", "h-tm-lines-upper", "U", 1, Bu, slotsU, "h-tm-titleUpper", "전체 토너먼트");
             } else {
                 hLowerPanel.style.display = "block";
                 hUpperPanel.style.flex = "1";
                 if (historyTabs && window.innerWidth <= 1024) historyTabs.style.display = "flex";
 
-                const Bu = checkMaxBracket("U");
-                const Bl = checkMaxBracket("L");
-                h_createBracketUI("h-tm-wrap-upper", "h-tm-lines-upper", "U", 1, Bu, process("U", Bu), "h-tm-titleUpper", "상위 토너먼트");
-                h_createBracketUI("h-tm-wrap-lower", "h-tm-lines-lower", "L", -1, Bl, process("L", Bl), "h-tm-titleLower", "하위 토너먼트");
+                let Bu = 16, slotsU = [], Bl = 8, slotsL = [];
+                if (totalPlayers > 0) {
+                    const { upperEntries, lowerEntries } = splitUpperLower(groupRanks);
+                    const upper = generateTournament(upperEntries, groupCount);
+                    const lower = generateTournament(lowerEntries, groupCount);
+                    Bu = upper.B;
+                    slotsU = upper.slots;
+                    Bl = lower.B;
+                    slotsL = lower.slots;
+                } else {
+                    Bu = checkMaxBracket("U");
+                    slotsU = legacyProcess("U", Bu);
+                    Bl = checkMaxBracket("L");
+                    slotsL = legacyProcess("L", Bl);
+                }
+                window.h_lastBu = Bu;
+                window.h_lastSlotsU = slotsU;
+                window.h_lastBl = Bl;
+                window.h_lastSlotsL = slotsL;
+                h_createBracketUI("h-tm-wrap-upper", "h-tm-lines-upper", "U", 1, Bu, slotsU, "h-tm-titleUpper", "상위 토너먼트");
+                h_createBracketUI("h-tm-wrap-lower", "h-tm-lines-lower", "L", -1, Bl, slotsL, "h-tm-titleLower", "하위 토너먼트");
             }
         }
 
@@ -8814,31 +8869,100 @@
             champ.innerHTML = `<div class="label">CHAMPION</div><div id="h-${prefix}-winner" class="tm-player empty tm-winner-box" style="position:static">?</div>`;
             wrap.appendChild(champ);
 
-            // Populate slots
+            // 1. Populate slots (Round 1)
             for (let i = 1; i <= B; i++) {
-                const el = document.getElementById(nodeId(1, i)), p = slots[i - 1];
-                if (!p || p === "BYE") { el.textContent = "BYE"; el.classList.add("bye"); }
-                else {
-                    const rank = h_getRankLabel(p);
-                    el.innerHTML = `<span class="tm-nm-wrap">${p}${getGradeBadgeHTML(p)}</span>${rank ? `<small>${rank}</small>` : ""}`;
-                    el.classList.remove("empty");
+                const el = document.getElementById(nodeId(1, i)), item = slots[i - 1];
+                const p = (item && typeof item === 'object') ? item.name : item;
+                const rk = (item && typeof item === 'object') ? item.label : (p ? h_getRankLabel(p) : "");
+                if (!p || p === "BYE") {
+                    el.textContent = "BYE";
+                    el.classList.add("bye", "empty");
+                } else {
+                    el.innerHTML = `<span class="tm-nm-wrap">${p}${getGradeBadgeHTML(p)}</span>${rk ? `<small>${rk}</small>` : ""}`;
+                    el.classList.remove("empty", "bye");
                 }
             }
-            // Restore winners
+
+            // 2. Auto-advance BYEs (Round 1 -> Round 2, etc.)
+            let advanced = true;
+            while (advanced) {
+                advanced = false;
+                for (let r = 1; r < rounds; r++) {
+                    const count = B / Math.pow(2, r - 1);
+                    for (let i = 1; i <= count; i += 2) {
+                        const aEl = document.getElementById(nodeId(r, i));
+                        const bEl = document.getElementById(nodeId(r, i + 1));
+                        const toEl = document.getElementById(nodeId(r + 1, Math.ceil(i / 2)));
+                        if (!aEl || !bEl || !toEl) continue;
+
+                        const toIsEmpty = toEl.classList.contains("empty") || toEl.textContent.trim() === "" || toEl.textContent.trim() === "?";
+                        if (!toIsEmpty) continue;
+
+                        const aIsBye = aEl.classList.contains("bye") || aEl.textContent.trim() === "BYE";
+                        const bIsBye = bEl.classList.contains("bye") || bEl.textContent.trim() === "BYE";
+                        const aHasPlayer = !aIsBye && !aEl.classList.contains("empty") && h_extractBracketName(aEl) !== "";
+                        const bHasPlayer = !bIsBye && !bEl.classList.contains("empty") && h_extractBracketName(bEl) !== "";
+
+                        if (aHasPlayer && bIsBye) {
+                            const name = h_extractBracketName(aEl);
+                            const rank = h_getRankLabel(name);
+                            toEl.innerHTML = `<span class="tm-nm-wrap">${name}${getGradeBadgeHTML(name)}</span>${rank ? `<small>${rank}</small>` : ""}`;
+                            toEl.classList.remove("empty", "bye");
+                            advanced = true;
+                        } else if (bHasPlayer && aIsBye) {
+                            const name = h_extractBracketName(bEl);
+                            const rank = h_getRankLabel(name);
+                            toEl.innerHTML = `<span class="tm-nm-wrap">${name}${getGradeBadgeHTML(name)}</span>${rank ? `<small>${rank}</small>` : ""}`;
+                            toEl.classList.remove("empty", "bye");
+                            advanced = true;
+                        }
+                    }
+                }
+            }
+
+            // 3. Restore winners from h_bracketState
             h_bracketState.forEach((val, id) => {
                 if (!id.startsWith(prefix)) return;
                 const el = document.getElementById("h-" + id); if (!el) return;
                 const name = (typeof val === 'object') ? val.winner : val;
-                if (name && name !== "BYE") {
+                if (name && name !== "BYE" && name !== "?") {
                     const rank = h_getRankLabel(name);
                     el.innerHTML = `<span class="tm-nm-wrap">${name}${getGradeBadgeHTML(name)}</span>${rank ? `<small>${rank}</small>` : ""}`;
-                    el.classList.remove("empty"); el.classList.remove("bye");
-                } else if (name === "BYE") { el.textContent = "BYE"; el.classList.add("bye"); el.classList.add("empty"); }
+                    el.classList.remove("empty", "bye");
+                } else if (name === "BYE") {
+                    el.textContent = "BYE";
+                    el.classList.add("bye", "empty");
+                }
             });
 
             h_drawBracketLines(wrap, svg, prefix, direction, rounds, nodeId);
             h_renderResultBadges(prefix, wrap, B, direction);
         }
+
+        window.h_renderLinesForPrefix = function(prefix) {
+            const isUpper = (prefix === 'U');
+            const wrapId = isUpper ? "h-tm-wrap-upper" : "h-tm-wrap-lower";
+            const svgId = isUpper ? "h-tm-lines-upper" : "h-tm-lines-lower";
+            const direction = isUpper ? 1 : -1;
+            const wrap = document.getElementById(wrapId);
+            const svg = document.getElementById(svgId);
+            if (!wrap || !svg) return;
+            svg.innerHTML = "";
+            const B = isUpper ? (window.h_lastBu || 16) : (window.h_lastBl || 8);
+            const rounds = Math.log2(B);
+            const nodeId = (r, i) => `h-${prefix}-r${r}-${i}`;
+            h_drawBracketLines(wrap, svg, prefix, direction, rounds, nodeId);
+            h_renderResultBadges(prefix, wrap, B, direction);
+        };
+
+        window.addEventListener("resize", () => {
+            const historyTab = document.getElementById("tab-history");
+            if (historyTab && historyTab.classList.contains("active")) {
+                if (typeof h_renderBrackets === "function") {
+                    h_renderBrackets();
+                }
+            }
+        });
 
         function h_getRankLabel(name) {
             const p = h_state.get(name); if (!p || !p.teamId) return "";
@@ -8852,6 +8976,7 @@
 
         function h_extractBracketName(el) {
             if (!el) return "";
+            if (typeof extractName === "function") return extractName(el);
             const wrap = el.querySelector(".tm-nm-wrap");
             if (wrap) return safeGetText(wrap).split('\n')[0].trim();
             return safeGetText(el).split('\n')[0].trim();

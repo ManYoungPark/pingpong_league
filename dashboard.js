@@ -84,6 +84,9 @@ function initTabs() {
             document.getElementById(targetId).classList.add("active");
 
             if (targetId === "tab-history") {
+                setTimeout(() => {
+                    if (typeof h_renderBrackets === "function") h_renderBrackets();
+                }, 30);
                 if (typeof h_fetchHistoryList === "function") h_fetchHistoryList();
             }
             if (targetId === "tab-dashboard-view") {
